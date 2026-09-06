@@ -1,162 +1,123 @@
+<div align="center">
+
 # Atrium
 
-**An operating system for a company staffed by AI agents.** One human operator. Many rooms,
-one per business function. Several agents in every room. Rooms are permission scopes, not
-decoration.
+**An operating system for a company staffed by AI agents.**
 
-The only thing inherited from games is the face: each agent is a circular persona avatar —
-an emoji on its own colour with a state ring that breathes while it works. No board, no map,
-no isometric art. Everything else is application UI.
+One human operator. Many rooms, one per business function. Several agents in every room.
+Rooms are permission scopes, not decoration.
 
-Spec and reasoning: **[prd.md](./prd.md)**.
+</div>
+
+![The Atrium desktop](docs/desktop-dark.png)
+
+---
+
+## What it is
+
+A desktop OS whose applications are your company's functions.
+
+- **Rooms are the unit.** Analytics, engineering, marketing, sales, support, finance,
+  research, strategy — and whatever you add next. A room owns an objective, a budget, a set
+  of tools, a memory, a **database identity** and an escalation policy. It is a scope before
+  it is a screen.
+- **Every room is staffed by several agents**, each with a name, a role, a persona and its
+  own step and cost budget. Agents are the workers; rooms are the departments.
+- **The shell is an operating system.** Room cards dock to the screen edges, work opens in
+  windows, a dock holds apps and rooms, a supervisor orb takes spoken instructions, and one
+  queue holds everything that needs a human.
+
+The only thing inherited from games is the face: each agent is a **circular persona avatar**
+— an emoji on its own colour with a state ring that breathes while it works. No board, no
+map, no isometric art. Everything else is application UI.
+
+---
+
+## Quick start
 
 ```bash
-createdb atrium                     # postgres 16
+createdb atrium                 # PostgreSQL 16
 npm install
-npm run setup                       # migrate + seed + build the UI
-npm run serve                       # http://localhost:8787
-npm run agents:start                # wake every agent
-npm run status                      # same state, from the terminal
-npm test                            # 13 tests: scope, budget, approval, replay
+npm run setup                   # migrate + seed + build the UI
+npm run serve                   # http://localhost:8787
+npm run agents:start            # wake every agent
+npm test                        # 20 tests: scope, budget, approval, replay, provisioning
 ```
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | backend on 8787, Vite on 5173 with `/api` proxied |
+| `npm run status` | the whole company, from the terminal |
+| `npm run agents:start [names…]` | start every agent, or the ones you name |
+| `npm run decide <id> approve\|reject` | decide one approval |
+| `npm run replay:verify` | fold the event log and diff it against live state |
+| `npm run report:thesis` | the desktop-versus-chat-list comparison |
 
 ---
 
 ## Does the operating system actually beat a chat list?
 
-**Not proven yet, and the honest answer today is "unknown".** Milestone 7 — running a real
-operating week through it — has not happened. What exists is the apparatus to settle it,
-which was built before the opinion, on purpose.
+**Not proven yet, and the honest answer today is "unknown".** Milestone 7 — a real operating
+week — has not happened. What exists is the apparatus to settle it, built before the opinion.
 
-The app ships **both surfaces over one backend**: the desktop, and `Activity` — a real chat
-list with threads, live activity and the same approvals queue, not a strawman. Both record to
-`observation_log`. `npm run report:thesis` prints the comparison and evaluates the
-pre-registered kill criteria in prd.md §1.
+Atrium ships **two surfaces over one backend**: the desktop, and **Activity** — a real chat
+list with threads, live status and the same approvals queue, deliberately not a strawman.
+Both record to `observation_log`; `npm run report:thesis` prints the comparison and evaluates
+pre-registered kill criteria (see [`prd.md`](./prd.md) §1a).
+
+**The OS loses if, over a real week:** the glance test is not ≥2× faster on the desktop;
+blocked-agent latency is not lower; escalations do not sit for less time; or the operator
+drifts back to Activity anyway. If any two fail, this section will say the chat list won.
 
 ### What a few hours of operating it did show
 
-Weak evidence, n=1, one operator, short sessions. Recorded because it is what there is:
+Weak evidence — one operator, short sessions — recorded because it is what there is.
 
-- **The calm signal works.** With ten agents running, two waiting on approval and one killed,
-  the docked room cards answer "does anything need me?" without reading a word — only rooms
-  needing a human get a coloured edge. In Activity the same judgment meant scanning threads.
-- **Peripheral awareness is real, but small at five rooms.** Five room cards fit in one
-  glance; so does a five-thread list. The claim is untested at the scale where it should
-  matter — twenty rooms, sixty agents. Overview renders 30 live room cards at **60fps**
-  (`?stress=30`), so the rendering is not the limit; the experiment is.
-- **The inbox strip, not the floor, did the most work.** Every decision the operator
-  actually made came from the bottom strip. That strip would work bolted to a chat list.
-  This is the strongest current argument *against* the thesis, and it is why the kill
-  criteria measure the glance test and not overall satisfaction.
-
-**Read this as a null result so far, not a win.** If the week's data says the chat list is
-better, this section gets rewritten to say so.
+- **The calm signal works.** With fifteen agents across nine rooms, the rails answer "does
+  anything need me?" without reading a word. Only rooms needing a human get a coloured edge.
+- **Peripheral awareness is real, but small at nine rooms.** Nine cards fit in one glance; so
+  does a nine-thread list. The claim is untested at the scale where it should matter. Overview
+  renders 30 live room cards at **60fps**, so the rendering is not the limit — the experiment is.
+- **The approvals queue, not the desktop, did the most work.** Every decision came from that
+  one list, and that list would bolt onto a chat client just as well. It is the strongest
+  current argument *against* the thesis, and why the criteria measure the glance test rather
+  than satisfaction.
 
 ---
 
 ## What is genuinely real
 
-Verified in this repository, not mocked:
+Verified in this repository, not mocked.
 
 | Room | Real effect | Evidence |
 |---|---|---|
-| **analytics** | queries a real Postgres (`bizdata`: 120 customers, 900 orders, 40 deals) through its **own DB role** | `artifact` rows with real aggregates; `atrium_analytics` can `SELECT` and cannot `UPDATE` (test) |
-| **support** | reads a real ticket table and **sends a real reply** after approval | `support.ticket` rows moving `open → answered` with the reply stored |
-| **finance** | closes the month from the real orders table | a month-end memo with real paid/refunded totals |
-| **research** | reads every room's shared notes and checks one number itself | a weekly brief citing the other rooms |
-| **engineering** | reads a real git repo, applies a real patch, runs the **real test suite**, pushes a **real branch**, opens a PR | commits in `workspace/`, branches in `workspace-remote.git`; the test suite genuinely fails before the fix and passes after |
-| **marketing** | writes a real row into the real `content_queue`, publishes only after approval | `content_queue` rows moving `draft → published` |
-| **sales** | reads pipeline and writes a real annotation, through a role granted `UPDATE (note)` on one column only | `bizdata.pipeline.note` |
-| **strategy** | reads only *shared* artifacts from other rooms, escalates to the human | escalation card in the inbox |
+| **analytics** | queries real PostgreSQL (`bizdata`: 120 customers, 900 orders, 40 deals) through its **own DB role** | reports built from real aggregates; the role can `SELECT` and cannot `UPDATE` (test) |
+| **engineering** | reads a real git repo, patches it, runs the **real test suite**, pushes a **real branch**, opens a PR | commits in `workspace/`, branches in `workspace-remote.git`; the suite genuinely fails before the fix and passes after |
+| **support** | reads a real ticket table and **sends a real reply** once approved | `support.ticket` rows moving `open → answered`, reply stored |
+| **marketing** | writes a real row into the real content queue, publishes only after approval | `content_queue` rows moving `draft → published` |
+| **finance** | closes the month from the real orders table | a memo with real paid/refunded totals |
+| **sales** | reads pipeline, writes a real annotation through a role granted `UPDATE (note)` on one column | `bizdata.pipeline.note` |
+| **research / strategy / legal** | read every room's shared notes, check a number, escalate to you | briefs citing the other rooms |
 
-**Rooms are data, not code.** Every room — including the eight that ship — is created by
-one call that writes the room row, creates its **own Postgres role**, applies exactly the
-grants its access profile allows, and inserts its agents. Settings has a **New room** form
-over the same call: name it, choose what it may reach, tick what it may do, staff it, and it
-appears on a rail with no shell code written. `test/newroom.test.ts` creates a room at
-runtime and holds it to the same scope rules as the shipped ones — that is milestone 8, and
-it is the test of whether "room" is really the unit of the system.
-
-Money, budgets, kills, approvals and the event log are all real. The agents' **reasoning**
-is not: there is no LLM API key in this environment, so agent policies are deterministic
-programs that choose real tools and do real work (`ScriptedDriver`). `LlmDriver` is the same
-interface — set `ANTHROPIC_API_KEY` and `AGENT_DRIVER=llm`. This is stated rather than
-hidden because a pretty runtime over a fake claim proves as little as a pretty dashboard
-over fake agents.
+Money, budgets, kills, approvals and the event log are all real. **Agent reasoning is not:**
+there is no LLM API key in this environment, so policies are deterministic programs that
+choose real tools and do real work. `LlmDriver` is the same interface — set
+`ANTHROPIC_API_KEY` and `AGENT_DRIVER=llm`. Stated rather than hidden, because a pretty
+runtime over a fake claim proves as little as a pretty dashboard over fake agents.
 
 Likewise `github.pr.open`: with `ATRIUM_GH_REPO` + `GH_TOKEN` it opens a pull request on
-github.com. Without them it still **really pushes the branch** to the local bare remote and
+github.com. Without them it still **really pushes the branch** to a local bare remote and
 returns `mode: "local"`. It never reports a PR that does not exist.
 
 ---
 
-## The shell
-
-An operating system, not a dashboard.
-
-**Rooms are windows.** Drag one anywhere. Drop it on the **left or right edge** and it joins
-that lane — three rooms on the left split the height and read as a rail. Drop it on the
-**top or bottom** and it becomes a full-width strip with its crew laid out horizontally.
-Drop it in a **corner** and it tucks away: 90% slides off screen, a 10% handle stays behind
-carrying the room's colour and icon; click it to bring the room back. Only rooms snap —
-agent conversations, room consoles, the floor and the activity feed float, because the work
-belongs in the middle and the furniture belongs at the edges.
-
-**The orb** is a layered sphere — two counter-rotating plasma fields under spherical shading,
-a glass dome and a rim light, ringed by 36 bars that are **driven by the real microphone**
-while it listens. At rest it is perfectly still. It sits in the menu bar and takes
-instructions — spoken where the browser will
-listen (wake word "Atrium", continuous recognition) and typed where it will not (⌘K). It
-runs and stops agents, opens rooms and teammates, switches theme, and answers *"what needs
-me?"* out loud. It deliberately **cannot approve anything**: speech recognition is the wrong
-place for an irreversible decision, so "approve the PR" brings you the card and waits for a
-click.
-
-**A docked edge is one panel**, inset 8px from the screen so it floats like a popover rather
-than a welded sidebar: rooms are sections inside it, one header, one close button, no traffic
-lights. **The sidebar** is a slide-over that closes to nothing. **The dock** is a floating
-slab: apps, then every room, then open conversations. **The wallpaper** is a generated
-landscape — layered SVG ridges, mist and water, every colour a theme token.
-
-**Nothing reads like a developer tool.** The operator is an office worker running a team of
-agents, so the interface never shows a tool name, an event type, a millisecond or a cent.
-`sql.query · touches bizdata.orders · 1¢` becomes "Looked something up in the company
-database"; `agent.killed loop_detected` becomes "Stopped — it was going in circles";
-`blast_radius: high` becomes "Leaves the company". An agent's window is a message thread with
-its work folded behind a single "2 steps" line; room windows have tabs called Activity, Files,
-Spending, History and Permissions. There is no monospace anywhere.
-
-One radius scale runs the whole app — 26 shell, 18 window, 12 card, 9 control, pills round —
-with 4-point spacing, four elevation tiers and a single glass recipe spent on exactly four
-surfaces. Type is **Google Sans, self-hosted** (`web/public/fonts`), so the app reads the
-same offline and on any machine rather than falling through to whatever the OS happens to
-have; numerals are tabular everywhere, tracking slightly tight.
-
-Apps open **centred in whatever desktop is free** — the stage minus any docked rails — and
-maximise to that same area, so a window never opens underneath a rail or hides behind one.
-
-Agents are characters: a name, a colour, a face and a one-line persona. The ring on the face
-is their state; the text beside it is what they are doing right now.
-
-**Themes and frames.** Light, dark and auto. Effects cost frames — a full-width
-`backdrop-filter`, or a rotating gradient inside a clipped circle, is free on a GPU and
-halves the frame rate in software rendering. So Atrium watches its own frame rate
-continuously and trades effects for frames when it struggles: glass becomes flat surfaces,
-the orb's core stops turning, and both return with hysteresis once the machine recovers.
-Measured in this container: **40–44fps with everything on, a steady 60fps once it adapts.**
-Settings exposes it as auto / glass / lite.
-
-**Overview** — every room and its crew on one card grid — is an app on the stage, which is
-what keeps the chat-list comparison in §Thesis honest: both surfaces are windows you open,
-neither owns the screen.
-
 ## Rooms are permission boundaries
 
-This is the load-bearing idea. If rooms were only visual grouping, a tagged chat list would
-be strictly better and this project should not exist.
+The load-bearing idea. If rooms were only visual grouping, a tagged chat list would be
+strictly better and this project should not exist.
 
-A room owns its objective, tools, budget, memory, DB credential and escalation policy.
-Every agent action passes one gate — `server/src/runtime/toolbelt.ts` — in this order:
+Every agent action passes one gate — [`runtime/toolbelt.ts`](server/src/runtime/toolbelt.ts) —
+in this order:
 
 1. **room status** — a capped or halted room runs nothing
 2. **grant check** — the tool must be in `room.tool_grants`; violations are logged and fail hard
@@ -164,11 +125,9 @@ Every agent action passes one gate — `server/src/runtime/toolbelt.ts` — in t
 4. **budget charge** — transactional, so caps halt rather than overrun
 5. **execute** — only now does anything real happen
 
-Scoping is defended twice. Above the database, by that gate. Inside it, by **per-room
-Postgres roles**: `atrium_engineering` has no grant on `bizdata`, so even a bug in our code
-cannot leak analytics data — postgres refuses.
-
-`test/scope.test.ts` exists to try the violations and assert they fail:
+Scoping is defended twice: above the database by that gate, and inside it by **per-room
+Postgres roles**. `atrium_engineering` has no grant on `bizdata`, so even a bug in our code
+cannot leak analytics data — Postgres refuses.
 
 ```
 ✓ a room cannot call a tool it was not granted        (and the refusal is logged)
@@ -182,80 +141,151 @@ cannot leak analytics data — postgres refuses.
 
 ---
 
+## Rooms are data, not code
+
+<img src="docs/new-room.png" alt="Creating a room" width="100%">
+
+Adding a function to the company is a form, not a deploy. One call — `provisionRoom` —
+writes the room, creates its **own Postgres role**, applies exactly the grants its access
+profile allows, and inserts its agents. The rooms that ship go through that same call; if
+seeding kept a private path, "a room is data" would only be true of rooms created later.
+
+Jobs declare the tools they need, so a room that would hire for work it cannot do is refused
+at creation and the gap is shown while you are still filling the form in.
+
+`test/newroom.test.ts` creates a room at runtime and holds it to the same rules as the
+shipped ones — that is **milestone 8**, and the test of whether "room" is really the unit of
+the system or just eight hard-coded panels in a costume.
+
+---
+
 ## Hard requirements, and what proves each
 
 | # | Requirement | Where | Proof |
 |---|---|---|---|
 | R1 | every action logged and replayable | `event` is append-only; `src/replay.ts` folds it | `npm run replay:verify` → *replay matches live state exactly* |
-| R2 | nothing irreversible without approval | toolbelt step 3; the card carries action, cost, touches | `test/budget.test.ts`: an approval is single-use and bound to its arguments |
-| R3 | caps halt, never overrun | `runtime/budget.ts`, charged in the same transaction | test: 3¢ cap, 1¢ tool — spends exactly 3¢, room goes `capped`, the over-cap call has **no** side effect |
+| R2 | nothing irreversible without approval | toolbelt step 3; the card carries action, cost, touches | an approval is single-use and bound to its arguments (test) |
+| R3 | caps halt, never overrun | `runtime/budget.ts`, charged in the same transaction | 3¢ cap, 1¢ tool — spends exactly 3¢, room goes `capped`, the over-cap call has **no** side effect |
 | R4 | loops killed by budget, not by noticing | step budget, cost budget, repeat-signature detector | the seeded `Rex` agent spins on purpose and dies `killed: loop_detected` |
-| R5 | state survives refresh | agents run server-side; the browser holds none | runs keep stepping with **zero browsers connected** (verified: the log grew 463 → 479 events with no client); the UI reconnects and re-reads |
+| R5 | state survives refresh | agents run server-side; the browser holds none | runs keep stepping with zero browsers connected |
 
-Plus a global **Stop everything** switch that refuses every tool call while engaged.
-
----
-
-## Rendering: DOM won
-
-The PRD left canvas vs DOM open, to be settled by measurement. Plain DOM with
-`contain: content`, per-room memoisation and one rAF-coalesced render per frame holds
-**60fps at 30 live widgets** (`http://localhost:8787/?stress=30`, fps counter in the
-top bar). Canvas would have cost hit-testing, text layout and accessibility for no gain.
+Plus a global **Stop all** that refuses every tool call while engaged.
 
 ---
 
-## Open decisions — defaults taken
+## The shell
 
-Raised before coding, per the spec. No human was reachable when the build started, so each
-was taken as a reversible default, marked `DECISION:` in code and argued in prd.md §7.
+<table>
+<tr>
+<td width="55%"><img src="docs/agent.png" alt="An agent's workspace"></td>
+<td width="45%"><img src="docs/approvals.png" alt="The approvals queue"></td>
+</tr>
+</table>
 
-- **D1 — build the runtime, don't wrap an orchestrator.** The product claim *is* the
-  scoping/interruption layer that every orchestrator owns. ~400 lines. Reasoning stays
-  pluggable behind `LlmDriver`.
-- **D2 — gate on blast radius, not a fixed rule.** `low` runs free, `medium` runs and
-  notifies, `high` (irreversible or public) always asks. "Approve and always" can raise
-  autonomy per room but never below `high`.
-- **D3 — shared artifact store, no cross-room messaging in v1.** Messaging is the fastest
-  way to dissolve the boundary the design rests on. If strategy genuinely stalls without it,
-  that shows up as blocked agents — which is itself a test of the desktop.
+**Rooms are windows.** Drag one anywhere. Drop it on the **left or right edge** and it joins
+that rail; on the **top or bottom** and it becomes a strip; in a **corner** and it tucks away
+— 90% off screen with a 10% handle in the room's colour. Only rooms snap; work floats,
+because the work belongs in the middle and the furniture at the edges.
 
-Each is cheap to reverse. If any turns out wrong, that goes here too.
+<img src="docs/orb.png" alt="The supervisor orb" width="360" align="right">
+
+**The orb** is a layered sphere — two counter-rotating plasma fields under spherical shading,
+a glass dome, a rim light — ringed by 36 bars **driven by the real microphone** while it
+listens. It runs and stops agents, opens rooms and teammates, switches theme and answers
+*"what needs me?"* aloud. It deliberately **cannot approve anything**: speech recognition is
+the wrong place for an irreversible decision, so "approve the PR" brings you the card and
+waits for a click.
+
+**Apps open centred in the free desktop** — the stage minus any docked rails — and maximise
+to that same area, so a window never opens underneath a rail.
+
+**Nothing reads like a developer tool.** The operator is an office worker running a team of
+agents, so the interface never shows a tool name, an event type, a millisecond or a cent.
+`sql.query · touches bizdata.orders · 1¢` becomes *"Looked something up in the company
+database"*; `agent.killed loop_detected` becomes *"Stopped — it was going in circles"*;
+`blast_radius: high` becomes *"Leaves the company"*. There is no monospace anywhere.
+
+One radius scale runs the whole app — 26 shell, 18 window, 12 card, 9 control, pills round —
+with 4-point spacing, four elevation tiers and a single glass recipe on exactly four
+surfaces. Type is **Google Sans, self-hosted**, so it reads the same offline and on any
+machine.
+
+**Themes and frames.** Light, dark and auto. Effects cost frames — a full-width
+`backdrop-filter`, or a rotating gradient inside a clipped circle, is free on a GPU and
+halves the frame rate in software rendering. So Atrium watches its own frame rate
+continuously and trades effects for frames when it struggles: glass becomes flat, the orb's
+core stops turning, and both return with hysteresis. **40–44fps with everything on becomes a
+steady 60 once it adapts.**
+
+![Light mode](docs/desktop-light.png)
+
+---
+
+## Overview
+
+<img src="docs/overview.png" alt="Overview" width="100%">
+
+Every room and its crew on one card grid — an app on the stage, not the whole screen, which
+is what keeps the chat-list comparison honest: both surfaces are windows you open.
 
 ---
 
 ## Layout
 
 ```
-prd.md                  the spec, thesis and kill criteria
-db/migrations/          schema + the real bizdata business schema
+prd.md                       the spec, thesis and kill criteria
+db/migrations/               schema, the business data, the support desk
 server/src/
-  runtime/toolbelt.ts   the single gate every agent action passes
-  runtime/budget.ts     transactional spend caps that halt
-  runtime/scheduler.ts  the step loop, kills, approval parking
-  tools/                real tools: postgres, git, github, content queue
-  policies/             what each agent does, step by step
-  replay.ts             the fold that defines what the projections mean
+  provision.ts               a room is data: role, grants, agents, from one description
+  runtime/toolbelt.ts        the single gate every agent action passes
+  runtime/budget.ts          transactional spend caps that halt
+  runtime/scheduler.ts       the step loop, kills, approval parking
+  replay.ts                  the fold that defines what the projections mean
+  tools/                     real tools: postgres, git, github, tickets, content queue
+  policies/                  what each agent does, step by step
 web/src/
   desktop/wm.ts              window manager: snap lanes, corner tucking, z-order
-  desktop/Window.tsx         chrome, dragging, edge detection
-  desktop/RoomWindow.tsx     a room as a window: crew, spend, state
-  desktop/Supervisor.tsx     the orb — voice and text
-  desktop/commands.ts        its deterministic grammar (it will not approve by voice)
+  desktop/Orb.tsx            the supervisor: sphere, ring, microphone
+  desktop/commands.ts        its grammar — deliberately deterministic, never approves
   desktop/Wallpaper.tsx      the generated landscape
-  desktop/Sidebar.tsx        approvals as a slide-over
-  desktop/MenuBar.tsx        spend, notifications, theme, panic
-  desktop/Dock.tsx           apps, rooms, open conversations
-  lib/theme.ts               light / dark / auto
-  lib/perf.ts                measures itself, drops transparency rather than frames
-  apps/AgentApp.tsx          an agent's live conversation — the centre of the desktop
-  apps/RoomApp.tsx           room console: log, artifacts, spend, scope
-  apps/InboxApp.tsx          approvals: action, cost, what it touches
-  components/ListView.tsx    the chat-list control view
-workspace/              a real git repo the engineering room really edits
+  apps/AgentApp.tsx          a teammate's workspace: tasks left, conversation right
+  apps/NewRoom.tsx           the room creator
+  lib/humanize.ts            one place that turns the system's language into English
+  lib/perf.ts                measures itself, drops effects rather than frames
+workspace/                   a real git repo the engineering room really edits
 ```
+
+---
+
+## Open decisions
+
+Each was taken as a reversible default and is argued in [`prd.md`](./prd.md) §7.
+
+- **D1 — build the runtime, don't wrap an orchestrator.** The product claim *is* the
+  scoping and interruption layer every orchestrator owns. ~400 lines; reasoning stays
+  pluggable behind `LlmDriver`.
+- **D2 — gate on blast radius, not a fixed rule.** `low` runs free, `medium` runs and
+  notifies, `high` — irreversible or public — always asks. "Approve and always" can raise
+  autonomy per room but never below `high`.
+- **D3 — shared artifact store, no cross-room messaging in v1.** Messaging is the fastest
+  way to dissolve the boundary the design rests on.
+
+---
+
+## Milestones
+
+| | | |
+|---|---|---|
+| 1 | Data model and scoped permissions | ✅ |
+| 2 | One room, one real working agent | ✅ |
+| 3 | Live state streaming to the UI | ✅ |
+| 4 | Approval and escalation queue | ✅ |
+| 5 | Budgets and kill switches | ✅ |
+| 6 | Three rooms doing real work concurrently | ✅ |
+| 7 | Run a real week through it, and write the verdict | ⬜ needs an operator |
+| 8 | Add a room without touching the shell | ✅ |
 
 ## Not in v1
 
-Multi-human teams, agent-to-agent negotiation, a marketplace, mobile, any game surface
+Multi-human teams. Agent-to-agent negotiation. A marketplace. Mobile. Any game surface
 beyond the circular persona avatar.
