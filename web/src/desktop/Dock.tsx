@@ -2,7 +2,7 @@ import type { Win } from './wm';
 import type { Agent, Inbox } from '../lib/api';
 
 const APPS = [
-  { kind: 'floor'    as const, icon: '🗺️', label: 'Floor' },
+  { kind: 'floor'    as const, icon: '🗺️', label: 'Overview' },
   { kind: 'list'     as const, icon: '📜', label: 'Activity' },
   { kind: 'inbox'    as const, icon: '📥', label: 'Approvals' },
   { kind: 'settings' as const, icon: '⚙️', label: 'Settings' },

@@ -1,46 +1,70 @@
 # Atrium — PRD v1
 
-A game-style operations floor for running a company staffed by AI agents.
-One human operator. Many concurrent agents. Rooms are permission scopes, not decoration.
+**An operating system for a company staffed by AI agents.**
+One human operator. Many rooms, one per business function. Several agents in every room.
+Rooms are permission scopes, not decoration.
 
-Status: draft, milestone 1–6 in build. Owner: solo operator (nvkudva@gmail.com).
+Status: draft, milestones 1–6 built. Owner: solo operator (nvkudva@gmail.com).
 
 ---
 
-## 1. Thesis
+## 1. What Atrium is
 
-**For a solo operator running many concurrent agents, a spatial floor plan beats a chat list.**
+A desktop OS whose applications are your company's functions.
+
+- **Rooms are the units of the system.** Analytics, engineering, marketing, sales, strategy —
+  and any function you add later: finance, support, legal, recruiting, research. A room owns
+  an objective, a budget, a set of tools, a memory, a database identity and an escalation
+  policy. It is a scope before it is a screen.
+- **Every room is staffed by several agents**, each with a name, a role, a persona and its
+  own step and cost budget. Agents are the workers; rooms are the departments they work in.
+- **The shell is an operating system**, not a dashboard: room panels dock to the screen
+  edges, work opens in windows on a stage, a dock holds apps and rooms, a supervisor orb
+  takes spoken instructions, and one queue holds everything that needs a human.
+
+**The only thing inherited from games is the face.** Each agent is a **circular persona
+avatar** — an emoji face on its own colour, with a state ring that breathes while it works.
+That single affordance is what makes twenty concurrent agents legible as *people doing
+things* rather than rows in a table. There is no board, no map, no isometric art, no score,
+no animation beyond that ring. Everything else is Mac-grade application UI.
+
+## 1a. Thesis
+
+**For a solo operator running many concurrent agents, an operating system beats a chat list.**
 
 Chat forces serial attention: one thread at a time, history scrolls away, and "is anything
-stuck?" costs a scan of N conversations. A floor plan gives constant peripheral awareness —
-what runs, what blocks, what needs the human — in one glance.
+stuck?" costs a scan of N conversations. An OS gives scoped workspaces, parallel windows,
+peripheral awareness of every room at once, and one place where decisions queue up.
 
 ### How we kill it
 
-The thesis is falsifiable or it is decoration. Atrium ships **two views over one backend**:
+The thesis is falsifiable or it is decoration. Atrium ships **two surfaces over one backend**:
 
-| View | Route | What it is |
-|---|---|---|
-| Floor | `/` | Spatial grid of room widgets, agents inside |
-| List | `/list` | Chat-list control: flat feed of agent threads, newest first |
+| Surface | What it is |
+|---|---|
+| **The desktop** | rooms docked at the edges, work in windows, approvals in one queue |
+| **Activity** | chat-list control: a flat feed of agent threads, newest first |
 
-Same data, same events, same inbox. We measure the operator on both.
+Same data, same events, same approvals queue. We measure the operator on both.
 
-**Kill criteria — the floor plan loses if, over a real operating week:**
+**Kill criteria — the OS loses if, over a real operating week:**
 
 1. **Glance test.** Median time to correctly answer "does anything need me right now?"
-   is not at least **2× faster** on Floor than on List.
+   is not at least **2× faster** on the desktop than in Activity.
 2. **Blocked-agent latency.** Median time from an agent entering `blocked` to the operator
-   opening it is not lower on Floor.
-3. **Missed escalations.** Floor does not reduce the count of escalations sitting >30 min.
-4. **Actual usage.** The operator drifts back to List for real work despite Floor being default.
+   opening it is not lower on the desktop.
+3. **Missed escalations.** The desktop does not reduce the count of escalations sitting
+   >30 min.
+4. **Actual usage.** The operator drifts back to Activity for real work despite the desktop
+   being default.
 
 If any two of those fail, the README says the chat list won. That is a finding, not a failure.
 
 ### Instrumentation (built, not retrofitted)
 
-Every view records to `observation_log`: view mode, dwell time, click target, and for
-glance tests, the prompt/answer/latency triple. `npm run report:thesis` prints the table.
+Every surface records to `observation_log`: which view, dwell time, what was clicked, and for
+glance tests the prompt/answer/latency triple. `npm run report:thesis` prints the table and
+evaluates the criteria above.
 
 ---
 
@@ -65,7 +89,10 @@ job is to try the violations and assert they fail.
 This is what makes the metaphor earn its place. If rooms were only visual grouping, a
 chat list with tags would be strictly better and we should ship that instead.
 
-### Rooms in v1
+### Rooms shipped in v1
+
+Five functions, each staffed by two agents. The set is a starting point, not the model —
+adding a room is a row plus a tool grant plus a database role.
 
 | Room | Objective | Real work | Tools | Blast radius |
 |---|---|---|---|---|
@@ -75,8 +102,10 @@ chat list with tags would be strictly better and we should ship that instead.
 | **sales** | pipeline hygiene | reads/annotates CRM tables in Postgres | `sql.query`, `crm.note` | medium |
 | **strategy** | synthesize across artifacts | reads the shared artifact store | `artifact.read`, `artifact.write` | low |
 
-Sales and strategy are real but thin in v1. Analytics, engineering, marketing are the
-three wired to genuine external effects, per the "make it real" requirement.
+Analytics, engineering and marketing are wired to genuine external effects; sales and
+strategy are real but narrower. **A new room is three things**: a row in `room` with its
+tool grants and budget, a Postgres role with exactly the grants that room should have, and
+one or more agents pointed at a policy. Nothing in the shell is per-room code.
 
 ---
 
@@ -117,18 +146,18 @@ Room and agent tables are a materialized projection, rebuildable with
 
 ## 4. The UI — an operating system
 
-Atrium is shaped like a desktop OS, because that is what running a company of agents is:
-many things alive at once, one of them in front of you, the rest parked where you left them.
+Atrium is a desktop OS, because that is what running a company of agents is: many things
+alive at once, one of them in front of you, the rest parked where you left them.
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
-│ ◍ Atrium  Floor Activity Settings Glance    ◉orb    fps $ 🌙 🔔 Stop│  menu bar
+│ ◍ Atrium  Overview Activity Settings Glance  ◉orb  fps $ 🌙 🔔 Stop│  menu bar
 ├──────────┬──────────────────────────────────────────┬─────────────┤
 │ Analytics│                                          │ Sales       │
 │  Ada Bo  │                                          │  Sam        │
 ├──────────┤          THE STAGE                       ├─────────────┤
-│ Engineer │   agent conversations · room consoles    │ Strategy    │
-│  Kit Rex │   the floor · the activity feed          │  Iris       │
+│ Engineer │   agent workspaces · room consoles       │ Strategy    │
+│  Kit Rex │   the overview · the activity feed       │  Iris       │
 ├──────────┤   free-floating, dragged, resized        │             │
 │ Marketing│                                          │        ┌──┐ │
 │  Mel     │                                          │        │◇ │ │ tucked
@@ -150,9 +179,13 @@ desktop, resizable, closable, relaunchable from the dock. What makes rooms speci
 | Any corner | **tucks away**: 90% slides off screen, a 10% handle stays behind, carrying the room's colour and icon. Click it to bring the room back |
 | Anywhere else | stays floating, like any other window |
 
-App windows — agent conversations, room consoles, the floor, the activity feed — never
+App windows — agent workspaces, room consoles, the overview, the activity feed — never
 snap. They float. The distinction is deliberate: rooms are the furniture of the workspace
 and want to live at the edges; the work itself belongs in the middle.
+
+A docked edge is a **column of room cards**, not a grouped panel: each room is its own
+surface with its own rounded edge, no wrapper and no group header, the way widgets sit on a
+desktop.
 
 Rooms park themselves on the rails on first boot, so Atrium opens looking arranged rather
 than empty. Everything after that is the operator's layout.
@@ -160,7 +193,7 @@ than empty. Everything after that is the operator's layout.
 ### The supervisor orb
 
 A 34px orb in the middle of the menu bar — the visual centre of the app. It watches the
-floor and takes instructions, **spoken** where the browser will listen (continuous
+company and takes instructions, **spoken** where the browser will listen (continuous
 recognition, wake word "Atrium") and **typed** where it will not (⌘K). Its ring is a status
 light of its own: quiet when calm, violet when something needs a human, green while
 listening.
@@ -210,6 +243,9 @@ readback.
 - **Dock** — a floating slab: apps, then every room, then open conversations. 48px tiles,
   magnified on hover, running dots, a badge for pending approvals.
 - **Wallpaper** — a generated landscape whose every colour is a theme token.
+- **Agent avatars** — the one game-derived element: a coloured disc, an emoji face, a state
+  ring. Used identically in the room cards, the dock, the approvals queue and the agent's
+  own window, so the same person is recognisable everywhere.
 
 ### Windows people can actually read
 
@@ -266,11 +302,13 @@ claim can still be measured against it (§1).
 
 1. **Data model + scoped permissions** — schema, DAL, `ScopeViolation`, scope test suite.
 2. **One room, one real agent** — analytics agent queries the real Postgres end to end.
-3. **Live state streaming** — SSE from the event bus; floor renders from it.
+3. **Live state streaming** — SSE from the event bus; the desktop renders from it.
 4. **Approval + escalation inbox** — cards with action/cost/touches; decisions gate tools.
 5. **Budgets and kill switches** — caps halt; step/cost/loop kills; global panic stop.
 6. **Three rooms doing real work concurrently** — analytics + engineering PR + marketing queue.
 7. **Run a real week through it** — collect `observation_log`, write the verdict in README.
+8. **Add a sixth room without touching the shell** — the test of whether "room" is really the
+   unit of the system, or just five hard-coded panels wearing a costume.
 
 ---
 
@@ -312,14 +350,15 @@ explicitly out of scope, and it is the fastest way to dissolve the room boundary
 whole design rests on. Rooms publish artifacts; other rooms read them through an explicit
 `artifact.read` grant, which is logged and revocable. If strategy genuinely cannot work
 without asking analytics a question, that is evidence for messaging in v2 — and it will
-show up as strategy agents blocking, which the floor plan should make obvious. Good test.
+show up as strategy agents blocking, which the desktop should make obvious. Good test.
 
 ---
 
 ## 8. Out of scope for v1
 
-Multi-human teams. Agent-to-agent negotiation. A marketplace. Mobile. Isometric art or
-animation polish. Anything decorative that does not carry state.
+Multi-human teams. Agent-to-agent negotiation. A marketplace. Mobile. Any game surface
+beyond the circular persona avatar — no board, no map, no isometric art, no score, no
+animation that is not a state. Anything decorative that does not carry state.
 
 ---
 

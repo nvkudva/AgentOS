@@ -1,7 +1,7 @@
 import { RoomWidget } from '../components/RoomWidget';
 import type { Room, Agent } from '../lib/api';
 
-/** The spatial overview, now one app on the desktop rather than the whole screen. */
+/** Every room and its crew on one card grid — the thesis instrument, as an app. */
 export function FloorApp({ rooms, agents, onOpen }:
   { rooms: Room[]; agents: Agent[]; onOpen: (r: Room) => void }) {
   return (

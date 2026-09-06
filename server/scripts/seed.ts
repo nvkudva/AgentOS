@@ -46,14 +46,20 @@ const AGENTS: Record<string, AgentSeed[]> = {
   marketing: [
     { name: 'Mel',  role: 'writer',     policy: 'marketing.launch', avatar: '✒️', color: '#e0794b',
       persona: 'Writes plainly, cites the analytics room, never publishes without asking.' },
+    { name: 'Nia',  role: 'editor',     policy: 'marketing.launch', avatar: '🗞️', color: '#d9a441',
+      persona: 'Second pair of eyes. Cuts a draft by a third before it goes anywhere.' },
   ],
   sales: [
     { name: 'Sam',  role: 'rep',        policy: 'sales.hygiene',    avatar: '📇', color: '#3fb27f',
       persona: 'Pipeline janitor. Flags stale deals before they rot.' },
+    { name: 'Tor',  role: 'analyst',    policy: 'sales.hygiene',    avatar: '📊', color: '#57b6a0',
+      persona: 'Reads the pipeline as numbers, not stories. Blunt about what is dead.' },
   ],
   strategy: [
     { name: 'Iris', role: 'strategist', policy: 'strategy.synth',   avatar: '🧭', color: '#a472e0',
       persona: 'Reads every room, commits to nothing without asking you first.' },
+    { name: 'Val',  role: 'researcher', policy: 'strategy.synth',   avatar: '🔎', color: '#c07fd6',
+      persona: 'Digs for the thing nobody asked about. Slow, occasionally right.' },
   ],
 };
 

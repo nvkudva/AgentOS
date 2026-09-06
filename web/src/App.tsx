@@ -59,7 +59,7 @@ export default function App() {
   const openAgent = useCallback((a: Agent) => {
     observe(VIEW, 'agent.open', { agent: a.name });
     open({ id: `agent:${a.id}`, kind: 'agent', ref: a.id, title: `${a.name} — ${a.role}`,
-           icon: a.avatar, color: a.color, ...place(720, 540) });
+           icon: a.avatar, color: a.color, ...place(880, 560) });
   }, [open, place]);
 
   const openRoomWindow = useCallback((r: Room, side?: 'left' | 'right') => {
@@ -76,7 +76,7 @@ export default function App() {
   const launch = useCallback((k: 'floor' | 'list' | 'inbox' | 'settings') => {
     if (k === 'inbox') { setSidebar(true); return; }
     const meta: Record<string, [string, string, string]> = {
-      floor: ['🗺️', 'Floor', '#7f93b5'], list: ['📜', 'Activity', '#7f93b5'], settings: ['⚙️', 'Settings', '#7f93b5'],
+      floor: ['🗺️', 'Overview', '#7f93b5'], list: ['📜', 'Activity', '#7f93b5'], settings: ['⚙️', 'Settings', '#7f93b5'],
     };
     open({ id: k, kind: k, title: meta[k][1], icon: meta[k][0], color: meta[k][2],
            ...place(k === 'floor' ? 900 : 740, k === 'floor' ? 580 : 520) });
@@ -159,7 +159,7 @@ export default function App() {
           return (
             <LanePanel key={e} edge={e} rect={l.rect} wins={l.wins} rooms={snap.rooms} agents={snap.agents}
                        activeId={activeId} onAgent={openAgent} onConsole={openRoomConsole} onGrab={grab}
-                       onClose={() => l.wins.forEach((w) => close(w.id))} />
+                       onClose={close} />
           );
         })}
 

@@ -1,7 +1,12 @@
 # Atrium
 
-A floor plan for running a company staffed by AI agents. One human. Many concurrent agents.
-Rooms are permission scopes, not decoration.
+**An operating system for a company staffed by AI agents.** One human operator. Many rooms,
+one per business function. Several agents in every room. Rooms are permission scopes, not
+decoration.
+
+The only thing inherited from games is the face: each agent is a circular persona avatar —
+an emoji on its own colour with a state ring that breathes while it works. No board, no map,
+no isometric art. Everything else is application UI.
 
 Spec and reasoning: **[prd.md](./prd.md)**.
 
@@ -17,14 +22,14 @@ npm test                            # 13 tests: scope, budget, approval, replay
 
 ---
 
-## Does the spatial view actually beat a chat list?
+## Does the operating system actually beat a chat list?
 
 **Not proven yet, and the honest answer today is "unknown".** Milestone 7 — running a real
 operating week through it — has not happened. What exists is the apparatus to settle it,
 which was built before the opinion, on purpose.
 
-The app ships **both views over one backend**: `Floor` and `List`. `List` is a real chat
-list — threads, live activity, the same inbox — not a strawman. Both record to
+The app ships **both surfaces over one backend**: the desktop, and `Activity` — a real chat
+list with threads, live activity and the same approvals queue, not a strawman. Both record to
 `observation_log`. `npm run report:thesis` prints the comparison and evaluates the
 pre-registered kill criteria in prd.md §1.
 
@@ -32,13 +37,13 @@ pre-registered kill criteria in prd.md §1.
 
 Weak evidence, n=1, one operator, short sessions. Recorded because it is what there is:
 
-- **The calm signal works.** With seven agents running, two waiting on approval and one
-  killed, the floor answers "does anything need me?" without reading a word — only rooms
-  needing a human get a coloured edge. In `List` the same judgment meant scanning threads.
-- **Peripheral awareness is real, but small at five rooms.** Five widgets fit in one glance;
-  so does a five-thread list. The spatial claim is untested at the scale where it should
-  matter. `?stress=30` renders 30 live widgets at **60fps**, so the rendering is not the
-  limit — the experiment is.
+- **The calm signal works.** With ten agents running, two waiting on approval and one killed,
+  the docked room cards answer "does anything need me?" without reading a word — only rooms
+  needing a human get a coloured edge. In Activity the same judgment meant scanning threads.
+- **Peripheral awareness is real, but small at five rooms.** Five room cards fit in one
+  glance; so does a five-thread list. The claim is untested at the scale where it should
+  matter — twenty rooms, sixty agents. Overview renders 30 live room cards at **60fps**
+  (`?stress=30`), so the rendering is not the limit; the experiment is.
 - **The inbox strip, not the floor, did the most work.** Every decision the operator
   actually made came from the bottom strip. That strip would work bolted to a chat list.
   This is the strongest current argument *against* the thesis, and it is why the kill
@@ -125,9 +130,9 @@ surfaces if it cannot hold 60fps — Settings exposes it as auto / glass / lite.
 this container: **33fps with full glass, 60fps in lite**, which is why the fallback exists
 rather than being a claim about hardware nobody has.
 
-The Floor — the spatial room grid — survives as one app on the stage, which is what keeps
-the chat-list comparison in §Thesis honest: both views are windows you open, neither owns
-the screen.
+**Overview** — every room and its crew on one card grid — is an app on the stage, which is
+what keeps the chat-list comparison in §Thesis honest: both surfaces are windows you open,
+neither owns the screen.
 
 ## Rooms are permission boundaries
 
@@ -197,7 +202,7 @@ was taken as a reversible default, marked `DECISION:` in code and argued in prd.
   autonomy per room but never below `high`.
 - **D3 — shared artifact store, no cross-room messaging in v1.** Messaging is the fastest
   way to dissolve the boundary the design rests on. If strategy genuinely stalls without it,
-  that shows up as blocked agents — which is itself a test of the floor plan.
+  that shows up as blocked agents — which is itself a test of the desktop.
 
 Each is cheap to reverse. If any turns out wrong, that goes here too.
 
@@ -236,4 +241,5 @@ workspace/              a real git repo the engineering room really edits
 
 ## Not in v1
 
-Multi-human teams, agent-to-agent negotiation, a marketplace, mobile, isometric art.
+Multi-human teams, agent-to-agent negotiation, a marketplace, mobile, any game surface
+beyond the circular persona avatar.

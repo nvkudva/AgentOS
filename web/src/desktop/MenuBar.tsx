@@ -18,7 +18,7 @@ export function MenuBar({ config, inbox, fps, needsMe, view, theme, setTheme, ct
     <div className="menubar">
       <span className="logo">◍</span>
       <b>Atrium</b>
-      <span className="menu" onClick={() => onOpen('floor')}>Floor</span>
+      <span className="menu" onClick={() => onOpen('floor')}>Overview</span>
       <span className="menu" onClick={() => onOpen('list')}>Activity</span>
       <span className="menu" onClick={() => onOpen('settings')}>Settings</span>
       <GlanceTest view={view} truth={needsMe} />
