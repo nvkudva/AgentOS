@@ -1,0 +1,22 @@
+{
+  "name": "atrium",
+  "private": true,
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "setup": "npm run migrate && npm run seed && npm -w web run build",
+    "serve": "./scripts/serve.sh start",
+    "stop": "./scripts/serve.sh stop",
+    "dev": "concurrently -n server,web -c cyan,magenta \"npm -w server run start\" \"npm -w web run dev\"",
+    "migrate": "npm -w server run migrate",
+    "seed": "npm -w server run seed",
+    "replay": "npm -w server run replay",
+    "replay:verify": "npm -w server exec -- tsx scripts/replay.ts --verify",
+    "status": "npm -w server exec -- tsx scripts/status.ts",
+    "agents:start": "npm -w server exec -- tsx scripts/start.ts",
+    "agents:reset": "npm -w server exec -- tsx scripts/reset-agents.ts",
+    "decide": "npm -w server exec -- tsx scripts/decide.ts",
+    "test": "npm -w server run test",
+    "report:thesis": "npm -w server run report:thesis"
+  },
+  "devDependencies": { "concurrently": "^9.1.0", "playwright": "^1.49.1" }
+}

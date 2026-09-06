@@ -1,0 +1,6 @@
+node_modules/
+web/dist/
+.atrium.pid
+workspace/
+workspace-remote.git/
+*.log
