@@ -56,22 +56,36 @@ export function useWindows() {
  * between them, which is what makes "snap to the side" feel like a rail rather than
  * one window covering the others. Corner-tucked rooms keep a 10% handle on screen.
  */
-export function layout(wins: Win[], stage: { w: number; h: number }): Map<string, Rect> {
-  const out = new Map<string, Rect>();
-  const lane = (e: Edge) => wins.filter((w) => w.snap === e && !w.peek && !w.min);
+export type Lanes = Record<Edge, { wins: Win[]; rect: Rect } | null>;
 
-  const L = lane('left'), R = lane('right'), T = lane('top'), B = lane('bottom');
+/** One docked edge = ONE panel holding its rooms as sections, not N stacked windows. */
+export function lanes(wins: Win[], stage: { w: number; h: number }): Lanes {
+  const of = (e: Edge) => wins.filter((w) => w.snap === e && !w.peek && !w.min);
+  const L = of('left'), R = of('right'), T = of('top'), B = of('bottom');
   const lw = L.length ? LANE : 0, rw = R.length ? LANE : 0;
   const th = T.length ? STRIP : 0, bh = B.length ? STRIP : 0;
   const midW = Math.max(120, stage.w - lw - rw);
+  // The 8px inset is what makes a docked rail read as a floating popover rather
+  // than a panel welded to the window edge.
+  const G = 8;
+  return {
+    left:   L.length ? { wins: L, rect: { left: G, top: G, width: lw - G * 2, height: stage.h - G * 2 } } : null,
+    right:  R.length ? { wins: R, rect: { left: stage.w - rw + G, top: G, width: rw - G * 2, height: stage.h - G * 2 } } : null,
+    top:    T.length ? { wins: T, rect: { left: lw + G, top: G, width: midW - G * 2, height: th - G * 2 } } : null,
+    bottom: B.length ? { wins: B, rect: { left: lw + G, top: stage.h - bh + G, width: midW - G * 2, height: bh - G * 2 } } : null,
+  };
+}
 
-  L.forEach((w, i) => out.set(w.id, { left: 0, top: (stage.h / L.length) * i, width: lw, height: stage.h / L.length }));
-  R.forEach((w, i) => out.set(w.id, { left: stage.w - rw, top: (stage.h / R.length) * i, width: rw, height: stage.h / R.length }));
-  T.forEach((w, i) => out.set(w.id, { left: lw + (midW / T.length) * i, top: 0, width: midW / T.length, height: th }));
-  B.forEach((w, i) => out.set(w.id, { left: lw + (midW / B.length) * i, top: stage.h - bh, width: midW / B.length, height: bh }));
+/** Geometry for everything that is NOT inside a lane. */
+export function layout(wins: Win[], stage: { w: number; h: number }): Map<string, Rect> {
+  const out = new Map<string, Rect>();
+  const ln = lanes(wins, stage);
+  const lw = ln.left?.rect.width ?? 0, rw = ln.right?.rect.width ?? 0;
+  const th = ln.top?.rect.height ?? 0, bh = ln.bottom?.rect.height ?? 0;
+  const midW = Math.max(120, stage.w - lw - rw);
 
   for (const w of wins) {
-    if (out.has(w.id)) continue;
+    if (w.snap && !w.peek && !w.min) continue;   // lives in a lane panel
     if (w.peek) {
       // 90% off the edge, 10% left to grab — and that 10% is kept fully on screen,
       // clear of the dock, so the handle is always clickable.

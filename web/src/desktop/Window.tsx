@@ -8,6 +8,8 @@ type P = {
 };
 
 export function Window({ win, rect, children, stage, onFocus, onClose, onPatch, onZone }: P) {
+  // Rooms are surfaces, not applications: no traffic lights, one close affordance.
+  const plain = win.snappable;
   const drag = useRef<any>(null);
   const dropped = useRef(0);          // a click always follows pointerup; ignore that one
   const docked = !!win.snap;
@@ -54,7 +56,7 @@ export function Window({ win, rect, children, stage, onFocus, onClose, onPatch, 
 
   return (
     <section
-      className={`win${win.min ? ' hidden' : ''}${docked ? ' docked' : ''}${win.peek ? ` peeking ${win.peek}` : ''}`}
+      className={`win${win.min ? ' hidden' : ''}${plain ? ' plain' : ''}${docked ? ' docked' : ''}${win.peek ? ` peeking ${win.peek}` : ''}`}
       style={{ ...rect, zIndex: win.peek ? 60 : win.z, ['--c' as any]: win.color }}
       onPointerDown={onFocus}
       onClick={() => {
@@ -64,14 +66,22 @@ export function Window({ win, rect, children, stage, onFocus, onClose, onPatch, 
     >
       <header className="win-bar" onPointerDown={(e) => down(e, 'move')} onPointerMove={move}
               onPointerUp={up} onDoubleClick={() => win.snappable ? onPatch({ snap: null, peek: null }) : onPatch({ max: !win.max })}>
-        <span className="lights">
-          <button className="l red" onClick={onClose} title="close" />
-          <button className="l yellow" onClick={() => onPatch({ min: true })} title="minimise" />
-          <button className="l green" onClick={() => onPatch(win.snappable ? { snap: null, peek: null } : { max: !win.max })}
-                  title={win.snappable ? 'undock' : 'zoom'} />
-        </span>
-        {!docked && <span className="win-title"><span className="wt-icon">{win.icon}</span> {win.title}</span>}
-        {docked && <span className="dockedge" title={`docked ${win.snap}`} />}
+        {plain ? (
+          <>
+            <span className="win-title plain"><span className="wt-icon">{win.icon}</span> {win.title}</span>
+            <span className="spacer" />
+            <button className="x lights" onClick={onClose} title="close">✕</button>
+          </>
+        ) : (
+          <>
+            <span className="lights">
+              <button className="l red" onClick={onClose} title="close" />
+              <button className="l yellow" onClick={() => onPatch({ min: true })} title="minimise" />
+              <button className="l green" onClick={() => onPatch({ max: !win.max })} title="zoom" />
+            </span>
+            <span className="win-title"><span className="wt-icon">{win.icon}</span> {win.title}</span>
+          </>
+        )}
       </header>
       {win.peek && <span className="peek-tab" title={`${win.title} — click to bring back`}>{win.icon}</span>}
       <div className="win-body">{children}</div>

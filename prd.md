@@ -159,10 +159,17 @@ than empty. Everything after that is the operator's layout.
 
 ### The supervisor orb
 
-A single orb in the middle of the menu bar. It watches the floor and takes instructions,
-**spoken** where the browser will listen (continuous recognition, wake word "Atrium") and
-**typed** where it will not (⌘K). Its ring is a status light of its own: quiet when calm,
-violet when something needs a human, green while listening.
+A 34px orb in the middle of the menu bar — the visual centre of the app. It watches the
+floor and takes instructions, **spoken** where the browser will listen (continuous
+recognition, wake word "Atrium") and **typed** where it will not (⌘K). Its ring is a status
+light of its own: quiet when calm, violet when something needs a human, green while
+listening.
+
+Its panel is not a window. It grows out of the orb — same glass, top edge tucked under the
+orb's centre, scaled up from the orb as its transform origin — and holds exactly three
+things: **the last instruction**, **what you are saying right now**, and **five bars that
+move while it listens**. Nothing else. Anything more and it stops being an assistant and
+becomes another window to manage.
 
 It can run and stop agents, open rooms and teammates, switch theme, show the sidebar, and
 answer *"what needs me?"* out loud. **It cannot approve anything.** Speech recognition is
@@ -174,16 +181,50 @@ action nobody asked for. `LlmDriver` replaces it the moment a key exists.
 
 ### Chrome
 
+Nothing on screen is styled twice. One scale governs the whole app:
+
+| Tier | Radius | Where |
+|---|---|---|
+| Shell | 26px | dock, docked rail, supervisor panel, slide-over |
+| Window | 18px | floating windows |
+| Card | 12px | approval cards, room tiles, dock icons, folded steps |
+| Control | 9px | buttons, inputs |
+| Pill | full | chips, tags, badges, segmented controls |
+
+Spacing is 4-point throughout; elevation is four tokens, not one. Glass is one recipe —
+sheen gradient, 62% tint, `blur(28px) saturate(180%)`, a half-pixel light-catching rim and
+an inner top specular — spent on exactly four surfaces, because each one is a full-viewport
+readback.
+
 - **Menu bar** — apps, the glance test, the orb, spend against the global cap, theme, the
-  notification bell, and **Stop all**.
-- **Sidebar** — approvals and escalations, as a **slide-over** that floats above the desktop
-  and closes to nothing, never a column that permanently narrows the workspace. Ordered
-  **most expensive first, then oldest**; every card states the action, the cost, and what it
-  touches.
-- **Dock** — a floating slab: apps, then every room, then open conversations. Icons magnify
-  on hover, carry a running dot, and a badge for pending approvals.
-- **Wallpaper** — a generated landscape, not a photograph: layered SVG ridges, mist and
-  water whose every colour is a theme token. Dawn in light mode, moonlit in dark.
+  notification bell, **Stop all**.
+- **Docked rail** — inset 8px from the screen edge so it reads as a floating popover, not a
+  welded sidebar. One header, one close button, no traffic lights.
+- **Sidebar** — approvals as a slide-over that floats above the desktop and closes to
+  nothing. Ordered most expensive first, then oldest.
+- **Dock** — a floating slab: apps, then every room, then open conversations. 48px tiles,
+  magnified on hover, running dots, a badge for pending approvals.
+- **Wallpaper** — a generated landscape whose every colour is a theme token.
+
+### Windows people can actually read
+
+The operator is an office worker running a team of agents, not an engineer reading a log.
+Nothing in the interface says `tool.call`, `sql.query`, `blast_radius: high`, `240ms` or
+`3¢`. One module owns the translation:
+
+| The system knows | The person reads |
+|---|---|
+| `sql.query · touches bizdata.orders · 1¢` | "Looked something up in the company database" |
+| `tool.result ok in 25ms · 6 rows` | "Found 6 records" |
+| `scope.violation sql.query` | "Stopped — Kit isn't allowed to touch the company database" |
+| `agent.killed loop_detected` | "Stopped — it was going in circles" |
+| `blast_radius: high` | "Leaves the company" |
+| `est_cost_cents: 10` | "costs $0.10" |
+| an approval's raw action string | "**Kit wants to open a pull request**", detail underneath |
+
+An agent's window reads as a message thread: what the agent said, and beneath it a single
+folded line — "2 steps" — that opens into sentences. Room windows are ordinary apps with
+tabs called **Activity, Files, Spending, History, Permissions**. Monospace appears nowhere.
 
 ### Themes and honesty about frames
 

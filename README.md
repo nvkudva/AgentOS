@@ -93,11 +93,23 @@ me?"* out loud. It deliberately **cannot approve anything**: speech recognition 
 place for an irreversible decision, so "approve the PR" brings you the card and waits for a
 click.
 
-**The sidebar** is a slide-over, not a column — approvals and escalations float above the
-desktop and close to nothing. **The dock** is a floating slab: apps, then every room, then
-open conversations, with running dots and a pending-approvals badge. **The wallpaper** is a
-generated landscape — layered SVG ridges, mist and water, every colour a theme token — dawn
-in light mode, moonlit in dark.
+**A docked edge is one panel**, inset 8px from the screen so it floats like a popover rather
+than a welded sidebar: rooms are sections inside it, one header, one close button, no traffic
+lights. **The sidebar** is a slide-over that closes to nothing. **The dock** is a floating
+slab: apps, then every room, then open conversations. **The wallpaper** is a generated
+landscape — layered SVG ridges, mist and water, every colour a theme token.
+
+**Nothing reads like a developer tool.** The operator is an office worker running a team of
+agents, so the interface never shows a tool name, an event type, a millisecond or a cent.
+`sql.query · touches bizdata.orders · 1¢` becomes "Looked something up in the company
+database"; `agent.killed loop_detected` becomes "Stopped — it was going in circles";
+`blast_radius: high` becomes "Leaves the company". An agent's window is a message thread with
+its work folded behind a single "2 steps" line; room windows have tabs called Activity, Files,
+Spending, History and Permissions. There is no monospace anywhere.
+
+One radius scale runs the whole app — 26 shell, 18 window, 12 card, 9 control, pills round —
+with 4-point spacing, four elevation tiers and a single glass recipe spent on exactly four
+surfaces.
 
 Agents are characters: a name, a colour, a face and a one-line persona. The ring on the face
 is their state; the text beside it is what they are doing right now.

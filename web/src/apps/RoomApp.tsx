@@ -1,121 +1,157 @@
 import { useEffect, useState } from 'react';
 import { get, post, observe } from '../lib/api';
 import type { Room } from '../lib/api';
+import { describe, money, toolName, toolGlyph } from '../lib/humanize';
 
+const TABS = ['Activity', 'Files', 'Spending', 'History', 'Permissions'] as const;
+type Tab = typeof TABS[number];
+
+/** A room, as an ordinary app: what happened, what it made, what it cost, what it may touch. */
 export function RoomApp({ room, view }: { room: Room; view: string }) {
   const [d, setD] = useState<any>(null);
-  const [tab, setTab] = useState<'log' | 'artifacts' | 'spend' | 'runs' | 'scope'>('log');
+  const [tab, setTab] = useState<Tab>('Activity');
 
   const load = () => get(`/api/rooms/${room.id}`).then(setD);
-  useEffect(() => { load(); const t = setInterval(load, 1500); return () => clearInterval(t); }, [room.id]);
+  useEffect(() => { load(); const t = setInterval(load, 1800); return () => clearInterval(t); }, [room.id]);
   useEffect(() => { observe(view, 'room.open', { room: room.key }); }, [room.id]);
+  if (!d) return <div className="pad muted">One moment…</div>;
 
-  if (!d) return null;
+  const spent = d.room.spent_cents, cap = d.room.budget_cents;
+  const nameOf = (id: string) => d.agents.find((a: any) => a.id === id)?.name ?? 'Someone';
+
   return (
     <div className="roomapp">
-      <div>
-        <div className="sheet-head">
-          <span style={{ color: (d.room as any).color }}>{(d.room as any).icon}</span>
-          <strong>{d.room.name}</strong>
-          <span style={{ color: 'var(--faint)' }}>{d.room.objective}</span>
-          <span className="spacer" />
-          {d.room.status !== 'open' && (
-            <button onClick={() => post('/api/rooms/resume', { room: room.key }).then(load)}>Resume room</button>
-          )}
+      <header className="app-head">
+        <span className="app-icon" style={{ color: (d.room as any).color }}>{(d.room as any).icon}</span>
+        <div>
+          <b>{d.room.name}</b>
+          <p className="muted">{d.room.objective}</p>
         </div>
-        <div className="sheet-head" style={{ borderTop: 0, gap: 4 }}>
-          {(['log', 'artifacts', 'spend', 'runs', 'scope'] as const).map((t) => (
-            <span key={t} className={`tab ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>{t}</span>
-          ))}
-          <span className="spacer" />
-          {d.agents.map((a: any) => (
-            <button key={a.id} onClick={() => post(a.state === 'working' ? `/api/agents/${a.id}/kill` : `/api/agents/${a.id}/start`).then(load)}>
-              {a.state === 'working' ? `Stop ${a.name}` : `Run ${a.name}`}
-            </button>
-          ))}
-        </div>
+        <span className="spacer" />
+        {d.room.status !== 'open' &&
+          <button onClick={() => post('/api/rooms/resume', { room: room.key }).then(load)}>Resume</button>}
+        {d.agents.map((a: any) => (
+          <button key={a.id} className={a.state === 'working' ? '' : 'primary'}
+                  onClick={() => post(a.state === 'working' ? `/api/agents/${a.id}/kill` : `/api/agents/${a.id}/start`).then(load)}>
+            {a.state === 'working' ? `Pause ${a.name}` : `Start ${a.name}`}
+          </button>
+        ))}
+      </header>
 
-        <div className="sheet-body">
-          {tab === 'log' && (
-            <div className="log">
-              {d.events.map((e: any) => (
-                <div className="row" key={e.id}>
-                  <span className="t">{new Date(e.ts).toLocaleTimeString()}</span>
-                  <span className="ty">{e.type}</span>
-                  <span>{summarise(e)}</span>
+      <nav className="segmented">
+        {TABS.map((t) => (
+          <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t}</button>
+        ))}
+      </nav>
+
+      <div className="app-body">
+        {tab === 'Activity' && (
+          <div className="rows">
+            {d.events.map((e: any) => {
+              const said = describe(e, nameOf(e.agent_id));
+              if (!said) return null;
+              return (
+                <div className={`row ${said.kind}`} key={e.id}>
+                  <span className="sg">{said.kind === 'step' ? (said as any).glyph : said.kind === 'problem' ? '⚠️' : '•'}</span>
+                  <span className="rtext">{said.text}</span>
+                  <span className="when">{new Date(e.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
                 </div>
+              );
+            })}
+          </div>
+        )}
+
+        {tab === 'Files' && (
+          <>
+            {d.queue?.length > 0 && <>
+              <h4>Waiting to be published</h4>
+              {d.queue.map((c: any) => (
+                <article className="doc" key={c.id}>
+                  <header><b>{c.title}</b><span className="pill">{c.state}</span><span className="pill">{c.channel}</span></header>
+                  <p>{c.body.slice(0, 420)}{c.body.length > 420 ? '…' : ''}</p>
+                </article>
               ))}
+            </>}
+            <h4>Written by this room</h4>
+            {!d.artifacts.length && <p className="muted">Nothing yet.</p>}
+            {d.artifacts.map((a: any) => (
+              <article className="doc" key={a.id}>
+                <header>
+                  <b>{a.title}</b>
+                  <span className="pill">{a.kind}</span>
+                  {a.shared && <span className="pill">shared with other rooms</span>}
+                  <span className="spacer" />
+                  <span className="when">{new Date(a.created_at).toLocaleDateString()}</span>
+                </header>
+                <p>{a.body.slice(0, 900)}{a.body.length > 900 ? '…' : ''}</p>
+              </article>
+            ))}
+          </>
+        )}
+
+        {tab === 'Spending' && (
+          <>
+            <div className="big-stat">
+              <b>{money(spent)}</b>
+              <span className="muted">of {money(cap)} allowed this room</span>
+              <span className="mini-bar wide"><i style={{ width: `${Math.min(100, (spent / Math.max(1, cap)) * 100)}%` }} /></span>
+              <p className="muted tiny">When the limit is reached the room stops. It never goes over.</p>
             </div>
-          )}
-          {tab === 'artifacts' && (
-            <>
-              {d.queue?.length > 0 && (<><h4>content queue</h4>
-                {d.queue.map((c: any) => (
-                  <div key={c.id} style={{ marginBottom: 8 }}>
-                    <b>{c.title}</b> <span className="tag">{c.state}</span> <span className="tag">{c.channel}</span>
-                    <pre>{c.body.slice(0, 600)}</pre>
-                  </div>))}</>)}
-              <h4>artifacts</h4>
-              {d.artifacts.map((a: any) => (
-                <div key={a.id} style={{ marginBottom: 10 }}>
-                  <b>{a.title}</b> <span className="tag">{a.kind}</span>{a.shared && <span className="tag">shared</span>}
-                  <pre>{a.body.slice(0, 2000)}</pre>
-                </div>
-              ))}
-            </>
-          )}
-          {tab === 'spend' && (
-            <div className="log">
-              <h4>{(d.room.spent_cents / 100).toFixed(2)} of {(d.room.budget_cents / 100).toFixed(2)} spent</h4>
+            <h4>Where it went</h4>
+            <div className="rows">
               {d.ledger.map((l: any) => (
                 <div className="row" key={l.id}>
-                  <span className="t">{new Date(l.ts).toLocaleTimeString()}</span>
-                  <span className="ty">{l.cents}¢</span><span>{l.reason}</span>
+                  <span className="sg">{toolGlyph(String(l.reason).split(' ')[0])}</span>
+                  <span className="rtext">{toolName(String(l.reason).split(' ')[0])}</span>
+                  <span className="when">{money(l.cents)}</span>
                 </div>
               ))}
             </div>
-          )}
-          {tab === 'runs' && (
-            <div className="log">
-              {d.runs.map((r: any) => (
-                <div className="row" key={r.id}>
-                  <span className="t">{r.status}</span>
-                  <span className="ty">{r.steps_used} steps · {r.spent_cents}¢</span>
-                  <span>{r.goal}{r.kill_reason ? ` — ${r.kill_reason}` : ''}</span>
-                </div>
+          </>
+        )}
+
+        {tab === 'History' && (
+          <div className="rows">
+            {d.runs.map((r: any) => (
+              <div className="row" key={r.id}>
+                <span className="sg">{r.status === 'done' ? '✅' : r.status === 'running' ? '⏳' : '⚠️'}</span>
+                <span className="rtext">
+                  {r.goal}
+                  <em className="muted"> · {r.steps_used} steps · {money(r.spent_cents)}
+                    {r.kill_reason ? ` · ${r.kill_reason}` : ''}</em>
+                </span>
+                <span className="when">{new Date(r.started_at).toLocaleDateString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === 'Permissions' && (
+          <>
+            <h4>This room may</h4>
+            <ul className="plain-list">
+              {(d.room.tool_grants ?? []).map((g: string) => (
+                <li key={g}><span className="sg">{toolGlyph(g)}</span> use {toolName(g)}</li>
               ))}
-            </div>
-          )}
-          {tab === 'scope' && (
-            <>
-              <h4>this room may call</h4>
-              <pre>{(d.room.tool_grants ?? []).join('\n')}</pre>
-              <h4>database role</h4>
-              <pre>{d.room.db_role ?? '— no database access —'}</pre>
-              <h4>approval policy by blast radius</h4>
-              <pre>{JSON.stringify(d.room.approval_policy, null, 2)}</pre>
-              <p style={{ color: 'var(--faint)' }}>
-                Anything not on these lists is refused by the runtime and logged as a scope violation.
-              </p>
-            </>
-          )}
-        </div>
+            </ul>
+            <h4>Data access</h4>
+            <p>{d.room.db_role
+              ? 'Can read the company database through its own account. Other rooms cannot see what it reads.'
+              : 'No access to the company database at all.'}</p>
+            <h4>What runs without asking you</h4>
+            <ul className="plain-list">
+              {Object.entries(d.room.approval_policy ?? {}).map(([k, v]) => (
+                <li key={k}>
+                  <span className="sg">{v === 'auto' ? '🟢' : '🟣'}</span>
+                  {k === 'low' ? 'Read-only work' : k === 'medium' ? 'Work visible inside the company' : 'Anything that leaves the company'}
+                  {' — '}{v === 'auto' ? 'runs on its own' : 'always asks you first'}
+                </li>
+              ))}
+            </ul>
+            <p className="muted tiny">Anything outside this list is refused and recorded.</p>
+          </>
+        )}
       </div>
     </div>
   );
-}
-
-function summarise(e: any) {
-  const p = e.payload ?? {};
-  switch (e.type) {
-    case 'tool.call':   return `${p.tool} → ${(p.touches ?? []).join(', ')} (${p.est_cost_cents}¢)`;
-    case 'tool.result': return `${p.tool} ok in ${p.ms}ms`;
-    case 'tool.error':  return `${p.tool} — ${p.error}`;
-    case 'scope.violation': return `REFUSED ${p.tool}${p.attempted_room ? ` on ${p.attempted_room}` : ''}`;
-    case 'approval.requested': return `${p.action} (${p.cost_cents}¢)`;
-    case 'run.started': return p.goal;
-    case 'agent.killed': return p.reason;
-    case 'spend': return `${p.cents}¢ ${p.reason}`;
-    default: return JSON.stringify(p).slice(0, 160);
-  }
 }

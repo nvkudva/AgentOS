@@ -3,13 +3,14 @@ import { useLiveState, observe, post } from './lib/api';
 import { useTheme } from './lib/theme';
 import { usePerf } from './lib/perf';
 import type { Room, Agent, Inbox } from './lib/api';
-import { useWindows, layout, zonePreview, type Zone, type Win } from './desktop/wm';
+import { useWindows, layout, lanes, zonePreview, zoneAt, isCorner, type Zone, type Win, type Edge } from './desktop/wm';
 import { Window } from './desktop/Window';
 import { Wallpaper } from './desktop/Wallpaper';
 import { MenuBar } from './desktop/MenuBar';
 import { Dock } from './desktop/Dock';
 import { Sidebar } from './desktop/Sidebar';
 import { RoomWindowBody } from './desktop/RoomWindow';
+import { LanePanel } from './desktop/LanePanel';
 import { AgentApp } from './apps/AgentApp';
 import { RoomApp } from './apps/RoomApp';
 import { InboxApp } from './apps/InboxApp';
@@ -32,6 +33,7 @@ export default function App() {
   const stageRef = useRef<HTMLElement>(null);
   const [stage, setStage] = useState({ w: 1000, h: 640 });
   const [zone, setZone] = useState<Zone>(null);
+  const [ghost, setGhost] = useState<{ win: Win; x: number; y: number } | null>(null);
   const [sidebar, setSidebar] = useState(false);
   const [focusApproval, setFocusApproval] = useState<string | undefined>();
   const fps = useFps();
@@ -79,7 +81,36 @@ export default function App() {
   }, [snap, openRoomWindow]);
 
   const rects = useMemo(() => layout(wins, stage), [wins, stage]);
+  const ln = useMemo(() => lanes(wins, stage), [wins, stage]);
   const preview = zonePreview(zone, stage);
+
+  /**
+   * Dragging a room out of a lane. The section stays put and a ghost follows the
+   * pointer, so the element under the cursor never unmounts mid-gesture.
+   */
+  const grab = useCallback((w: Win, e: React.PointerEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    const host = stageRef.current!.getBoundingClientRect();
+    const start = { x: e.clientX, y: e.clientY };
+    let moved = false;
+    const onMove = (ev: PointerEvent) => {
+      if (!moved && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) < 5) return;
+      moved = true;
+      setGhost({ win: w, x: ev.clientX, y: ev.clientY });
+      setZone(zoneAt(ev.clientX - host.left, ev.clientY - host.top, stage));
+    };
+    const onUp = (ev: PointerEvent) => {
+      removeEventListener('pointermove', onMove); removeEventListener('pointerup', onUp);
+      setGhost(null); setZone(null);
+      if (!moved) return;
+      const z = zoneAt(ev.clientX - host.left, ev.clientY - host.top, stage);
+      if (!z) patch(w.id, { snap: null, peek: null, x: ev.clientX - host.left - 90, y: ev.clientY - host.top - 12, w: 300, h: 210 });
+      else if (isCorner(z)) patch(w.id, { peek: z, snap: null });
+      else patch(w.id, { snap: z, peek: null });
+      focus(w.id);
+    };
+    addEventListener('pointermove', onMove); addEventListener('pointerup', onUp);
+  }, [stage, patch, focus]);
   const activeId = wins.filter((w) => w.kind === 'agent' && !w.min).sort((a, b) => b.z - a.z)[0]?.ref;
 
   const ctx: CmdCtx = useMemo(() => ({
@@ -113,8 +144,18 @@ export default function App() {
       <main className="stage" ref={stageRef}>
         {preview && <div className="snap-preview" style={preview} />}
 
+        {(['left', 'right', 'top', 'bottom'] as Edge[]).map((e) => {
+          const l = ln[e]; if (!l) return null;
+          return (
+            <LanePanel key={e} edge={e} rect={l.rect} wins={l.wins} rooms={snap.rooms} agents={snap.agents}
+                       activeId={activeId} onAgent={openAgent} onConsole={openRoomConsole} onGrab={grab}
+                       onClose={() => l.wins.forEach((w) => close(w.id))} />
+          );
+        })}
+
         {wins.map((w) => {
-          const rect = rects.get(w.id)!;
+          const rect = rects.get(w.id);
+          if (!rect) return null;              // it lives inside a lane panel
           const room = w.ref ? snap.rooms.find((r) => r.id === w.ref) : undefined;
           const horizontal = w.snap === 'top' || w.snap === 'bottom';
           return (
@@ -132,6 +173,12 @@ export default function App() {
             </Window>
           );
         })}
+
+        {ghost && (
+          <div className="ghost" style={{ left: ghost.x - 90, top: ghost.y - 50, ['--c' as any]: ghost.win.color }}>
+            <span>{ghost.win.icon}</span> {ghost.win.title}
+          </div>
+        )}
 
         {!wins.length && (
           <div className="empty">

@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import type { Room, Agent } from '../lib/api';
+import { friendlyActivity, money } from '../lib/humanize';
 
 const NEEDS = new Set(['awaiting_approval']);
 const WARN = new Set(['blocked', 'failed']);
@@ -28,7 +29,7 @@ function Widget({ room, agents, onOpen }: { room: Room; agents: Agent[]; onOpen:
               {a.avatar}<i className={`st ${a.state}`} />
             </span>
             <span className="agent-name">{a.name}</span>
-            <span className="activity">{a.activity || a.state}</span>
+            <span className="activity">{friendlyActivity(a.activity, a.state)}</span>
           </div>
         ))}
       </div>
@@ -36,7 +37,7 @@ function Widget({ room, agents, onOpen }: { room: Room; agents: Agent[]; onOpen:
         <span className={`bar${pct > 95 ? ' over' : pct > 70 ? ' warn' : ''}`} style={{ width: 64 }}>
           <i style={{ width: `${pct}%` }} />
         </span>
-        <span>{(room.spent_cents / 100).toFixed(2)} / {(room.budget_cents / 100).toFixed(2)}</span>
+        <span>{money(room.spent_cents)} of {money(room.budget_cents)}</span>
         <span className="spacer" />
         <span>{room.tool_grants.length} tools</span>
       </div>

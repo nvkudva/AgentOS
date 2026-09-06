@@ -1,5 +1,6 @@
 import { InboxApp } from '../apps/InboxApp';
 import type { Inbox, Agent, Room } from '../lib/api';
+import { friendlyActivity, money } from '../lib/humanize';
 
 /**
  * A slide-over, not a column. It floats above the desktop like Notification Center,
@@ -30,7 +31,7 @@ export function Sidebar({ open, inbox, agents, rooms, view, focusId, onClose, on
           {busy.map((a) => (
             <div className="so-row" key={a.id} onClick={() => onPick(a)}>
               <span className="face" style={{ ['--c' as any]: a.color }}>{a.avatar}<i className={`st ${a.state}`} /></span>
-              <span className="crew-text"><b>{a.name}</b><em>{a.activity}</em></span>
+              <span className="crew-text"><b>{a.name}</b><em>{friendlyActivity(a.activity, a.state)}</em></span>
             </div>
           ))}
 
@@ -39,7 +40,7 @@ export function Sidebar({ open, inbox, agents, rooms, view, focusId, onClose, on
             {stuck.map((a) => (
               <div className="so-row" key={a.id} onClick={() => onPick(a)}>
                 <span className="face" style={{ ['--c' as any]: a.color }}>{a.avatar}<i className={`st ${a.state}`} /></span>
-                <span className="crew-text"><b>{a.name}</b><em>{a.activity || a.state}</em></span>
+                <span className="crew-text"><b>{a.name}</b><em>{friendlyActivity(a.activity, a.state)}</em></span>
               </div>
             ))}
           </>}
@@ -49,7 +50,7 @@ export function Sidebar({ open, inbox, agents, rooms, view, focusId, onClose, on
             <div className="so-room" key={r.id}>
               <span style={{ color: r.color }}>{r.icon}</span> {r.name}
               <span className="spacer" />
-              <span className="muted">{(r.spent_cents / 100).toFixed(2)} / {(r.budget_cents / 100).toFixed(2)}</span>
+              <span className="muted">{money(r.spent_cents)} of {money(r.budget_cents)}</span>
             </div>
           ))}
         </div>

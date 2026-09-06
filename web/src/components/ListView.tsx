@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { get } from '../lib/api';
+import { describe, friendlyActivity, money } from '../lib/humanize';
 import type { Agent, Room } from '../lib/api';
 
 /**
@@ -19,21 +20,25 @@ export function ListView({ rooms, agents }: { rooms: Room[]; agents: Agent[] }) 
         return (
           <details className="thread" key={a.id}>
             <summary>
-              <span className={`dot ${a.state}`} />
+              <span className="face sm" style={{ ['--c' as any]: a.color }}>{a.avatar}<i className={`st ${a.state}`} /></span>
               <b>{a.name}</b>
               <span style={{ color: 'var(--faint)' }}>{roomOf[a.room_id]?.name}</span>
-              <span className="activity">{a.activity || a.state}</span>
+              <span className="activity">{friendlyActivity(a.activity, a.state)}</span>
               <span className="spacer" />
-              <span className="tag">{a.spent_cents}¢</span>
+              <span className="tag">{money(a.spent_cents)}</span>
             </summary>
-            <div className="body log">
-              {mine.map((e) => (
-                <div className="row" key={e.id}>
-                  <span className="t">{new Date(e.ts).toLocaleTimeString()}</span>
-                  <span className="ty">{e.type}</span>
-                  <span>{JSON.stringify(e.payload).slice(0, 140)}</span>
-                </div>
-              ))}
+            <div className="body rows">
+              {mine.map((e) => {
+                const said = describe(e, a.name);
+                if (!said) return null;
+                return (
+                  <div className={`row ${said.kind}`} key={e.id}>
+                    <span className="sg">{said.kind === 'step' ? (said as any).glyph : said.kind === 'problem' ? '⚠️' : '•'}</span>
+                    <span className="rtext">{said.text}</span>
+                    <span className="when">{new Date(e.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+                  </div>
+                );
+              })}
             </div>
           </details>
         );

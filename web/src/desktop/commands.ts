@@ -1,4 +1,5 @@
 import type { Agent, Room, Inbox } from '../lib/api';
+import { money } from '../lib/humanize';
 
 export type CmdCtx = {
   agents: Agent[]; rooms: Room[]; inbox: Inbox[]; panic: boolean;
@@ -40,16 +41,16 @@ export function run(raw: string, c: CmdCtx): CmdResult {
 
   // --- status ---------------------------------------------------------------
   if (/^(what needs me|status|anything for me|what.s waiting|report)/.test(t)) {
+    // Short on purpose: this is spoken aloud and shown in a small panel.
     const wait = c.inbox.length;
     const busy = c.agents.filter((a) => a.state === 'working').length;
     const stuck = c.agents.filter((a) => ['blocked', 'failed', 'killed'].includes(a.state));
-    if (!wait && !stuck.length) return { say: `Calm. ${busy} working, nothing waiting on you.`, ok: true };
-    const dear = c.inbox[0];
-    return {
-      say: `${wait} waiting on you${dear ? `, dearest is ${dear.action} at ${dear.est_cost_cents} cents` : ''}` +
-           `${stuck.length ? `. ${stuck.map((s) => s.name).join(' and ')} stopped` : ''}.`,
-      ok: true,
-    };
+    if (!wait && !stuck.length) return { say: `All calm. ${busy} working.`, ok: true };
+    const bits: string[] = [];
+    if (wait) bits.push(`${wait} waiting on you`);
+    if (c.inbox[0]) bits.push(`biggest is ${money(c.inbox[0].est_cost_cents)}`);
+    if (stuck.length) bits.push(`${stuck.map((s) => s.name).join(' and ')} stopped`);
+    return { say: bits.join(', ') + '.', ok: true };
   }
 
   // --- stop / panic ---------------------------------------------------------
@@ -96,7 +97,7 @@ export function run(raw: string, c: CmdCtx): CmdResult {
     const first = c.inbox[0];
     if (!first) return { say: 'Nothing is waiting for a decision.', ok: true };
     c.setSidebar(true); c.focusApproval(first.id);
-    return { say: `I will not approve by voice. Here is the card: ${first.action}. Decide with a click.`, ok: true };
+    return { say: 'I never approve by voice. Here is the card.', ok: true };
   }
 
   // --- chrome ---------------------------------------------------------------

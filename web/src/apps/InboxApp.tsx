@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { post, observe } from '../lib/api';
+import { money, blastWords, askTitle, touchWords, plainDetail } from '../lib/humanize';
 import type { Inbox as Item } from '../lib/api';
 
 const ago = (iso: string) => {
@@ -23,13 +24,18 @@ export function InboxApp({ items, view, focusId }: { items: Item[]; view: string
       {items.map((it) => (
         <div key={it.id} className={`card ${it.blast_radius}${focusId === it.id ? ' focus' : ''}`}>
           <div>
-            <div className="what">{it.kind === 'escalation' ? '❓ ' : ''}{it.action}</div>
+            <div className="what">{askTitle(it)}</div>
+            {it.kind !== 'escalation' && <div className="detail">{plainDetail(it.action)}</div>}
             <div className="meta">
-              <span className={`tag ${it.blast_radius}`}>{it.blast_radius}</span>{' '}
-              {it.room_name} · {it.agent_name} · waiting {ago(it.created_at)} ·{' '}
-              <span className="cost">{it.est_cost_cents}¢ to run</span>, {it.run_spent_cents}¢ spent so far
+              {it.kind !== 'escalation' &&
+                <span className={`tag ${it.blast_radius}`}>{blastWords(it.blast_radius)}</span>}{' '}
+              {it.room_name} · waiting {ago(it.created_at)} ·{' '}
+              <span className="cost">costs {money(it.est_cost_cents)}</span>
+              {it.run_spent_cents > 0 && <> · {money(it.run_spent_cents)} spent so far</>}
             </div>
-            <div className="touches">touches: {(it.touches ?? []).join(' · ') || '—'}</div>
+            <div className="touches">
+              Touches {(it.touches ?? []).map(touchWords).map(plainDetail).join(' · ') || 'nothing outside this room'}
+            </div>
           </div>
           <div className="acts">
             <button disabled={busy === it.id} className="primary" onClick={() => decide(it, 'approve')}>
@@ -37,7 +43,7 @@ export function InboxApp({ items, view, focusId }: { items: Item[]; view: string
             </button>
             {it.blast_radius !== 'high' && (
               <button disabled={busy === it.id} onClick={() => decide(it, 'approve', true)}
-                      title="approve and stop asking for this blast radius in this room">Always</button>
+                      title="approve and stop asking for this kind of thing in this room">Always</button>
             )}
             <button disabled={busy === it.id} className="danger" onClick={() => decide(it, 'reject')}>
               {it.kind === 'escalation' ? 'No' : 'Reject'}
