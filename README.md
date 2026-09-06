@@ -76,19 +76,41 @@ returns `mode: "local"`. It never reports a PR that does not exist.
 
 ## The shell
 
-A desktop, not a dashboard. **Team blocks on the rails**, left and right — each room with its
-colour, spend and crew. **The stage in the centre** — click a teammate to open their
-conversation, click a room to open its console; windows drag, zoom and minimise. **Menu bar
-on top** — spend, notifications, settings, panic stop. **Dock at the bottom** — launcher,
-open windows, live working count. **Needs you** hangs under the right rail: approvals and
-escalations, most expensive first, then oldest.
+An operating system, not a dashboard.
 
-Agents are characters, not rows: each has a name, colour, face and a one-line persona. The
-ring on their face is their state; the text beside it is what they are doing right now.
+**Rooms are windows.** Drag one anywhere. Drop it on the **left or right edge** and it joins
+that lane — three rooms on the left split the height and read as a rail. Drop it on the
+**top or bottom** and it becomes a full-width strip with its crew laid out horizontally.
+Drop it in a **corner** and it tucks away: 90% slides off screen, a 10% handle stays behind
+carrying the room's colour and icon; click it to bring the room back. Only rooms snap —
+agent conversations, room consoles, the floor and the activity feed float, because the work
+belongs in the middle and the furniture belongs at the edges.
+
+**The orb** sits in the menu bar and takes instructions — spoken where the browser will
+listen (wake word "Atrium", continuous recognition) and typed where it will not (⌘K). It
+runs and stops agents, opens rooms and teammates, switches theme, and answers *"what needs
+me?"* out loud. It deliberately **cannot approve anything**: speech recognition is the wrong
+place for an irreversible decision, so "approve the PR" brings you the card and waits for a
+click.
+
+**The sidebar** is a slide-over, not a column — approvals and escalations float above the
+desktop and close to nothing. **The dock** is a floating slab: apps, then every room, then
+open conversations, with running dots and a pending-approvals badge. **The wallpaper** is a
+generated landscape — layered SVG ridges, mist and water, every colour a theme token — dawn
+in light mode, moonlit in dark.
+
+Agents are characters: a name, a colour, a face and a one-line persona. The ring on the face
+is their state; the text beside it is what they are doing right now.
+
+**Themes and frames.** Light, dark and auto. Glass is free on a GPU and halves the frame rate
+in software rendering, so Atrium measures itself for two seconds on boot and drops to flat
+surfaces if it cannot hold 60fps — Settings exposes it as auto / glass / lite. Measured in
+this container: **33fps with full glass, 60fps in lite**, which is why the fallback exists
+rather than being a claim about hardware nobody has.
 
 The Floor — the spatial room grid — survives as one app on the stage, which is what keeps
-the chat-list comparison in §Thesis honest: both views are now things you open, neither is
-the whole screen.
+the chat-list comparison in §Thesis honest: both views are windows you open, neither owns
+the screen.
 
 ## Rooms are permission boundaries
 
@@ -177,10 +199,17 @@ server/src/
   policies/             what each agent does, step by step
   replay.ts             the fold that defines what the projections mean
 web/src/
-  desktop/wm.ts              a small window manager
-  desktop/TeamRail.tsx       team blocks: rooms and their crew, on the rails
-  desktop/MenuBar.tsx        spend, notifications, settings, panic
-  desktop/Dock.tsx           launcher and open windows
+  desktop/wm.ts              window manager: snap lanes, corner tucking, z-order
+  desktop/Window.tsx         chrome, dragging, edge detection
+  desktop/RoomWindow.tsx     a room as a window: crew, spend, state
+  desktop/Supervisor.tsx     the orb — voice and text
+  desktop/commands.ts        its deterministic grammar (it will not approve by voice)
+  desktop/Wallpaper.tsx      the generated landscape
+  desktop/Sidebar.tsx        approvals as a slide-over
+  desktop/MenuBar.tsx        spend, notifications, theme, panic
+  desktop/Dock.tsx           apps, rooms, open conversations
+  lib/theme.ts               light / dark / auto
+  lib/perf.ts                measures itself, drops transparency rather than frames
   apps/AgentApp.tsx          an agent's live conversation — the centre of the desktop
   apps/RoomApp.tsx           room console: log, artifacts, spend, scope
   apps/InboxApp.tsx          approvals: action, cost, what it touches

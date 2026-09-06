@@ -115,59 +115,94 @@ Room and agent tables are a materialized projection, rebuildable with
 
 ---
 
-## 4. The UI — a desktop, not a dashboard
+## 4. The UI — an operating system
 
-Atrium is shaped like an operating system, because that is what running a company of agents
-is: many things alive at once, one of them in front of you.
+Atrium is shaped like a desktop OS, because that is what running a company of agents is:
+many things alive at once, one of them in front of you, the rest parked where you left them.
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ menu bar   Floor  Activity  Approvals    spend  🔔  ⚙  Stop   │
-├────────────┬────────────────────────────────┬────────────────┤
-│ team block │                                │  team block    │
-│ Analytics  │                                │  Sales         │
-│  · Ada     │        THE STAGE               │  Strategy      │
-│  · Bo      │   windows: an agent's          ├────────────────┤
-│ Engineering│   conversation, a room         │  NEEDS YOU     │
-│  · Kit     │   console, the floor,          │  approvals and │
-│  · Rex     │   the activity feed            │  escalations   │
-│ Marketing  │                                │                │
-├────────────┴────────────────────────────────┴────────────────┤
-│ dock:  ▦ ☰ 📥 ⚙  |  open windows            0 working · 7     │
-└──────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────┐
+│ ◍ Atrium  Floor Activity Settings Glance    ◉orb    fps $ 🌙 🔔 Stop│  menu bar
+├──────────┬──────────────────────────────────────────┬─────────────┤
+│ Analytics│                                          │ Sales       │
+│  Ada Bo  │                                          │  Sam        │
+├──────────┤          THE STAGE                       ├─────────────┤
+│ Engineer │   agent conversations · room consoles    │ Strategy    │
+│  Kit Rex │   the floor · the activity feed          │  Iris       │
+├──────────┤   free-floating, dragged, resized        │             │
+│ Marketing│                                          │        ┌──┐ │
+│  Mel     │                                          │        │◇ │ │ tucked
+├──────────┴──────────────────────────────────────────┴─────────────┤
+│              🗺️ 📜 📥 ⚙️ │ ◈ ⌘ ✎ ◎ ◇ │ 🔭 🔧          dock        │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
-**Sides — team blocks.** Rooms live on the left and right rails, never in the centre. Each
-block shows its colour, icon, spend bar and its crew. A block glows only when someone in it
-needs a human.
+### Rooms are windows
 
-**Agents are characters.** Every agent has a **name, a colour, a face and a persona** — Kit
-ships small diffs and refuses to ship red; Rex loops on purpose to prove the kill switch.
-The persona is the tooltip on the rail and the header of their window. A state ring on the
-face carries idle / working / blocked / awaiting approval / failed / killed, with a live
-one-line activity string beside it.
+A room is not furniture bolted to a rail. It is a **window** — draggable anywhere on the
+desktop, resizable, closable, relaunchable from the dock. What makes rooms special is that
+**only rooms snap**:
 
-**Centre — the stage.** Click a teammate to open their **conversation**: their real
-transcript, tool calls, costs, what each call touched, and the approvals they are waiting
-on. Click a room to open its **console** (log, artifacts, spend ledger, scope). Windows
-drag, resize, zoom, minimise to the dock and stack by focus. The **Floor** — the spatial
-room grid — is now one app on that stage rather than the whole screen, which keeps it
-available as the thesis instrument without making it the only way to look at anything.
+| Drop it | What happens |
+|---|---|
+| Left or right edge | joins that edge's **lane**; the lane's rooms split its height, so three rooms on the left read as a rail |
+| Top or bottom edge | joins a full-width **strip**; rooms in a strip lay their crew out horizontally |
+| Any corner | **tucks away**: 90% slides off screen, a 10% handle stays behind, carrying the room's colour and icon. Click it to bring the room back |
+| Anywhere else | stays floating, like any other window |
 
-**Top — the menu bar.** Global spend meter, notifications bell with the pending count,
-settings, and a panic **Stop all**.
+App windows — agent conversations, room consoles, the floor, the activity feed — never
+snap. They float. The distinction is deliberate: rooms are the furniture of the workspace
+and want to live at the edges; the work itself belongs in the middle.
 
-**Bottom — the dock.** App launcher (Floor, Activity, Approvals, Settings), the open
-windows, and a live count of working agents. Nothing else lives there.
+Rooms park themselves on the rails on first boot, so Atrium opens looking arranged rather
+than empty. Everything after that is the operator's layout.
 
-**Needs you.** The approval and escalation queue sits under the right rail, always visible,
-ordered **most expensive first, then oldest** — cheap and new must never bury expensive and
-old. Every card states the **action**, the **cost**, and **what it touches**. Approve /
-Always / Reject. If the rails are grey and the panel says *Calm*, nothing needs you. Being
-able to tell that in one second is still the whole design goal.
+### The supervisor orb
 
-**Activity** is the chat-list control view, kept deliberately decent, so the spatial claim
-can still be measured against it (§1).
+A single orb in the middle of the menu bar. It watches the floor and takes instructions,
+**spoken** where the browser will listen (continuous recognition, wake word "Atrium") and
+**typed** where it will not (⌘K). Its ring is a status light of its own: quiet when calm,
+violet when something needs a human, green while listening.
+
+It can run and stop agents, open rooms and teammates, switch theme, show the sidebar, and
+answer *"what needs me?"* out loud. **It cannot approve anything.** Speech recognition is
+the wrong place for an irreversible decision, so "approve the PR" surfaces the card and
+waits for a click — R2 holds even when the operator is talking rather than clicking.
+
+The brain is deterministic in v1 (see §9): a half-parsed sentence must never become an
+action nobody asked for. `LlmDriver` replaces it the moment a key exists.
+
+### Chrome
+
+- **Menu bar** — apps, the glance test, the orb, spend against the global cap, theme, the
+  notification bell, and **Stop all**.
+- **Sidebar** — approvals and escalations, as a **slide-over** that floats above the desktop
+  and closes to nothing, never a column that permanently narrows the workspace. Ordered
+  **most expensive first, then oldest**; every card states the action, the cost, and what it
+  touches.
+- **Dock** — a floating slab: apps, then every room, then open conversations. Icons magnify
+  on hover, carry a running dot, and a badge for pending approvals.
+- **Wallpaper** — a generated landscape, not a photograph: layered SVG ridges, mist and
+  water whose every colour is a theme token. Dawn in light mode, moonlit in dark.
+
+### Themes and honesty about frames
+
+Light, dark and auto, on `data-theme`. Both are first-class; neither is a filter over the
+other.
+
+Glass costs frames. A full-width `backdrop-filter` is free on a GPU and halves the frame
+rate in software rendering, so Atrium **measures itself for two seconds on boot** and drops
+to flat surfaces if it cannot hold 60fps — the way a game lowers quality rather than
+stuttering. macOS calls this Reduce Transparency; Settings exposes it as auto / glass / lite.
+
+### Calm is still the signal
+
+If the rails are grey and the sidebar says *Calm*, nothing needs you. Motion is rationed:
+the orb only spins while listening or alerting, and an agent avatar only pulses while it
+works. Being able to tell in one second whether you are needed is still the whole goal.
+
+**Activity** remains the chat-list control view, kept deliberately decent, so the spatial
+claim can still be measured against it (§1).
 
 ## 5. Hard requirements
 

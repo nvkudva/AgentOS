@@ -1,15 +1,18 @@
-import { useState } from 'react';
 import { post } from '../lib/api';
 import type { Inbox } from '../lib/api';
 import { GlanceTest } from './GlanceTest';
+import { Supervisor } from './Supervisor';
+import type { CmdCtx } from './commands';
+import type { Theme } from '../lib/theme';
 
-export function MenuBar({ config, inbox, fps, needsMe, view, onOpen, onPick }: {
+export function MenuBar({ config, inbox, fps, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen }: {
   config: any; inbox: Inbox[]; fps: number; needsMe: boolean; view: string;
-  onOpen: (k: 'inbox' | 'settings' | 'floor' | 'list') => void;
-  onPick: (i: Inbox) => void;
+  theme: Theme; setTheme: (t: Theme) => void; ctx: CmdCtx;
+  sidebar: boolean; onSidebar: (b: boolean) => void;
+  onOpen: (k: 'floor' | 'list' | 'inbox' | 'settings') => void;
 }) {
-  const [bell, setBell] = useState(false);
   const gp = Math.min(100, (config.global_spent_cents / Math.max(1, config.global_budget_cents)) * 100);
+  const cycle = () => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'auto' : 'dark');
 
   return (
     <div className="menubar">
@@ -17,34 +20,28 @@ export function MenuBar({ config, inbox, fps, needsMe, view, onOpen, onPick }: {
       <b>Atrium</b>
       <span className="menu" onClick={() => onOpen('floor')}>Floor</span>
       <span className="menu" onClick={() => onOpen('list')}>Activity</span>
-      <span className="menu" onClick={() => onOpen('inbox')}>Approvals</span>
+      <span className="menu" onClick={() => onOpen('settings')}>Settings</span>
       <GlanceTest view={view} truth={needsMe} />
+
       <span className="spacer" />
+      <Supervisor ctx={ctx} alert={needsMe} speak={true} />
+      <span className="spacer" />
+
       <span className="mb-meter" title="frames per second">{fps} fps</span>
-      <span className="mb-meter">
+      <span className="mb-meter" title="global spend against the global cap">
         <span className={`bar${gp > 95 ? ' over' : gp > 70 ? ' warn' : ''}`}><i style={{ width: `${gp}%` }} /></span>
-        ${(config.global_spent_cents / 100).toFixed(2)} / ${(config.global_budget_cents / 100).toFixed(2)}
+        ${(config.global_spent_cents / 100).toFixed(2)}
       </span>
-      <span className={`bell${inbox.length ? ' lit' : ''}`} onClick={() => setBell((b) => !b)}>
+      <span className="menu" onClick={cycle} title={`theme: ${theme}`}>
+        {theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '🌗'}
+      </span>
+      <span className={`bell${inbox.length ? ' lit' : ''}${sidebar ? ' on' : ''}`} onClick={() => onSidebar(!sidebar)}
+            title="notifications and approvals">
         {inbox.length ? '🔔' : '🔕'}{inbox.length > 0 && <i>{inbox.length}</i>}
       </span>
-      <span className="menu" onClick={() => onOpen('settings')}>⚙</span>
       <button className={config.panic_stop ? 'primary' : 'danger'} onClick={() => post('/api/panic', { on: !config.panic_stop })}>
-        {config.panic_stop ? 'Resume all' : 'Stop all'}
+        {config.panic_stop ? 'Resume' : 'Stop all'}
       </button>
-
-      {bell && (
-        <div className="dropdown" onMouseLeave={() => setBell(false)}>
-          <h5>Notifications</h5>
-          {!inbox.length && <p className="muted">Nothing needs you.</p>}
-          {inbox.map((i) => (
-            <div className="note" key={i.id} onClick={() => { setBell(false); onPick(i); }}>
-              <b>{i.action}</b>
-              <span>{i.room_name} · {i.agent_name} · <span className="cost">{i.est_cost_cents}¢</span></span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

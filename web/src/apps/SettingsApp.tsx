@@ -2,10 +2,37 @@ import { useState } from 'react';
 import { post } from '../lib/api';
 import type { Room } from '../lib/api';
 
-export function SettingsApp({ rooms, config }: { rooms: Room[]; config: any }) {
+export function SettingsApp({ rooms, config, perf, theme, setTheme }: {
+  rooms: Room[]; config: any;
+  perf: { mode: string; setMode: (m: any) => void; measured: number | null };
+  theme: string; setTheme: (t: any) => void;
+}) {
   const [g, setG] = useState(config.global_budget_cents);
   return (
     <div className="pad settings">
+      <h4>Appearance</h4>
+      <label>
+        Theme
+        <span className="seg">
+          {(['light', 'dark', 'auto'] as const).map((t) => (
+            <button key={t} className={theme === t ? 'primary' : ''} onClick={() => setTheme(t)}>{t}</button>
+          ))}
+        </span>
+      </label>
+      <label>
+        Transparency
+        <span className="seg">
+          {(['auto', 'glass', 'lite'] as const).map((m) => (
+            <button key={m} className={perf.mode === m ? 'primary' : ''} onClick={() => perf.setMode(m)}>{m}</button>
+          ))}
+        </span>
+      </label>
+      <p className="muted tiny">
+        Glass blurs the wallpaper behind the chrome. On software rendering that halves the
+        frame rate, so <b>auto</b> measures {perf.measured ? `${perf.measured}fps` : 'the first two seconds'} and
+        drops to flat surfaces if it cannot hold 60.
+      </p>
+
       <h4>Global</h4>
       <label>
         Global cap (cents)
