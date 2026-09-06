@@ -77,7 +77,12 @@ export function validate(spec: RoomSpec): string[] {
   if (!spec.agents?.length) bad.push('a room needs at least one agent');
   for (const a of spec.agents ?? []) {
     if (!a.name?.trim()) bad.push('every agent needs a name');
-    if (!POLICIES[a.policy]) bad.push(`unknown job "${a.policy}"`);
+    const job = POLICIES[a.policy];
+    if (!job) { bad.push(`unknown job "${a.policy}"`); continue; }
+    // A room that hires for work it cannot do produces an agent that fails on its first
+    // step. Better to refuse the room than to log a scope violation nobody asked for.
+    const missing = job.uses.filter((t) => !(spec.tools ?? []).includes(t));
+    if (missing.length) bad.push(`${a.name || 'that agent'} cannot do "${job.goal}" here — the room also needs: ${missing.join(', ')}`);
   }
   return bad;
 }
@@ -156,6 +161,6 @@ export function catalog() {
       blast: t.blast, reversible: t.reversible, external: t.external,
     })),
     access: Object.entries(ACCESS).map(([k, v]) => ({ key: k, label: v.label, note: v.note })),
-    jobs: Object.entries(POLICIES).map(([k, p]) => ({ key: k, goal: p.goal, steps: p.steps.length })),
+    jobs: Object.entries(POLICIES).map(([k, p]) => ({ key: k, goal: p.goal, steps: p.steps.length, uses: p.uses })),
   };
 }

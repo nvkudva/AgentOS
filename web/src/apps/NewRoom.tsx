@@ -31,6 +31,12 @@ export function NewRoom({ onDone }: { onDone: () => void }) {
 
   const key = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 22);
   const toggle = (t: string) => setTools((xs) => (xs.includes(t) ? xs.filter((x) => x !== t) : [...xs, t]));
+  const label = (t: string) => cat.tools.find((x: any) => x.name === t)?.label ?? t;
+  /** What each chosen job still needs granted, so the gap is visible before you create. */
+  const missingFor = (policy: string) =>
+    (cat.jobs.find((j: any) => j.key === policy)?.uses ?? []).filter((t: string) => !tools.includes(t));
+  const grantAll = (policy: string) =>
+    setTools((xs) => [...new Set([...xs, ...missingFor(policy)])]);
 
   const create = async () => {
     setBusy(true); setErr(null);
@@ -104,6 +110,12 @@ export function NewRoom({ onDone }: { onDone: () => void }) {
           </select>
           <input placeholder="How do they work?" value={a.persona}
                  onChange={(e) => edit(i, { persona: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
+          {a.policy && missingFor(a.policy).length > 0 && (
+            <span className="needs-grant">
+              This job also needs {missingFor(a.policy).map(label).join(', ').toLowerCase()}
+              <button onClick={() => grantAll(a.policy)}>Allow it</button>
+            </span>
+          )}
         </div>
       ))}
       <button onClick={() => setAgents((xs) => [...xs, { name: '', role: 'specialist', policy: '', persona: '', avatar: FACES[0] }])}>
@@ -112,7 +124,9 @@ export function NewRoom({ onDone }: { onDone: () => void }) {
 
       {err && <p className="problem-line">{err}</p>}
       <div className="field" style={{ marginTop: 16 }}>
-        <button className="primary" disabled={busy || !name || !objective || !agents.some((a) => a.name && a.policy)}
+        <button className="primary"
+                disabled={busy || !name || !objective || !agents.some((a) => a.name && a.policy) ||
+                          agents.some((a) => a.policy && missingFor(a.policy).length > 0)}
                 onClick={create}>{busy ? 'Creating…' : 'Create room'}</button>
         <button onClick={onDone}>Cancel</button>
         <span className="muted tiny">Creates the room, its own database account and its agents.</span>

@@ -2,7 +2,8 @@ import type { Ctx } from '../runtime/types.js';
 import { callTool } from '../runtime/toolbelt.js';
 
 export type Step = { activity: string; run: (ctx: Ctx, s: Record<string, any>) => Promise<void> };
-export type Policy = { key: string; goal: string; steps: Step[] };
+/** `uses` is what the job needs granted. A room cannot hire for work it cannot do. */
+export type Policy = { key: string; goal: string; uses: string[]; steps: Step[] };
 
 const T = (ctx: Ctx, name: string, args: any) => callTool(ctx, name, args);
 
@@ -10,6 +11,7 @@ const T = (ctx: Ctx, name: string, args: any) => callTool(ctx, name, args);
 const analyticsWeekly: Policy = {
   key: 'analytics.weekly',
   goal: 'Report last quarter revenue, top regions and churn',
+  uses: ['sql.query', 'artifact.write'],
   steps: [
     { activity: 'querying revenue by month', async run(ctx, s) {
         s.revenue = await T(ctx, 'sql.query', { sql:
@@ -44,6 +46,7 @@ const analyticsWeekly: Policy = {
 const engineeringFix: Policy = {
   key: 'engineering.fix',
   goal: 'Fix the rounding bug in pricing and open a PR',
+  uses: ['repo.read', 'repo.patch', 'repo.test', 'github.pr.open', 'artifact.write', 'escalate'],
   steps: [
     { activity: 'reading src/pricing.js', async run(ctx, s) {
         s.file = await T(ctx, 'repo.read', { path: 'src/pricing.js', ref: 'main' });
@@ -87,6 +90,7 @@ const engineeringFix: Policy = {
 const marketingLaunch: Policy = {
   key: 'marketing.launch',
   goal: 'Draft a numbers-backed post and queue it',
+  uses: ['artifact.read', 'queue.draft', 'queue.publish'],
   steps: [
     { activity: 'reading shared analytics artifacts', async run(ctx, s) {
         s.shared = await T(ctx, 'artifact.read', { room_key_source: 'analytics' });
@@ -108,6 +112,7 @@ const marketingLaunch: Policy = {
 const salesHygiene: Policy = {
   key: 'sales.hygiene',
   goal: 'Flag stale pipeline',
+  uses: ['sql.query', 'crm.note', 'artifact.write'],
   steps: [
     { activity: 'finding deals untouched for 30 days', async run(ctx, s) {
         s.stale = await T(ctx, 'sql.query', { sql:
@@ -132,6 +137,7 @@ const salesHygiene: Policy = {
 const strategySynth: Policy = {
   key: 'strategy.synth',
   goal: 'Synthesise what the other rooms found',
+  uses: ['artifact.read', 'artifact.write', 'escalate'],
   steps: [
     { activity: 'reading shared artifacts', async run(ctx, s) {
         s.all = await T(ctx, 'artifact.read', {});
@@ -157,6 +163,7 @@ const strategySynth: Policy = {
 const loopTrap: Policy = {
   key: 'demo.loop',
   goal: 'Deliberately spin, to exercise the kill switch',
+  uses: ['artifact.write'],
   steps: [
     { activity: 'retrying the same write', async run(ctx, s) {
         await T(ctx, 'artifact.write', { kind: 'note', title: 'spin', body: 'again' });
@@ -169,6 +176,7 @@ const loopTrap: Policy = {
 const supportTriage: Policy = {
   key: 'support.triage',
   goal: 'Answer the oldest urgent ticket',
+  uses: ['ticket.list', 'ticket.reply', 'artifact.write'],
   steps: [
     { activity: 'looking at open tickets', async run(ctx, s) {
         s.open = await T(ctx, 'ticket.list', { status: 'open', limit: 10 });
@@ -202,6 +210,7 @@ const supportTriage: Policy = {
 const financeClose: Policy = {
   key: 'finance.close',
   goal: 'Close the month: revenue, refunds and what is still open',
+  uses: ['sql.query', 'artifact.write'],
   steps: [
     { activity: 'adding up the last full month', async run(ctx, s) {
         s.rev = await T(ctx, 'sql.query', { sql:
@@ -229,6 +238,7 @@ const financeClose: Policy = {
 const researchBrief: Policy = {
   key: 'research.brief',
   goal: 'Turn what the other rooms found into a short brief',
+  uses: ['artifact.read', 'sql.query', 'artifact.write'],
   steps: [
     { activity: 'reading what other rooms shared', async run(ctx, s) {
         s.shared = await T(ctx, 'artifact.read', {});

@@ -93,3 +93,15 @@ after(async () => {
   await pool.query(`DROP ROLE IF EXISTS atrium_${KEY}`).catch(() => {});
   await closeAll();
 });
+
+test('a room cannot hire for work it is not equipped to do', async () => {
+  const problems = validate({
+    key: 'paralegal', name: 'Paralegal', objective: 'x', color: '#fff', icon: '◍',
+    budget_cents: 100, access: 'none',
+    tools: ['artifact.write'],                       // no sql.query, no artifact.read
+    agents: [{ name: 'Pat', role: 'analyst', policy: 'research.brief',
+               persona: '', color: '#fff', avatar: '🙂' }],
+  } as any);
+  assert.ok(problems.some((p) => p.includes('the room also needs')),
+    'the gap is named before the room exists, not logged as a violation after');
+});
