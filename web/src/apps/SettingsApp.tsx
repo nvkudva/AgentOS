@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { NewRoom } from './NewRoom';
 import { post } from '../lib/api';
 import { money } from '../lib/humanize';
 import type { Room } from '../lib/api';
@@ -9,6 +10,8 @@ export function SettingsApp({ rooms, config, perf, theme, setTheme }: {
   theme: string; setTheme: (t: any) => void;
 }) {
   const [g, setG] = useState(config.global_budget_cents);
+  const [adding, setAdding] = useState(false);
+  if (adding) return <NewRoom onDone={() => setAdding(false)} />;
   return (
     <div className="pad settings">
       <h4>Appearance</h4>
@@ -46,6 +49,11 @@ export function SettingsApp({ rooms, config, perf, theme, setTheme }: {
       </button>
 
       <h4>Rooms</h4>
+      <p className="muted tiny" style={{ marginTop: 0 }}>
+        A room is data, not code. Adding one creates its own database account with exactly
+        the access you choose — nothing in the app is written per room.
+      </p>
+      <button className="primary" style={{ marginBottom: 12 }} onClick={() => setAdding(true)}>New room…</button>
       <table className="grid-table">
         <thead><tr><th>Room</th><th>Cap</th><th>Spent</th><th>DB role</th><th>Tools</th><th>Status</th></tr></thead>
         <tbody>

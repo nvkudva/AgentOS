@@ -2,6 +2,7 @@ import { q, one } from './db.js';
 import { append } from './events.js';
 import { bus } from './bus.js';
 import { startAgent, killAgent } from './runtime/scheduler.js';
+import { provisionRoom, catalog, validate, type RoomSpec } from './provision.js';
 
 export type Req = { method: string; path: string; body: any; query: URLSearchParams };
 
@@ -26,6 +27,27 @@ export async function handle(req: Req): Promise<any> {
   const p = req.path;
 
   if (p === '/api/state') return snapshot();
+
+  /** Everything the room creator can offer, in words rather than schema. */
+  if (p === '/api/catalog') return catalog();
+
+  /**
+   * Milestone 8: a new function of the company is a form, not a deploy. This creates
+   * the room, its Postgres role, that role's grants and its agents — and nothing in
+   * the shell knows the difference between it and the rooms that shipped.
+   */
+  if (p === '/api/rooms' && req.method === 'POST') {
+    const spec = req.body as RoomSpec;
+    const problems = validate(spec);
+    if (problems.length) return { error: problems.join('; '), problems, status: 400 };
+    try {
+      const room = await provisionRoom(spec);
+      bus.publish({ type: 'refresh' });
+      return { room };
+    } catch (e: any) {
+      return { error: String(e?.message ?? e), status: e?.status ?? 500 };
+    }
+  }
 
   if (p === '/api/list') {
     return q(

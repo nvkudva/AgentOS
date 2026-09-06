@@ -61,10 +61,21 @@ Verified in this repository, not mocked:
 | Room | Real effect | Evidence |
 |---|---|---|
 | **analytics** | queries a real Postgres (`bizdata`: 120 customers, 900 orders, 40 deals) through its **own DB role** | `artifact` rows with real aggregates; `atrium_analytics` can `SELECT` and cannot `UPDATE` (test) |
+| **support** | reads a real ticket table and **sends a real reply** after approval | `support.ticket` rows moving `open → answered` with the reply stored |
+| **finance** | closes the month from the real orders table | a month-end memo with real paid/refunded totals |
+| **research** | reads every room's shared notes and checks one number itself | a weekly brief citing the other rooms |
 | **engineering** | reads a real git repo, applies a real patch, runs the **real test suite**, pushes a **real branch**, opens a PR | commits in `workspace/`, branches in `workspace-remote.git`; the test suite genuinely fails before the fix and passes after |
 | **marketing** | writes a real row into the real `content_queue`, publishes only after approval | `content_queue` rows moving `draft → published` |
 | **sales** | reads pipeline and writes a real annotation, through a role granted `UPDATE (note)` on one column only | `bizdata.pipeline.note` |
 | **strategy** | reads only *shared* artifacts from other rooms, escalates to the human | escalation card in the inbox |
+
+**Rooms are data, not code.** Every room — including the eight that ship — is created by
+one call that writes the room row, creates its **own Postgres role**, applies exactly the
+grants its access profile allows, and inserts its agents. Settings has a **New room** form
+over the same call: name it, choose what it may reach, tick what it may do, staff it, and it
+appears on a rail with no shell code written. `test/newroom.test.ts` creates a room at
+runtime and holds it to the same scope rules as the shipped ones — that is milestone 8, and
+it is the test of whether "room" is really the unit of the system.
 
 Money, budgets, kills, approvals and the event log are all real. The agents' **reasoning**
 is not: there is no LLM API key in this environment, so agent policies are deterministic

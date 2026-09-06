@@ -100,7 +100,10 @@ adding a room is a row plus a tool grant plus a database role.
 | **engineering** | ship small changes | opens a **real** GitHub PR | `repo.read`, `repo.patch`, `github.pr.open` | **high — always approval** |
 | **marketing** | draft posts | writes into a **real** content queue | `queue.draft`, `artifact.write` | medium |
 | **sales** | pipeline hygiene | reads/annotates CRM tables in Postgres | `sql.query`, `crm.note` | medium |
-| **strategy** | synthesize across artifacts | reads the shared artifact store | `artifact.read`, `artifact.write` | low |
+| **strategy** | synthesise across rooms | reads the shared artifact store | `artifact.read`, `artifact.write` | low |
+| **support** | answer customers | reads a **real ticket table** and sends a real reply | `ticket.list`, `ticket.reply` | **high — always approval** |
+| **finance** | close the month | real revenue and refunds out of the orders table | `sql.query`, `artifact.write` | low |
+| **research** | brief the operator | reads shared notes, checks one number itself | `artifact.read`, `sql.query` | low |
 
 Analytics, engineering and marketing are wired to genuine external effects; sales and
 strategy are real but narrower. **A new room is three things**: a row in `room` with its
@@ -315,8 +318,11 @@ claim can still be measured against it (§1).
 5. **Budgets and kill switches** — caps halt; step/cost/loop kills; global panic stop.
 6. **Three rooms doing real work concurrently** — analytics + engineering PR + marketing queue.
 7. **Run a real week through it** — collect `observation_log`, write the verdict in README.
-8. **Add a sixth room without touching the shell** — the test of whether "room" is really the
-   unit of the system, or just five hard-coded panels wearing a costume.
+8. ✅ **Add a room without touching the shell.** Rooms are created by one call —
+   `provisionRoom` — which writes the room, creates its own Postgres role, applies exactly
+   the grants its access profile allows, and inserts its agents. The eight shipped rooms go
+   through it; so does the **New room** form in Settings. `test/newroom.test.ts` creates one
+   at runtime and holds it to the same scope rules as the rest.
 
 ---
 

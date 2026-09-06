@@ -20,10 +20,8 @@ import { ListView } from './components/ListView';
 import type { CmdCtx } from './desktop/commands';
 
 const VIEW = 'desktop';
-/** Where each room parks itself the first time you open Atrium. */
-const HOME: Record<string, 'left' | 'right'> = {
-  analytics: 'left', engineering: 'left', marketing: 'left', sales: 'right', strategy: 'right',
-};
+/** Rooms park on alternating rails, so a room added today lands somewhere sensible too. */
+const side = (i: number): 'left' | 'right' => (i % 2 === 0 ? 'left' : 'right');
 
 export default function App() {
   const snap = useLiveState();
@@ -82,13 +80,19 @@ export default function App() {
            ...place(k === 'floor' ? 900 : 740, k === 'floor' ? 580 : 520) });
   }, [open, place]);
 
-  // First boot: rooms park themselves on the rails, the way a desktop restores a layout.
-  const booted = useRef(false);
+  /**
+   * Every room gets a card on a rail — including one created a minute ago. Nothing here
+   * knows the shipped rooms from the ones the operator added; that is the whole point.
+   */
+  const known = useRef(new Set<string>());
   useEffect(() => {
-    if (!snap || booted.current) return;
-    booted.current = true;
-    for (const r of snap.rooms) openRoomWindow(r, HOME[r.key] ?? 'left');
-  }, [snap, openRoomWindow]);
+    if (!snap) return;
+    snap.rooms.forEach((r, i) => {
+      if (known.current.has(r.id)) return;
+      known.current.add(r.id);
+      openRoomWindow(r, side(i));
+    });
+  }, [snap?.rooms, openRoomWindow]);
 
   const rects = useMemo(() => layout(wins, stage), [wins, stage]);
   const ln = useMemo(() => lanes(wins, stage), [wins, stage]);

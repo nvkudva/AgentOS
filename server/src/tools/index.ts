@@ -5,9 +5,10 @@ import { queueDraft, queuePublish } from './queue.js';
 import { repoRead, repoPatch, repoTest } from './repo.js';
 import { prOpen } from './github.js';
 import { escalate } from './escalate.js';
+import { ticketList, ticketReply } from './support.js';
 
 export const TOOLS: Record<string, ToolSpec> = Object.fromEntries(
   [sqlQuery, crmNote, artifactWrite, artifactRead, queueDraft, queuePublish,
-   repoRead, repoPatch, repoTest, prOpen, escalate].map((t) => [t.name, t])
+   repoRead, repoPatch, repoTest, prOpen, escalate, ticketList, ticketReply].map((t) => [t.name, t])
 );
 export const toolNames = Object.keys(TOOLS);

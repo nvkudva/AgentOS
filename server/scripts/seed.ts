@@ -1,67 +1,82 @@
-import { pool, closeAll } from '../src/db.js';
-import { id } from '../src/ids.js';
+import { pool, one, closeAll } from '../src/db.js';
+import { provisionRoom, type RoomSpec } from '../src/provision.js';
 
-const ROOMS = [
+/**
+ * The rooms Atrium ships with. They are created through exactly the same call the
+ * "New room" form uses — if seeding needed a private path, "a room is data" would
+ * be a claim about new rooms only.
+ */
+const ROOMS: RoomSpec[] = [
   { key: 'analytics', name: 'Analytics', objective: 'Answer questions from company data',
-    color: '#4bb3d4', icon: '◈',
-    x: 0, y: 0, w: 2, h: 1, budget: 300, role: 'atrium_analytics',
-    grants: ['sql.query', 'artifact.write', 'artifact.read', 'escalate'],
-    policy: { low: 'auto', medium: 'auto', high: 'approve' } },
+    color: '#4bb3d4', icon: '◈', budget_cents: 300, access: 'read_business',
+    tools: ['sql.query', 'artifact.write', 'artifact.read', 'escalate'],
+    agents: [
+      { name: 'Ada', role: 'analyst', policy: 'analytics.weekly', avatar: '🔭', color: '#4bb3d4',
+        persona: 'Cautious. Will not state a number she has not queried twice.' },
+      { name: 'Bo', role: 'analyst', policy: 'analytics.weekly', avatar: '📐', color: '#63c9c0',
+        persona: 'Fast and rough. Good for a first read, never the final one.' },
+    ] },
   { key: 'engineering', name: 'Engineering', objective: 'Ship small, tested changes',
-    color: '#6f8ef5', icon: '⌘',
-    x: 2, y: 0, w: 2, h: 1, budget: 400, role: 'atrium_engineering',
-    grants: ['repo.read', 'repo.patch', 'repo.test', 'github.pr.open', 'artifact.write', 'escalate'],
-    policy: { low: 'auto', medium: 'auto', high: 'approve' } },
+    color: '#6f8ef5', icon: '⌘', budget_cents: 400, access: 'none',
+    tools: ['repo.read', 'repo.patch', 'repo.test', 'github.pr.open', 'artifact.write', 'escalate'],
+    agents: [
+      { name: 'Kit', role: 'engineer', policy: 'engineering.fix', avatar: '🔧', color: '#6f8ef5',
+        persona: 'Small diffs, real tests, no heroics. Refuses to ship red.' },
+      { name: 'Rex', role: 'engineer', policy: 'demo.loop', avatar: '🌀', color: '#8a93a5',
+        step_budget: 6, cost_budget_cents: 4,
+        persona: 'Gets stuck in loops on purpose. He exists to prove the kill switch works.' },
+    ] },
   { key: 'marketing', name: 'Marketing', objective: 'Draft numbers-backed posts',
-    color: '#e0794b', icon: '✎',
-    x: 0, y: 1, w: 2, h: 1, budget: 200, role: 'atrium_marketing',
-    grants: ['queue.draft', 'queue.publish', 'artifact.read', 'artifact.write', 'escalate'],
-    policy: { low: 'auto', medium: 'auto', high: 'approve' } },
+    color: '#e0794b', icon: '✎', budget_cents: 200, access: 'none',
+    tools: ['queue.draft', 'queue.publish', 'artifact.read', 'artifact.write', 'escalate'],
+    agents: [
+      { name: 'Mel', role: 'writer', policy: 'marketing.launch', avatar: '✒️', color: '#e0794b',
+        persona: 'Writes plainly, cites the analytics room, never publishes without asking.' },
+      { name: 'Nia', role: 'editor', policy: 'marketing.launch', avatar: '🗞️', color: '#d9a441',
+        persona: 'Second pair of eyes. Cuts a draft by a third before it goes anywhere.' },
+    ] },
   { key: 'sales', name: 'Sales', objective: 'Keep the pipeline honest',
-    color: '#3fb27f', icon: '◎',
-    x: 2, y: 1, w: 2, h: 1, budget: 200, role: 'atrium_sales',
-    grants: ['sql.query', 'crm.note', 'artifact.write', 'escalate'],
-    policy: { low: 'auto', medium: 'auto', high: 'approve' } },
+    color: '#3fb27f', icon: '◎', budget_cents: 200, access: 'write_pipeline',
+    tools: ['sql.query', 'crm.note', 'artifact.write', 'escalate'],
+    agents: [
+      { name: 'Sam', role: 'rep', policy: 'sales.hygiene', avatar: '📇', color: '#3fb27f',
+        persona: 'Pipeline janitor. Flags stale deals before they rot.' },
+      { name: 'Tor', role: 'analyst', policy: 'sales.hygiene', avatar: '📊', color: '#57b6a0',
+        persona: 'Reads the pipeline as numbers, not stories. Blunt about what is dead.' },
+    ] },
+  { key: 'support', name: 'Support', objective: 'Answer customers before they chase us',
+    color: '#e05b8f', icon: '☎', budget_cents: 250, access: 'support_desk',
+    tools: ['ticket.list', 'ticket.reply', 'artifact.write', 'escalate'],
+    agents: [
+      { name: 'Ren', role: 'support', policy: 'support.triage', avatar: '🎧', color: '#e05b8f',
+        persona: 'Answers the oldest urgent thing first. Never promises a date.' },
+      { name: 'Ola', role: 'support', policy: 'support.triage', avatar: '🛟', color: '#d67aa8',
+        persona: 'Reads the whole thread before replying. Slower, fewer follow-ups.' },
+    ] },
+  { key: 'finance', name: 'Finance', objective: 'Close the month and watch the burn',
+    color: '#c9a227', icon: '⛁', budget_cents: 250, access: 'read_business',
+    tools: ['sql.query', 'artifact.write', 'artifact.read', 'escalate'],
+    agents: [
+      { name: 'Fay', role: 'controller', policy: 'finance.close', avatar: '🧾', color: '#c9a227',
+        persona: 'Ties every number to a row. Will not round in your favour.' },
+      { name: 'Gus', role: 'analyst', policy: 'finance.close', avatar: '💱', color: '#d9b64a',
+        persona: 'Looks for the line that moved and asks why.' },
+    ] },
+  { key: 'research', name: 'Research', objective: 'Turn what the rooms found into a brief',
+    color: '#7f8cd6', icon: '◍', budget_cents: 180, access: 'read_business',
+    tools: ['artifact.read', 'artifact.write', 'sql.query', 'escalate'],
+    agents: [
+      { name: 'Val', role: 'researcher', policy: 'research.brief', avatar: '🔎', color: '#7f8cd6',
+        persona: 'Digs for the thing nobody asked about. Slow, occasionally right.' },
+    ] },
   { key: 'strategy', name: 'Strategy', objective: 'Synthesise across rooms',
-    color: '#a472e0', icon: '◇',
-    x: 0, y: 2, w: 4, h: 1, budget: 150, role: 'atrium_strategy',
-    grants: ['artifact.read', 'artifact.write', 'escalate'],
-    policy: { low: 'auto', medium: 'auto', high: 'approve' } },
+    color: '#a472e0', icon: '◇', budget_cents: 150, access: 'none',
+    tools: ['artifact.read', 'artifact.write', 'escalate'],
+    agents: [
+      { name: 'Iris', role: 'strategist', policy: 'strategy.synth', avatar: '🧭', color: '#a472e0',
+        persona: 'Reads every room, commits to nothing without asking you first.' },
+    ] },
 ];
-
-type AgentSeed = { name: string; role: string; policy: string; persona: string; color: string; avatar: string };
-const AGENTS: Record<string, AgentSeed[]> = {
-  analytics: [
-    { name: 'Ada',  role: 'analyst',    policy: 'analytics.weekly', avatar: '🔭', color: '#4bb3d4',
-      persona: 'Cautious. Will not state a number she has not queried twice.' },
-    { name: 'Bo',   role: 'analyst',    policy: 'analytics.weekly', avatar: '📐', color: '#63c9c0',
-      persona: 'Fast and rough. Good for a first read, never the final one.' },
-  ],
-  engineering: [
-    { name: 'Kit',  role: 'engineer',   policy: 'engineering.fix',  avatar: '🔧', color: '#6f8ef5',
-      persona: 'Small diffs, real tests, no heroics. Refuses to ship red.' },
-    { name: 'Rex',  role: 'engineer',   policy: 'demo.loop',        avatar: '🌀', color: '#8a93a5',
-      persona: 'Gets stuck in loops on purpose. He exists to prove the kill switch works.' },
-  ],
-  marketing: [
-    { name: 'Mel',  role: 'writer',     policy: 'marketing.launch', avatar: '✒️', color: '#e0794b',
-      persona: 'Writes plainly, cites the analytics room, never publishes without asking.' },
-    { name: 'Nia',  role: 'editor',     policy: 'marketing.launch', avatar: '🗞️', color: '#d9a441',
-      persona: 'Second pair of eyes. Cuts a draft by a third before it goes anywhere.' },
-  ],
-  sales: [
-    { name: 'Sam',  role: 'rep',        policy: 'sales.hygiene',    avatar: '📇', color: '#3fb27f',
-      persona: 'Pipeline janitor. Flags stale deals before they rot.' },
-    { name: 'Tor',  role: 'analyst',    policy: 'sales.hygiene',    avatar: '📊', color: '#57b6a0',
-      persona: 'Reads the pipeline as numbers, not stories. Blunt about what is dead.' },
-  ],
-  strategy: [
-    { name: 'Iris', role: 'strategist', policy: 'strategy.synth',   avatar: '🧭', color: '#a472e0',
-      persona: 'Reads every room, commits to nothing without asking you first.' },
-    { name: 'Val',  role: 'researcher', policy: 'strategy.synth',   avatar: '🔎', color: '#c07fd6',
-      persona: 'Digs for the thing nobody asked about. Slow, occasionally right.' },
-  ],
-};
 
 async function bizdata() {
   const c = await pool.query('SELECT count(*)::int n FROM bizdata.customer');
@@ -92,36 +107,10 @@ async function bizdata() {
   console.log('bizdata seeded');
 }
 
-const main = async () => {
-  await bizdata();
-  for (const r of ROOMS) {
-    const rid = id('room');
-    const { rows } = await pool.query(
-      `INSERT INTO room (id,key,name,objective,x,y,w,h,budget_cents,tool_grants,approval_policy,db_role,color,icon)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
-       ON CONFLICT (key) DO UPDATE SET tool_grants=EXCLUDED.tool_grants, db_role=EXCLUDED.db_role,
-         objective=EXCLUDED.objective, x=EXCLUDED.x, y=EXCLUDED.y, w=EXCLUDED.w, h=EXCLUDED.h,
-         color=EXCLUDED.color, icon=EXCLUDED.icon
-       RETURNING id`,
-      [rid, r.key, r.name, r.objective, r.x, r.y, r.w, r.h, r.budget,
-       JSON.stringify(r.grants), JSON.stringify(r.policy), r.role, r.color, r.icon]);
-    const roomId = rows[0].id;
-    for (const a of AGENTS[r.key] ?? []) {
-      const steps = a.policy === 'demo.loop' ? 6 : 40;
-      const cap = a.policy === 'demo.loop' ? 4 : 120;
-      const exists = await pool.query('SELECT id FROM agent WHERE room_id=$1 AND name=$2', [roomId, a.name]);
-      if (exists.rowCount) {
-        await pool.query('UPDATE agent SET persona=$2, color=$3, avatar=$4 WHERE id=$1',
-          [exists.rows[0].id, a.persona, a.color, a.avatar]);
-        continue;
-      }
-      await pool.query(
-        `INSERT INTO agent (id, room_id, name, role, policy_key, step_budget, cost_budget_cents, persona, color, avatar)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [id('agt'), roomId, a.name, a.role, a.policy, steps, cap, a.persona, a.color, a.avatar]);
-    }
-    console.log('room', r.key);
-  }
-  await closeAll();
-};
-main().catch((e) => { console.error(e); process.exit(1); });
+await bizdata();
+for (const spec of ROOMS) {
+  if (await one('SELECT 1 FROM room WHERE key=$1', [spec.key])) { console.log('room', spec.key, '(exists)'); continue; }
+  await provisionRoom(spec);
+  console.log('room', spec.key, '— created with', spec.agents.length, 'agents');
+}
+await closeAll();

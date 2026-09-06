@@ -165,6 +165,88 @@ const loopTrap: Policy = {
   ],
 };
 
+/** SUPPORT — reads the real ticket table and answers one, with your approval. */
+const supportTriage: Policy = {
+  key: 'support.triage',
+  goal: 'Answer the oldest urgent ticket',
+  steps: [
+    { activity: 'looking at open tickets', async run(ctx, s) {
+        s.open = await T(ctx, 'ticket.list', { status: 'open', limit: 10 });
+      } },
+    { activity: 'picking the one that has waited longest', async run(ctx, s) {
+        s.pick = s.open.rows?.[0];
+        if (!s.pick) { s.__done = true; return; }
+      } },
+    { activity: 'drafting a reply', async run(ctx, s) {
+        if (s.__done) return;
+        const t = s.pick;
+        s.draft =
+          `Hi ${t.customer ?? 'there'},\n\n` +
+          `Thanks for writing in about "${t.subject}". We have looked into it and are on it now. ` +
+          `You are on the ${t.plan ?? 'current'} plan, so this is covered.\n\n` +
+          `We will follow up here as soon as it is resolved.\n\nSupport`;
+      } },
+    { activity: 'asking you before it goes to the customer', async run(ctx, s) {
+        if (s.__done) return;
+        s.sent = await T(ctx, 'ticket.reply', { id: s.pick.id, reply: s.draft });
+      } },
+    { activity: 'writing up what was answered', async run(ctx, s) {
+        if (s.__done) return;
+        await T(ctx, 'artifact.write', { kind: 'note', shared: true,
+          title: `Answered ticket #${s.pick.id}`, body: `**${s.pick.subject}**\n\n${s.draft}` });
+      } },
+  ],
+};
+
+/** FINANCE — real numbers out of the real database, written up as a memo. */
+const financeClose: Policy = {
+  key: 'finance.close',
+  goal: 'Close the month: revenue, refunds and what is still open',
+  steps: [
+    { activity: 'adding up the last full month', async run(ctx, s) {
+        s.rev = await T(ctx, 'sql.query', { sql:
+          `SELECT to_char(date_trunc('month', placed_at),'YYYY-MM') AS month,
+                  sum(amount_cents) FILTER (WHERE status='paid')/100.0     AS paid,
+                  sum(amount_cents) FILTER (WHERE status='refunded')/100.0 AS refunded,
+                  count(*) FILTER (WHERE status='paid')                    AS orders
+             FROM bizdata.orders
+            GROUP BY 1 ORDER BY 1 DESC LIMIT 3` });
+      } },
+    { activity: 'checking what is still in the pipeline', async run(ctx, s) {
+        s.open = await T(ctx, 'sql.query', { sql:
+          `SELECT stage, count(*) AS deals, sum(value_cents)/100.0 AS value
+             FROM bizdata.pipeline WHERE stage NOT IN ('won','lost')
+            GROUP BY 1 ORDER BY 3 DESC` });
+      } },
+    { activity: 'writing the month-end memo', async run(ctx, s) {
+        await T(ctx, 'artifact.write', { kind: 'memo', shared: true, title: 'Month-end close',
+          body: ['## Revenue', table(s.rev), '\n## Still open', table(s.open)].join('\n') });
+      } },
+  ],
+};
+
+/** RESEARCH — reads what every room published, backs it with one number, writes a brief. */
+const researchBrief: Policy = {
+  key: 'research.brief',
+  goal: 'Turn what the other rooms found into a short brief',
+  steps: [
+    { activity: 'reading what other rooms shared', async run(ctx, s) {
+        s.shared = await T(ctx, 'artifact.read', {});
+      } },
+    { activity: 'checking one number for itself', async run(ctx, s) {
+        s.check = await T(ctx, 'sql.query', { sql:
+          `SELECT c.region, count(*) AS customers,
+                  round(100.0 * count(*) FILTER (WHERE c.churned_at IS NOT NULL) / count(*), 1) AS churn_pct
+             FROM bizdata.customer c GROUP BY 1 ORDER BY 3 DESC` });
+      } },
+    { activity: 'writing the brief', async run(ctx, s) {
+        const cited = (s.shared.shared ?? []).map((a: any) => `- ${a.room}: ${a.title}`).join('\n');
+        await T(ctx, 'artifact.write', { kind: 'brief', shared: true, title: 'Weekly brief',
+          body: `## What the rooms reported\n${cited || '_nothing shared yet_'}\n\n## Churn by region\n${table(s.check)}` });
+      } },
+  ],
+};
+
 function table(res: any): string {
   const rows = res?.rows ?? [];
   if (!rows.length) return '_no rows_';
@@ -174,5 +256,6 @@ function table(res: any): string {
 }
 
 export const POLICIES: Record<string, Policy> = Object.fromEntries(
-  [analyticsWeekly, engineeringFix, marketingLaunch, salesHygiene, strategySynth, loopTrap].map((p) => [p.key, p])
+  [analyticsWeekly, engineeringFix, marketingLaunch, salesHygiene, strategySynth,
+   supportTriage, financeClose, researchBrief, loopTrap].map((p) => [p.key, p])
 );
