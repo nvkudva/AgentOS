@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { get, post, observe } from '../lib/api';
 import type { Room } from '../lib/api';
 
-export function RoomDetail({ room, view, onClose }: { room: Room; view: string; onClose: () => void }) {
+export function RoomApp({ room, view }: { room: Room; view: string }) {
   const [d, setD] = useState<any>(null);
   const [tab, setTab] = useState<'log' | 'artifacts' | 'spend' | 'runs' | 'scope'>('log');
 
@@ -12,16 +12,16 @@ export function RoomDetail({ room, view, onClose }: { room: Room; view: string; 
 
   if (!d) return null;
   return (
-    <div className="sheet" onClick={onClose}>
-      <div className="sheet-inner" onClick={(e) => e.stopPropagation()}>
+    <div className="roomapp">
+      <div>
         <div className="sheet-head">
+          <span style={{ color: (d.room as any).color }}>{(d.room as any).icon}</span>
           <strong>{d.room.name}</strong>
           <span style={{ color: 'var(--faint)' }}>{d.room.objective}</span>
           <span className="spacer" />
           {d.room.status !== 'open' && (
             <button onClick={() => post('/api/rooms/resume', { room: room.key }).then(load)}>Resume room</button>
           )}
-          <button onClick={onClose}>Close</button>
         </div>
         <div className="sheet-head" style={{ borderTop: 0, gap: 4 }}>
           {(['log', 'artifacts', 'spend', 'runs', 'scope'] as const).map((t) => (

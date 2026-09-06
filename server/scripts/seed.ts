@@ -3,33 +3,58 @@ import { id } from '../src/ids.js';
 
 const ROOMS = [
   { key: 'analytics', name: 'Analytics', objective: 'Answer questions from company data',
+    color: '#4bb3d4', icon: '◈',
     x: 0, y: 0, w: 2, h: 1, budget: 300, role: 'atrium_analytics',
     grants: ['sql.query', 'artifact.write', 'artifact.read', 'escalate'],
     policy: { low: 'auto', medium: 'auto', high: 'approve' } },
   { key: 'engineering', name: 'Engineering', objective: 'Ship small, tested changes',
+    color: '#6f8ef5', icon: '⌘',
     x: 2, y: 0, w: 2, h: 1, budget: 400, role: 'atrium_engineering',
     grants: ['repo.read', 'repo.patch', 'repo.test', 'github.pr.open', 'artifact.write', 'escalate'],
     policy: { low: 'auto', medium: 'auto', high: 'approve' } },
   { key: 'marketing', name: 'Marketing', objective: 'Draft numbers-backed posts',
+    color: '#e0794b', icon: '✎',
     x: 0, y: 1, w: 2, h: 1, budget: 200, role: 'atrium_marketing',
     grants: ['queue.draft', 'queue.publish', 'artifact.read', 'artifact.write', 'escalate'],
     policy: { low: 'auto', medium: 'auto', high: 'approve' } },
   { key: 'sales', name: 'Sales', objective: 'Keep the pipeline honest',
+    color: '#3fb27f', icon: '◎',
     x: 2, y: 1, w: 2, h: 1, budget: 200, role: 'atrium_sales',
     grants: ['sql.query', 'crm.note', 'artifact.write', 'escalate'],
     policy: { low: 'auto', medium: 'auto', high: 'approve' } },
   { key: 'strategy', name: 'Strategy', objective: 'Synthesise across rooms',
+    color: '#a472e0', icon: '◇',
     x: 0, y: 2, w: 4, h: 1, budget: 150, role: 'atrium_strategy',
     grants: ['artifact.read', 'artifact.write', 'escalate'],
     policy: { low: 'auto', medium: 'auto', high: 'approve' } },
 ];
 
-const AGENTS: Record<string, Array<[string, string, string]>> = {
-  analytics:   [['Ada', 'analyst', 'analytics.weekly'], ['Bo', 'analyst', 'analytics.weekly']],
-  engineering: [['Kit', 'engineer', 'engineering.fix'], ['Rex', 'engineer', 'demo.loop']],
-  marketing:   [['Mel', 'writer', 'marketing.launch']],
-  sales:       [['Sam', 'rep', 'sales.hygiene']],
-  strategy:    [['Iris', 'strategist', 'strategy.synth']],
+type AgentSeed = { name: string; role: string; policy: string; persona: string; color: string; avatar: string };
+const AGENTS: Record<string, AgentSeed[]> = {
+  analytics: [
+    { name: 'Ada',  role: 'analyst',    policy: 'analytics.weekly', avatar: '🔭', color: '#4bb3d4',
+      persona: 'Cautious. Will not state a number she has not queried twice.' },
+    { name: 'Bo',   role: 'analyst',    policy: 'analytics.weekly', avatar: '📐', color: '#63c9c0',
+      persona: 'Fast and rough. Good for a first read, never the final one.' },
+  ],
+  engineering: [
+    { name: 'Kit',  role: 'engineer',   policy: 'engineering.fix',  avatar: '🔧', color: '#6f8ef5',
+      persona: 'Small diffs, real tests, no heroics. Refuses to ship red.' },
+    { name: 'Rex',  role: 'engineer',   policy: 'demo.loop',        avatar: '🌀', color: '#8a93a5',
+      persona: 'Gets stuck in loops on purpose. He exists to prove the kill switch works.' },
+  ],
+  marketing: [
+    { name: 'Mel',  role: 'writer',     policy: 'marketing.launch', avatar: '✒️', color: '#e0794b',
+      persona: 'Writes plainly, cites the analytics room, never publishes without asking.' },
+  ],
+  sales: [
+    { name: 'Sam',  role: 'rep',        policy: 'sales.hygiene',    avatar: '📇', color: '#3fb27f',
+      persona: 'Pipeline janitor. Flags stale deals before they rot.' },
+  ],
+  strategy: [
+    { name: 'Iris', role: 'strategist', policy: 'strategy.synth',   avatar: '🧭', color: '#a472e0',
+      persona: 'Reads every room, commits to nothing without asking you first.' },
+  ],
 };
 
 async function bizdata() {
@@ -66,21 +91,28 @@ const main = async () => {
   for (const r of ROOMS) {
     const rid = id('room');
     const { rows } = await pool.query(
-      `INSERT INTO room (id,key,name,objective,x,y,w,h,budget_cents,tool_grants,approval_policy,db_role)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      `INSERT INTO room (id,key,name,objective,x,y,w,h,budget_cents,tool_grants,approval_policy,db_role,color,icon)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        ON CONFLICT (key) DO UPDATE SET tool_grants=EXCLUDED.tool_grants, db_role=EXCLUDED.db_role,
-         objective=EXCLUDED.objective, x=EXCLUDED.x, y=EXCLUDED.y, w=EXCLUDED.w, h=EXCLUDED.h
+         objective=EXCLUDED.objective, x=EXCLUDED.x, y=EXCLUDED.y, w=EXCLUDED.w, h=EXCLUDED.h,
+         color=EXCLUDED.color, icon=EXCLUDED.icon
        RETURNING id`,
       [rid, r.key, r.name, r.objective, r.x, r.y, r.w, r.h, r.budget,
-       JSON.stringify(r.grants), JSON.stringify(r.policy), r.role]);
+       JSON.stringify(r.grants), JSON.stringify(r.policy), r.role, r.color, r.icon]);
     const roomId = rows[0].id;
-    for (const [name, role, policy] of AGENTS[r.key] ?? []) {
-      const exists = await pool.query('SELECT 1 FROM agent WHERE room_id=$1 AND name=$2', [roomId, name]);
-      if (exists.rowCount) continue;
+    for (const a of AGENTS[r.key] ?? []) {
+      const steps = a.policy === 'demo.loop' ? 6 : 40;
+      const cap = a.policy === 'demo.loop' ? 4 : 120;
+      const exists = await pool.query('SELECT id FROM agent WHERE room_id=$1 AND name=$2', [roomId, a.name]);
+      if (exists.rowCount) {
+        await pool.query('UPDATE agent SET persona=$2, color=$3, avatar=$4 WHERE id=$1',
+          [exists.rows[0].id, a.persona, a.color, a.avatar]);
+        continue;
+      }
       await pool.query(
-        `INSERT INTO agent (id, room_id, name, role, policy_key, step_budget, cost_budget_cents)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [id('agt'), roomId, name, role, policy, policy === 'demo.loop' ? 6 : 40, policy === 'demo.loop' ? 4 : 120]);
+        `INSERT INTO agent (id, room_id, name, role, policy_key, step_budget, cost_budget_cents, persona, color, avatar)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [id('agt'), roomId, a.name, a.role, a.policy, steps, cap, a.persona, a.color, a.avatar]);
     }
     console.log('room', r.key);
   }

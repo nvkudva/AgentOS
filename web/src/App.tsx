@@ -1,78 +1,112 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLiveState, post, observe } from './lib/api';
-import type { Room } from './lib/api';
-import { RoomWidget } from './components/RoomWidget';
-import { InboxStrip } from './components/Inbox';
-import { RoomDetail } from './components/RoomDetail';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLiveState, observe } from './lib/api';
+import type { Room, Agent, Inbox } from './lib/api';
+import { useWindows } from './desktop/wm';
+import { Window } from './desktop/Window';
+import { MenuBar } from './desktop/MenuBar';
+import { TeamRail } from './desktop/TeamRail';
+import { Dock } from './desktop/Dock';
+import { AgentApp } from './apps/AgentApp';
+import { RoomApp } from './apps/RoomApp';
+import { InboxApp } from './apps/InboxApp';
+import { SettingsApp } from './apps/SettingsApp';
+import { FloorApp } from './apps/FloorApp';
 import { ListView } from './components/ListView';
-import { GlanceTest } from './components/GlanceTest';
 
-const params = new URLSearchParams(location.search);
-const STRESS = Number(params.get('stress') ?? 0);   // ?stress=30 clones widgets to measure fps
+const VIEW = 'desktop';
 
 export default function App() {
   const snap = useLiveState();
-  const [view, setView] = useState<'floor' | 'list'>(
-    (localStorage.getItem('atrium.view') as any) ?? 'floor');
-  const [open, setOpen] = useState<Room | null>(null);
+  const { wins, open, close, focus, patch } = useWindows();
+  const stageRef = useRef<HTMLElement>(null);
+  const [stage, setStage] = useState({ w: 900, h: 600 });
+  const [focusApproval, setFocusApproval] = useState<string | undefined>();
   const fps = useFps();
 
-  useEffect(() => { localStorage.setItem('atrium.view', view); observe(view, 'view.enter'); }, [view]);
+  useLayoutEffect(() => {
+    const el = stageRef.current; if (!el) return;
+    const ro = new ResizeObserver(([e]) => setStage({ w: e.contentRect.width, h: e.contentRect.height }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [snap !== null]);
 
-  const byRoom = useMemo(() => {
-    const m = new Map<string, any[]>();
-    for (const a of snap?.agents ?? []) { (m.get(a.room_id) ?? m.set(a.room_id, []).get(a.room_id)!).push(a); }
-    return m;
-  }, [snap?.agents]);
+  useEffect(() => { observe(VIEW, 'view.enter'); }, []);
 
-  if (!snap) return <div className="calm" style={{ padding: 24 }}>connecting…</div>;
+  const openAgent = (a: Agent & any) => {
+    observe(VIEW, 'agent.open', { agent: a.name });
+    open({ id: `agent:${a.id}`, kind: 'agent', ref: a.id, title: `${a.name} — ${a.role}`, icon: a.avatar, color: a.color, w: 700, h: 520 });
+  };
+  const openRoom = (r: Room & any) => {
+    observe(VIEW, 'room.open', { room: r.key });
+    open({ id: `room:${r.id}`, kind: 'room', ref: r.id, title: r.name, icon: r.icon, color: r.color, w: 760, h: 540 });
+  };
+  const launch = (k: 'floor' | 'list' | 'inbox' | 'settings') => {
+    const meta = { floor: ['▦', 'Floor', '#8fa0b8'], list: ['☰', 'Activity', '#8fa0b8'],
+                   inbox: ['📥', 'Approvals', '#a472e0'], settings: ['⚙', 'Settings', '#8fa0b8'] }[k];
+    open({ id: k, kind: k, title: meta[1], icon: meta[0], color: meta[2],
+           w: k === 'floor' ? 860 : 700, h: k === 'floor' ? 560 : 480 });
+  };
 
-  const rooms = STRESS
-    ? Array.from({ length: STRESS }, (_, i) => ({ ...snap.rooms[i % snap.rooms.length],
-        id: `${snap.rooms[i % snap.rooms.length].id}#${i}`, w: 1, h: 1, name: `${snap.rooms[i % snap.rooms.length].name} ${i}` }))
-    : snap.rooms;
+  // Open the floor once on first load, the way a desktop restores its last window.
+  const booted = useRef(false);
+  useEffect(() => { if (snap && !booted.current) { booted.current = true; launch('floor'); } }, [snap]);
 
-  const cfg = snap.config;
-  const gp = Math.min(100, (cfg.global_spent_cents / Math.max(1, cfg.global_budget_cents)) * 100);
-  const needsMe = snap.inbox.length > 0 ||
-    snap.agents.some((a) => a.state === 'awaiting_approval' || a.state === 'blocked' || a.state === 'failed');
+  const byId = useMemo(() => new Map((snap?.agents ?? []).map((a) => [a.id, a])), [snap?.agents]);
+  if (!snap) return <div className="boot">connecting…</div>;
+
+  const half = Math.ceil(snap.rooms.length / 2) - (snap.rooms.length > 3 ? 1 : 0);
+  const left = snap.rooms.slice(0, half + 1);
+  const right = snap.rooms.slice(half + 1);
+  const activeId = wins.filter((w) => w.kind === 'agent' && !w.min).sort((a, b) => b.z - a.z)[0]?.ref;
+
+  const pickApproval = (i: Inbox) => { setFocusApproval(i.id); launch('inbox'); };
 
   return (
-    <div className="app">
-      <div className="topbar">
-        <span className="brand">Atrium</span>
-        <div className="tabs">
-          <span className={`tab ${view === 'floor' ? 'on' : ''}`} onClick={() => setView('floor')}>Floor</span>
-          <span className={`tab ${view === 'list' ? 'on' : ''}`} onClick={() => setView('list')}>List</span>
+    <div className="os">
+      <MenuBar config={snap.config} inbox={snap.inbox} fps={fps} view={VIEW}
+               needsMe={snap.inbox.length > 0 || snap.agents.some((a) => ['awaiting_approval', 'blocked', 'failed'].includes(a.state))}
+               onOpen={launch} onPick={pickApproval} />
+
+      <div className="body">
+        <TeamRail side="left" rooms={left} agents={snap.agents} onRoom={openRoom} onAgent={openAgent} activeId={activeId} />
+
+        <main className="stage" ref={stageRef}>
+          {wins.map((w) => (
+            <Window key={w.id} win={w} stage={stage} onFocus={() => focus(w.id)}
+                    onClose={() => close(w.id)} onPatch={(p) => patch(w.id, p)}>
+              {w.kind === 'agent' && <AgentApp agentId={w.ref!} />}
+              {w.kind === 'room' && <RoomApp room={snap.rooms.find((r) => r.id === w.ref)!} view={VIEW} />}
+              {w.kind === 'floor' && <FloorApp rooms={snap.rooms} agents={snap.agents} onOpen={openRoom} />}
+              {w.kind === 'list' && <ListView rooms={snap.rooms} agents={snap.agents} />}
+              {w.kind === 'inbox' && <InboxApp items={snap.inbox} view={VIEW} focusId={focusApproval} />}
+              {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} config={snap.config} />}
+            </Window>
+          ))}
+          {!wins.length && (
+            <div className="empty">
+              <p>Pick a teammate on either side to open their work.</p>
+              <p className="muted">Nothing coloured on the rails means nothing needs you.</p>
+            </div>
+          )}
+        </main>
+
+        <div className="rail-col">
+          <TeamRail side="right" rooms={right} agents={snap.agents} onRoom={openRoom} onAgent={openAgent} activeId={activeId} />
+          <section className={`needsyou${snap.inbox.length ? ' lit' : ''}`}>
+            <header>Needs you <i>{snap.inbox.length}</i></header>
+            {!snap.inbox.length && <p className="muted">Calm.</p>}
+            {snap.inbox.slice(0, 4).map((i) => (
+              <div className="mini" key={i.id} onClick={() => pickApproval(i)}>
+                <b>{i.action}</b>
+                <span>{i.room_name} · <span className="cost">{i.est_cost_cents}¢</span> · {(i.touches ?? [])[0] ?? ''}</span>
+              </div>
+            ))}
+            {snap.inbox.length > 0 && <button className="wide" onClick={() => launch('inbox')}>Open approvals</button>}
+          </section>
         </div>
-        <span className="spacer" />
-        <span className="meter" title="frames per second">{fps} fps · {rooms.length} rooms</span>
-        <span className="meter">
-          global
-          <span className={`bar${gp > 95 ? ' over' : gp > 70 ? ' warn' : ''}`}><i style={{ width: `${gp}%` }} /></span>
-          ${(cfg.global_spent_cents / 100).toFixed(2)} / ${(cfg.global_budget_cents / 100).toFixed(2)}
-        </span>
-        <GlanceTest view={view} truth={needsMe} />
-        <button className={cfg.panic_stop ? 'primary' : 'danger'}
-                onClick={() => post('/api/panic', { on: !cfg.panic_stop })}>
-          {cfg.panic_stop ? 'Resume all' : 'Stop everything'}
-        </button>
       </div>
 
-      {view === 'floor' ? (
-        <div className="floor">
-          <div className="grid" style={{ ['--cols' as any]: STRESS ? 6 : 4 }}>
-            {rooms.map((r) => (
-              <RoomWidget key={r.id} room={r} agents={byRoom.get(r.id.split('#')[0]) ?? []} onOpen={setOpen} />
-            ))}
-          </div>
-        </div>
-      ) : (
-        <ListView rooms={snap.rooms} agents={snap.agents} />
-      )}
-
-      <InboxStrip items={snap.inbox} view={view} />
-      {open && <RoomDetail room={snap.rooms.find((r) => r.id === open.id.split('#')[0])!} view={view} onClose={() => setOpen(null)} />}
+      <Dock wins={wins} agents={snap.agents} inbox={snap.inbox} onLaunch={launch} onFocus={focus} onClose={close} />
     </div>
   );
 }

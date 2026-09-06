@@ -11,17 +11,22 @@ function Widget({ room, agents, onOpen }: { room: Room; agents: Agent[]; onOpen:
   const cls = `room${room.status === 'capped' ? ' capped' : needs ? ' needs' : warn ? ' blocked' : ''}`;
 
   return (
-    <div className={cls} style={{ gridColumn: `span ${room.w}`, gridRow: `span ${room.h}` }}
+    <div className={cls} style={{ gridColumn: `span ${room.w}`, gridRow: `span ${room.h}`,
+                                 ['--room' as any]: room.color }}
          onClick={() => onOpen(room)}>
       <div className="room-head">
+        <span style={{ color: room.color }}>{room.icon}</span>
         <span className="room-name">{room.name}</span>
         {room.status !== 'open' && <span className="pill capped">{room.status}</span>}
         <span className="room-obj">{room.objective}</span>
       </div>
       <div className="agents">
         {agents.map((a) => (
-          <div key={a.id} className={`agent${NEEDS.has(a.state) || WARN.has(a.state) ? ' attn' : ''}`}>
-            <span className={`dot ${a.state}`} title={a.state} />
+          <div key={a.id} className={`agent${NEEDS.has(a.state) || WARN.has(a.state) ? ' attn' : ''}`}
+               title={a.persona}>
+            <span className="face sm" style={{ ['--c' as any]: a.color }}>
+              {a.avatar}<i className={`st ${a.state}`} />
+            </span>
             <span className="agent-name">{a.name}</span>
             <span className="activity">{a.activity || a.state}</span>
           </div>

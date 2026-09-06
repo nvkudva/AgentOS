@@ -50,6 +50,19 @@ export async function handle(req: Req): Promise<any> {
     return { room, agents, events, artifacts, ledger, runs, queue };
   }
 
+  if ((m = p.match(/^\/api\/agents\/([\w]+)$/)) && req.method === 'GET') {
+    const agent = await one(`SELECT * FROM agent WHERE id=$1`, [m[1]]);
+    if (!agent) return { error: 'not found', status: 404 };
+    const [room, runs, events, artifacts] = await Promise.all([
+      one(`SELECT * FROM room WHERE id=$1`, [agent.room_id]),
+      q(`SELECT * FROM run WHERE agent_id=$1 ORDER BY started_at DESC LIMIT 10`, [agent.id]),
+      q(`SELECT * FROM event WHERE agent_id=$1 ORDER BY id DESC LIMIT 250`, [agent.id]),
+      q(`SELECT a.* FROM artifact a JOIN run r ON r.id=a.run_id WHERE r.agent_id=$1
+         ORDER BY a.created_at DESC LIMIT 20`, [agent.id]),
+    ]);
+    return { agent, room, runs, events, artifacts };
+  }
+
   if ((m = p.match(/^\/api\/runs\/([\w]+)$/))) {
     return {
       run: await one(`SELECT * FROM run WHERE id=$1`, [m[1]]),

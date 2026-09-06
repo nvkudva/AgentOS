@@ -4,11 +4,13 @@ export type Room = {
   id: string; key: string; name: string; objective: string; x: number; y: number; w: number; h: number;
   budget_cents: number; spent_cents: number; tool_grants: string[]; status: 'open' | 'halted' | 'capped';
   approval_policy: Record<string, string>; db_role: string | null;
+  color: string; icon: string;
 };
 export type Agent = {
   id: string; room_id: string; name: string; role: string; policy_key: string;
   state: 'idle' | 'working' | 'blocked' | 'awaiting_approval' | 'failed' | 'killed';
   activity: string; spent_cents: number; cost_budget_cents: number; steps_used: number; step_budget: number;
+  persona: string; color: string; avatar: string;
 };
 export type Inbox = {
   id: string; room_key: string; room_name: string; agent_name: string; kind: 'approval' | 'escalation';

@@ -1,8 +1,13 @@
 import { chromium } from 'playwright';
 const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox','--disable-background-networking'] });
-const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+const p = await b.newPage({ viewport: { width: 1512, height: 950 } });
+const errs = [];
+p.on('pageerror', (e) => errs.push(String(e)));
+p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
 await p.goto(process.argv[2], { waitUntil: 'load' });
 await p.waitForTimeout(Number(process.argv[4] ?? 4000));
-console.log('meter:', (await p.textContent('.meter'))?.trim());
+if (process.argv[5]) await p.click(process.argv[5]).catch(() => {});
+await p.waitForTimeout(1200);
 await p.screenshot({ path: process.argv[3] });
+if (errs.length) console.log('PAGE ERRORS:\n' + errs.slice(0, 5).join('\n'));
 await b.close();

@@ -74,6 +74,22 @@ returns `mode: "local"`. It never reports a PR that does not exist.
 
 ---
 
+## The shell
+
+A desktop, not a dashboard. **Team blocks on the rails**, left and right — each room with its
+colour, spend and crew. **The stage in the centre** — click a teammate to open their
+conversation, click a room to open its console; windows drag, zoom and minimise. **Menu bar
+on top** — spend, notifications, settings, panic stop. **Dock at the bottom** — launcher,
+open windows, live working count. **Needs you** hangs under the right rail: approvals and
+escalations, most expensive first, then oldest.
+
+Agents are characters, not rows: each has a name, colour, face and a one-line persona. The
+ring on their face is their state; the text beside it is what they are doing right now.
+
+The Floor — the spatial room grid — survives as one app on the stage, which is what keeps
+the chat-list comparison in §Thesis honest: both views are now things you open, neither is
+the whole screen.
+
 ## Rooms are permission boundaries
 
 This is the load-bearing idea. If rooms were only visual grouping, a tagged chat list would
@@ -161,8 +177,13 @@ server/src/
   policies/             what each agent does, step by step
   replay.ts             the fold that defines what the projections mean
 web/src/
-  components/RoomWidget.tsx  memoised room; calm unless it needs you
-  components/Inbox.tsx       the only thing that requires the human
+  desktop/wm.ts              a small window manager
+  desktop/TeamRail.tsx       team blocks: rooms and their crew, on the rails
+  desktop/MenuBar.tsx        spend, notifications, settings, panic
+  desktop/Dock.tsx           launcher and open windows
+  apps/AgentApp.tsx          an agent's live conversation — the centre of the desktop
+  apps/RoomApp.tsx           room console: log, artifacts, spend, scope
+  apps/InboxApp.tsx          approvals: action, cost, what it touches
   components/ListView.tsx    the chat-list control view
 workspace/              a real git repo the engineering room really edits
 ```

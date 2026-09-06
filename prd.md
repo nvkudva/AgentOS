@@ -115,43 +115,59 @@ Room and agent tables are a materialized projection, rebuildable with
 
 ---
 
-## 4. The UI
+## 4. The UI — a desktop, not a dashboard
 
-### Floor (default view)
+Atrium is shaped like an operating system, because that is what running a company of agents
+is: many things alive at once, one of them in front of you.
 
-- A DOM grid of **room widgets**, absolutely positioned from `room.x/y/w/h`.
-- Rendering target: **30 live widgets at 60fps**. Decision recorded in §7.
-- Inside each widget: room name, objective, spend bar (spent/budget), status pill, and a
-  row of **agent avatars**. Each avatar shows:
-  - state by colour + shape: `idle` grey, `working` blue pulse, `blocked` amber,
-    `awaiting_approval` violet, `failed` red, `killed` black
-  - a **live one-line activity string** — the current step in plain words
-    ("querying orders table", "waiting on approval to open PR #1284")
-- **Calm is the signal.** No motion, no colour = nothing needs you. That judgment must be
-  possible in **one second** without reading text. Colour and motion are reserved for
-  states that need a human; `working` uses a slow low-contrast pulse, not an alarm.
-- Click a room → **room detail**: full transcript, artifacts, logs, spend ledger, replay.
+```
+┌──────────────────────────────────────────────────────────────┐
+│ menu bar   Floor  Activity  Approvals    spend  🔔  ⚙  Stop   │
+├────────────┬────────────────────────────────┬────────────────┤
+│ team block │                                │  team block    │
+│ Analytics  │                                │  Sales         │
+│  · Ada     │        THE STAGE               │  Strategy      │
+│  · Bo      │   windows: an agent's          ├────────────────┤
+│ Engineering│   conversation, a room         │  NEEDS YOU     │
+│  · Kit     │   console, the floor,          │  approvals and │
+│  · Rex     │   the activity feed            │  escalations   │
+│ Marketing  │                                │                │
+├────────────┴────────────────────────────────┴────────────────┤
+│ dock:  ▦ ☰ 📥 ⚙  |  open windows            0 working · 7     │
+└──────────────────────────────────────────────────────────────┘
+```
 
-### Inbox strip (permanent, bottom)
+**Sides — team blocks.** Rooms live on the left and right rails, never in the centre. Each
+block shows its colour, icon, spend bar and its crew. A block glows only when someone in it
+needs a human.
 
-The only thing that requires the human. Approvals and escalations.
-**Sorted oldest and most expensive first** — `ORDER BY est_cost_cents DESC, created_at ASC`,
-so cheap and new never buries expensive and old.
+**Agents are characters.** Every agent has a **name, a colour, a face and a persona** — Kit
+ships small diffs and refuses to ship red; Rex loops on purpose to prove the kill switch.
+The persona is the tooltip on the rail and the header of their window. A state ring on the
+face carries idle / working / blocked / awaiting approval / failed / killed, with a live
+one-line activity string beside it.
 
-Each **approval card states, always:**
-1. the **action** in plain words,
-2. the **cost** (estimated cents, and the run's spend so far),
-3. **what it touches** — repo + branch, table names, external endpoint, queue.
+**Centre — the stage.** Click a teammate to open their **conversation**: their real
+transcript, tool calls, costs, what each call touched, and the approvals they are waiting
+on. Click a room to open its **console** (log, artifacts, spend ledger, scope). Windows
+drag, resize, zoom, minimise to the dock and stack by focus. The **Floor** — the spatial
+room grid — is now one app on that stage rather than the whole screen, which keeps it
+available as the thesis instrument without making it the only way to look at anything.
 
-Approve / Reject / Approve-and-remember-for-this-room. Rejection requires no note; approval
-of `high` blast radius does.
+**Top — the menu bar.** Global spend meter, notifications bell with the pending count,
+settings, and a panic **Stop all**.
 
-### List (control view)
+**Bottom — the dock.** App launcher (Floor, Activity, Approvals, Settings), the open
+windows, and a live count of working agents. Nothing else lives there.
 
-Flat reverse-chronological feed of agent activity, one line per event, threads collapsible.
-Deliberately a decent chat list, not a strawman. Same inbox strip.
+**Needs you.** The approval and escalation queue sits under the right rail, always visible,
+ordered **most expensive first, then oldest** — cheap and new must never bury expensive and
+old. Every card states the **action**, the **cost**, and **what it touches**. Approve /
+Always / Reject. If the rails are grey and the panel says *Calm*, nothing needs you. Being
+able to tell that in one second is still the whole design goal.
 
----
+**Activity** is the chat-list control view, kept deliberately decent, so the spatial claim
+can still be measured against it (§1).
 
 ## 5. Hard requirements
 
