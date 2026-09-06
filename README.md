@@ -91,7 +91,10 @@ carrying the room's colour and icon; click it to bring the room back. Only rooms
 agent conversations, room consoles, the floor and the activity feed float, because the work
 belongs in the middle and the furniture belongs at the edges.
 
-**The orb** sits in the menu bar and takes instructions — spoken where the browser will
+**The orb** is a layered sphere — two counter-rotating plasma fields under spherical shading,
+a glass dome and a rim light, ringed by 36 bars that are **driven by the real microphone**
+while it listens. At rest it is perfectly still. It sits in the menu bar and takes
+instructions — spoken where the browser will
 listen (wake word "Atrium", continuous recognition) and typed where it will not (⌘K). It
 runs and stops agents, opens rooms and teammates, switches theme, and answers *"what needs
 me?"* out loud. It deliberately **cannot approve anything**: speech recognition is the wrong
@@ -124,11 +127,13 @@ maximise to that same area, so a window never opens underneath a rail or hides b
 Agents are characters: a name, a colour, a face and a one-line persona. The ring on the face
 is their state; the text beside it is what they are doing right now.
 
-**Themes and frames.** Light, dark and auto. Glass is free on a GPU and halves the frame rate
-in software rendering, so Atrium measures itself for two seconds on boot and drops to flat
-surfaces if it cannot hold 60fps — Settings exposes it as auto / glass / lite. Measured in
-this container: **33fps with full glass, 60fps in lite**, which is why the fallback exists
-rather than being a claim about hardware nobody has.
+**Themes and frames.** Light, dark and auto. Effects cost frames — a full-width
+`backdrop-filter`, or a rotating gradient inside a clipped circle, is free on a GPU and
+halves the frame rate in software rendering. So Atrium watches its own frame rate
+continuously and trades effects for frames when it struggles: glass becomes flat surfaces,
+the orb's core stops turning, and both return with hysteresis once the machine recovers.
+Measured in this container: **40–44fps with everything on, a steady 60fps once it adapts.**
+Settings exposes it as auto / glass / lite.
 
 **Overview** — every room and its crew on one card grid — is an app on the stage, which is
 what keeps the chat-list comparison in §Thesis honest: both surfaces are windows you open,

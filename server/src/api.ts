@@ -126,7 +126,9 @@ async function decide(approvalId: string, body: any) {
     [approvalId, approved ? 'approved' : 'rejected', body?.note ?? null]);
   await append({ type: approved ? 'approval.granted' : 'approval.rejected',
     room_id: ap.room_id, agent_id: ap.agent_id, run_id: ap.run_id,
-    payload: { approval_id: approvalId, action: ap.action, note: body?.note ?? null } });
+    // kind matters on replay: rejecting an escalation resumes the run, rejecting an
+    // approval ends it. Without it the fold cannot tell the two apart.
+    payload: { approval_id: approvalId, action: ap.action, kind: ap.kind, note: body?.note ?? null } });
 
   // "approve and remember for this room" raises autonomy for that blast radius —
   // never below 'high', which always needs a human in v1.

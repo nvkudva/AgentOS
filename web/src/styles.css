@@ -129,20 +129,71 @@ p { margin:8px 0; }
 .bell i { position:absolute; top:0; right:-2px; background:var(--failed); color:#fff; font-style:normal;
   font-size:9px; border-radius:999px; padding:0 4px; }
 
-/* --- supervisor: orb + the panel that grows out of it --- */
+/* --- supervisor: the orb, and the panel that grows out of it --- */
 .sup { position:relative; display:flex; align-items:center; }
-.orb { position:relative; z-index:2; width:34px; height:34px; padding:0; border:0; background:none; cursor:pointer; }
-.orb-core { position:absolute; inset:0; border-radius:999px;
-  background:radial-gradient(circle at 32% 26%, rgb(255 255 255 / .75), transparent 44%),
-             conic-gradient(from 200deg, #4f8bff, #8352c9, #35c7b7, #4f8bff);
-  box-shadow:0 0 20px -2px color-mix(in srgb, var(--working) 60%, transparent), 0 2px 6px rgb(0 0 0 / .25); }
-.orb-ring { position:absolute; inset:-3px; border-radius:999px; border:1.5px solid transparent; }
-.orb.listening .orb-core, .orb.alert .orb-core { animation:spin 14s linear infinite; }
-.orb.listening .orb-ring { border-color:var(--ok); }
-.orb.alert .orb-ring { border-color:var(--approval); }
-@keyframes spin { to { transform:rotate(360deg) } }
-@media (prefers-reduced-motion:reduce) { .orb-core { animation:none } }
+.orb-btn { position:relative; z-index:2; padding:0; border:0; background:none; cursor:pointer;
+  line-height:0; transition:transform .16s cubic-bezier(.32,.72,0,1); }
+.orb-btn:hover { transform:scale(1.06); background:none; }
+.orb-btn:active { transform:scale(.97); }
 
+.orb { position:relative; display:grid; place-items:center;
+  width:var(--size); height:var(--size); --glow:#5b8cff; }
+.orb.listening { --glow:#2fe0c0; }
+.orb.thinking  { --glow:#7a9bff; }
+.orb.alert     { --glow:#b083ee; }
+
+.orb-ring { position:absolute; pointer-events:none; }
+
+.orb-sphere { position:relative; width:var(--size); height:var(--size); border-radius:999px;
+  overflow:hidden; isolation:isolate;
+  box-shadow:0 3px 10px rgb(0 0 0 / .35), inset 0 0 0 .5px rgb(255 255 255 / .4); }
+/* two counter-rotating fields make the core look like it is moving inside the glass */
+/* translateZ pins the field to its own composited layer, and the spin animates the
+   independent `rotate` property so it never fights that transform. Without this the
+   sphere re-rasterises every frame and costs a third of the frame rate. */
+.plasma { position:absolute; inset:-35%; border-radius:999px;
+  transform:translateZ(0); will-change:rotate; }
+/* Softness is baked into the gradient stops rather than a blur filter: an animated
+   filter cannot stay on its own layer, and that is what costs the frames. */
+.plasma.a { background:conic-gradient(from 0deg,
+  #123a8f, #2b3fae 12%, #5b2fd0 26%, #3a54c8 40%, #0e8f9c 55%, #1668b5 70%, #1746a8 85%, #123a8f); }
+/* No blend mode: blending a rotating, blurred layer re-rasterises the whole sphere every
+   frame and costs a third of the frame rate. Plain alpha looks the same at this size. */
+.plasma.b { opacity:.5;
+  background:conic-gradient(from 140deg, transparent, #7c4ae688 18%, transparent 34%,
+             #12c9a088 62%, transparent 80%, transparent); }
+.orb.listening .plasma.a, .orb.thinking .plasma.a, .orb.alert .plasma.a { animation:orbspin 9s linear infinite; }
+.orb.listening .plasma.b, .orb.thinking .plasma.b, .orb.alert .plasma.b { animation:orbspin 15s linear infinite reverse; }
+.orb.thinking .plasma.a { animation-duration:3.2s; }
+@keyframes orbspin { to { rotate:360deg } }
+
+/* spherical shading: a lit shoulder, a shadowed underside, a hard little dome highlight */
+.orb-shade { position:absolute; inset:0; border-radius:999px;
+  background:radial-gradient(circle at 30% 24%, rgb(255 255 255 / .5), rgb(255 255 255 / 0) 40%),
+             radial-gradient(circle at 74% 82%, rgb(0 0 0 / .62), rgb(0 0 0 / 0) 58%),
+             radial-gradient(circle at 50% 50%, transparent 52%, rgb(0 0 0 / .45)); }
+/* a thin bright arc along the shadowed edge: the one cue that sells a sphere */
+.orb-sphere::after { content:''; position:absolute; inset:0; border-radius:999px; pointer-events:none;
+  box-shadow:inset -1px -1.5px 4px -1px color-mix(in srgb, var(--glow) 80%, transparent),
+             inset 0 0 0 .5px rgb(255 255 255 / .18); }
+.orb-dome { position:absolute; left:21%; top:11%; width:42%; height:24%; border-radius:999px;
+  background:linear-gradient(rgb(255 255 255 / .9), rgb(255 255 255 / 0)); filter:blur(1.2px); }
+
+.orb-halo { position:absolute; inset:-6px; border-radius:999px; pointer-events:none;
+  box-shadow:0 0 24px -4px color-mix(in srgb, var(--glow) 75%, transparent); }
+.orb.listening .orb-halo, .orb.alert .orb-halo { animation:halo 2.2s ease-in-out infinite; }
+@keyframes halo {
+  0%,100% { box-shadow:0 0 18px -6px color-mix(in srgb, var(--glow) 60%, transparent) }
+  50%     { box-shadow:0 0 34px -2px color-mix(in srgb, var(--glow) 95%, transparent) }
+}
+@media (prefers-reduced-motion:reduce) {
+  .plasma, .orb-halo { animation:none !important; }
+}
+/* On a machine that cannot hold 60fps the core stops turning and the ring carries the
+   state on its own — same as trading blur for flat surfaces elsewhere. */
+[data-perf="lite"] .plasma { animation:none !important; }
+
+.heard { color:var(--muted); font-style:italic; max-width:280px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .sup-panel { position:absolute; z-index:1; top:100%; margin-top:-17px; left:50%; width:280px;
   transform:translateX(-50%) scale(.86); transform-origin:50% 0; opacity:0; pointer-events:none;
   border-radius:var(--r-shell); padding:30px 16px 14px;

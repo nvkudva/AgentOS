@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { run, stripWake, hasWake, type CmdCtx } from './commands';
+import { Orb } from './Orb';
 
 /**
  * The orb, and the small panel that grows out of it.
@@ -16,6 +17,8 @@ export function Supervisor({ ctx, alert, speak: speakOn }: { ctx: CmdCtx; alert:
   const [asked, setAsked] = useState('');
   const [reply, setReply] = useState('');
   const [supported, setSupported] = useState(true);
+  const [thinking, setThinking] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const rec = useRef<any>(null);
   const box = useRef<HTMLInputElement>(null);
   const hide = useRef<any>(null);
@@ -29,6 +32,8 @@ export function Supervisor({ ctx, alert, speak: speakOn }: { ctx: CmdCtx; alert:
   const submit = (text: string) => {
     if (!text.trim()) return;
     setAsked(text);
+    setThinking(true);
+    setTimeout(() => setThinking(false), 700);
     const r = run(text, ctx);
     setReply(r.say);
     show(7000);
@@ -59,11 +64,18 @@ export function Supervisor({ ctx, alert, speak: speakOn }: { ctx: CmdCtx; alert:
     return () => { try { r.stop(); } catch {} };
   }, [listening, open, ctx]);
 
-  const toggleListen = () => {
+  const toggleListen = async () => {
     const r = rec.current;
     if (!r) { setTyping(true); show(12000); setTimeout(() => box.current?.focus(), 30); return; }
-    if (listening) { try { r.stop(); } catch {}; setListening(false); setOpen(false); }
-    else { try { r.start(); setListening(true); setOpen(true); } catch { setTyping(true); show(12000); } }
+    if (listening) {
+      try { r.stop(); } catch {}
+      stream?.getTracks().forEach((t) => t.stop());
+      setStream(null); setListening(false); setOpen(false);
+      return;
+    }
+    try { r.start(); setListening(true); setOpen(true); } catch { setTyping(true); show(12000); return; }
+    // A second, visual-only tap on the mic so the ring shows the real voice, not a fake one.
+    try { setStream(await navigator.mediaDevices.getUserMedia({ audio: true })); } catch { setStream(null); }
   };
 
   useEffect(() => {
@@ -81,12 +93,10 @@ export function Supervisor({ ctx, alert, speak: speakOn }: { ctx: CmdCtx; alert:
 
   return (
     <div className={`sup${open ? ' open' : ''}`}>
-      <button className={`orb${listening ? ' listening' : ''}${alert ? ' alert' : ''}`}
-              onClick={toggleListen}
+      <button className="orb-btn" onClick={toggleListen}
               onContextMenu={(e) => { e.preventDefault(); setTyping(true); show(20000); setTimeout(() => box.current?.focus(), 30); }}
               title={supported ? 'Click to talk · ⌘K to type' : 'Click to type a command'}>
-        <span className="orb-core" />
-        <span className="orb-ring" />
+        <Orb mode={listening ? 'listening' : thinking ? 'thinking' : alert ? 'alert' : 'idle'} stream={stream} />
       </button>
 
       <div className="sup-panel" role="status" aria-live="polite">

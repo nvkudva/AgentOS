@@ -44,8 +44,15 @@ export async function fold(): Promise<Projected> {
         if (e.run_id) run(e.run_id).status = 'running';
         break;
       case 'approval.rejected':
-        if (e.agent_id) agent(e.agent_id).state = 'working';
-        if (e.run_id) run(e.run_id).status = 'running';
+        if (pay.kind === 'escalation') {
+          // The human answered "no" to a question; the agent carries on.
+          if (e.agent_id) { const a = agent(e.agent_id); a.state = 'working'; a.activity = 'answered, continuing'; }
+          if (e.run_id) run(e.run_id).status = 'running';
+        } else {
+          // The human refused the action; the run is over.
+          if (e.agent_id) { const a = agent(e.agent_id); a.state = 'idle'; a.activity = 'rejected by you'; a.current_run_id = null; }
+          if (e.run_id) { run(e.run_id).status = 'done'; run(e.run_id).kill_reason = 'rejected by operator'; }
+        }
         break;
       case 'run.finished':
         if (e.agent_id) { const a = agent(e.agent_id); a.state = 'idle'; a.activity = 'done'; a.current_run_id = null; }

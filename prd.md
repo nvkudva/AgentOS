@@ -192,7 +192,13 @@ than empty. Everything after that is the operator's layout.
 
 ### The supervisor orb
 
-A 34px orb in the middle of the menu bar — the visual centre of the app. It watches the
+A 38px orb in the middle of the menu bar — the visual centre of the app. It is a layered
+sphere, not a disc: two counter-rotating plasma fields under spherical shading, a glass dome
+highlight and a rim light, wrapped in a canvas ring of 36 bars. **While it listens those bars
+are driven by the actual microphone** through an `AnalyserNode`, so the ring is the operator's
+own voice rather than a loop; without mic access it falls back to three offset sines. At rest
+it is completely still and the ring collapses to a hairline — motion on the orb means the
+assistant is doing something, never decoration. It watches the
 company and takes instructions, **spoken** where the browser will listen (continuous
 recognition, wake word "Atrium") and **typed** where it will not (⌘K). Its ring is a status
 light of its own: quiet when calm, violet when something needs a human, green while
@@ -272,10 +278,12 @@ tabs called **Activity, Files, Spending, History, Permissions**. Monospace appea
 Light, dark and auto, on `data-theme`. Both are first-class; neither is a filter over the
 other.
 
-Glass costs frames. A full-width `backdrop-filter` is free on a GPU and halves the frame
-rate in software rendering, so Atrium **measures itself for two seconds on boot** and drops
-to flat surfaces if it cannot hold 60fps — the way a game lowers quality rather than
-stuttering. macOS calls this Reduce Transparency; Settings exposes it as auto / glass / lite.
+Effects cost frames. A full-width `backdrop-filter` is free on a GPU and halves the frame
+rate in software rendering; so does a rotating gradient inside a clipped circle. Atrium
+therefore **watches its own frame rate for as long as it runs** — not once at boot — and
+trades effects for frames whenever it starts to struggle: glass becomes flat surfaces, the
+orb's core stops turning, and both come back with hysteresis once the machine recovers.
+macOS calls this Reduce Transparency; Settings exposes it as auto / glass / lite.
 
 ### Calm is still the signal
 
