@@ -9,7 +9,7 @@
     "seed": "tsx scripts/seed.ts",
     "replay": "tsx scripts/replay.ts",
     "report:thesis": "tsx scripts/report-thesis.ts",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test --test-concurrency=1 test/*.test.ts"
   },
   "dependencies": { "pg": "^8.13.1" },
   "devDependencies": { "tsx": "^4.19.2", "typescript": "^5.7.2", "@types/node": "^22.10.2", "@types/pg": "^8.11.10" }

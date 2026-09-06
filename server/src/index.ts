@@ -45,7 +45,9 @@ const server = http.createServer(async (req, res) => {
   try {
     const file = url.pathname === '/' || !path.extname(url.pathname) ? 'index.html' : url.pathname.slice(1);
     const buf = await readFile(path.join(WEB_DIST, file));
-    const ct = file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html';
+    const ct = ({ '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2',
+                  '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json',
+                  '.ico': 'image/x-icon' } as Record<string, string>)[path.extname(file)] ?? 'text/html';
     res.writeHead(200, { 'content-type': ct }).end(buf);
   } catch {
     res.writeHead(404).end('not built — run `npm -w web run dev`');

@@ -56,11 +56,15 @@ test('an approval is single-use and bound to its arguments', async () => {
 });
 
 test('the panic stop refuses every tool call', async () => {
+  // Flips a global row, so it is always restored even if the assertion throws.
   const { ctx, cleanup } = await makeRoom({ grants: ['artifact.write'], budget: 100 });
   await q(`UPDATE global_config SET panic_stop=true WHERE id=1`);
-  await assert.rejects(() => callTool(ctx, 'artifact.write', { title: 'x', body: 'y' }), BudgetExceeded);
-  await q(`UPDATE global_config SET panic_stop=false WHERE id=1`);
-  await cleanup();
+  try {
+    await assert.rejects(() => callTool(ctx, 'artifact.write', { title: 'x', body: 'y' }), BudgetExceeded);
+  } finally {
+    await q(`UPDATE global_config SET panic_stop=false WHERE id=1`);
+    await cleanup();
+  }
 });
 
 after(() => closeAll());

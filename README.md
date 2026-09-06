@@ -109,7 +109,12 @@ Spending, History and Permissions. There is no monospace anywhere.
 
 One radius scale runs the whole app — 26 shell, 18 window, 12 card, 9 control, pills round —
 with 4-point spacing, four elevation tiers and a single glass recipe spent on exactly four
-surfaces.
+surfaces. Type is **Google Sans, self-hosted** (`web/public/fonts`), so the app reads the
+same offline and on any machine rather than falling through to whatever the OS happens to
+have; numerals are tabular everywhere, tracking slightly tight.
+
+Apps open **centred in whatever desktop is free** — the stage minus any docked rails — and
+maximise to that same area, so a window never opens underneath a rail or hides behind one.
 
 Agents are characters: a name, a colour, a face and a one-line persona. The ring on the face
 is their state; the text beside it is what they are doing right now.

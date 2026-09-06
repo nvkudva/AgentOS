@@ -191,6 +191,11 @@ Nothing on screen is styled twice. One scale governs the whole app:
 | Control | 9px | buttons, inputs |
 | Pill | full | chips, tags, badges, segmented controls |
 
+Type is **Google Sans**, self-hosted rather than linked, so the interface reads identically
+offline and on a machine with no Apple or Google fonts installed — falling through to the
+system stack was what made it look like a Linux desktop. Numerals are tabular, tracking is
+slightly tight, and nothing is monospace.
+
 Spacing is 4-point throughout; elevation is four tokens, not one. Glass is one recipe —
 sheen gradient, 62% tint, `blur(28px) saturate(180%)`, a half-pixel light-catching rim and
 an inner top specular — spent on exactly four surfaces, because each one is a full-viewport

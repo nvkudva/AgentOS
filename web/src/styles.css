@@ -7,7 +7,7 @@
 :root {
   color-scheme: light;
   --text:#0d1319; --muted:#59646f; --faint:#8b95a1;
-  --solid:#f6f8fb; --win-fill:#fdfefeef;
+  --solid:#f6f8fb; --win-fill:#fbfdfef7;
   --line:#0d131922; --line-soft:#0d131912; --tint:#0d13190a; --tint-2:#0d131914;
 
   --sheen-1:rgb(255 255 255 / .55); --sheen-2:rgb(255 255 255 / .28);
@@ -25,13 +25,18 @@
   --ridge-3:#8fa9c6; --ridge-2:#6f8cae; --ridge-1:#4e6a8e;
   --mist:#ffffff; --water:#5f7c9f; --fore:#2f4560;
 
+  /* Self-hosted first so the app reads the same on every machine; the system faces
+     are there only if the woff2 has not landed yet. */
+  --ui:'Google Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable',
+       'Segoe UI', system-ui, sans-serif;
+
   --r-shell:26px; --r-win:18px; --r-card:12px; --r-ctl:9px;
   --menubar:44px; --dock:84px;
 }
 [data-theme="dark"] {
   color-scheme: dark;
   --text:#e9edf3; --muted:#98a4b4; --faint:#6d7887;
-  --solid:#0e1219; --win-fill:#151a22f5;
+  --solid:#0e1219; --win-fill:#141922fa;
   --line:#ffffff20; --line-soft:#ffffff12; --tint:#ffffff0a; --tint-2:#ffffff16;
 
   --sheen-1:rgb(255 255 255 / .10); --sheen-2:rgb(255 255 255 / .04);
@@ -65,8 +70,11 @@
 * { box-sizing:border-box; }
 html, body, #root { height:100%; }
 body { margin:0; color:var(--text); background:var(--solid); overflow:hidden;
-  font:13px/1.5 ui-sans-serif,system-ui,-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;
-  -webkit-font-smoothing:antialiased; }
+  font:400 13px/1.5 var(--ui);
+  letter-spacing:-.005em;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  font-variant-numeric:tabular-nums; }
 button { font:inherit; color:inherit; background:var(--tint); border:.5px solid var(--line);
   border-radius:var(--r-ctl); padding:6px 12px; cursor:pointer; transition:background .12s; }
 button:hover { background:var(--tint-2); }
@@ -80,7 +88,7 @@ button.x:hover { color:var(--text); }
 input { font:inherit; color:inherit; background:var(--tint); border:.5px solid var(--line);
   border-radius:var(--r-ctl); padding:6px 10px; }
 h4 { margin:24px 0 8px; color:var(--faint); font-weight:600; font-size:11px;
-  text-transform:uppercase; letter-spacing:.5px; }
+  text-transform:uppercase; letter-spacing:.06em; }
 h4:first-child { margin-top:0; }
 p { margin:8px 0; }
 .spacer { flex:1; } .muted { color:var(--muted); } .tiny { font-size:11px; }
@@ -148,10 +156,10 @@ p { margin:8px 0; }
   background:radial-gradient(90px 60px at 50% 0%, color-mix(in srgb, var(--working) 26%, transparent), transparent 70%); }
 [data-perf="lite"] .sup-panel { backdrop-filter:none; background:var(--win-fill); }
 .sup.open .sup-panel { transform:translateX(-50%) scale(1); opacity:1; pointer-events:auto; }
-.sup-label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--faint); }
+.sup-label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--faint); font-weight:500; }
 .sup-asked { display:block; font-size:13px; color:var(--muted);
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.sup-line { margin:10px 0 12px; font-size:16px; line-height:1.3; font-weight:500;
+.sup-line { margin:10px 0 12px; font-size:16px; line-height:1.3; font-weight:500; letter-spacing:-.015em;
   display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
 .sup-line.waiting { color:var(--faint); font-weight:400; }
 .sup-input { width:100%; margin:10px 0 12px; font-size:15px; background:transparent; border:0; padding:0; }
@@ -185,7 +193,7 @@ p { margin:8px 0; }
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 96%, transparent); }
 .lane-head { flex:none; height:40px; display:flex; align-items:center; gap:8px; padding:0 12px 0 16px;
   border-bottom:.5px solid var(--line-soft); }
-.lane-title { font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--faint); }
+.lane-title { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--faint); font-weight:500; }
 .lane-body { flex:1; overflow-y:auto; overscroll-behavior:contain; padding:8px; }
 .lane.h .lane-body { display:flex; gap:8px; }
 .lane.h .lane-sec { flex:1; }
@@ -204,7 +212,7 @@ p { margin:8px 0; }
 .crew:hover { background:var(--tint); }
 .crew.on { background:var(--tint-2); }
 .crew-text { min-width:0; display:flex; flex-direction:column; line-height:1.3; }
-.crew-text b { font-weight:600; font-size:12px; }
+.crew-text b { font-weight:500; font-size:12.5px; letter-spacing:-.005em; }
 .crew-text em { font-style:normal; color:var(--faint); font-size:11px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:168px; }
 .crew.attn .crew-text em { color:var(--text); }
@@ -232,7 +240,8 @@ p { margin:8px 0; }
 .lights { display:flex; gap:8px; }
 .l { width:12px; height:12px; border-radius:999px; padding:0; border:0; cursor:pointer; }
 .l.red{background:#ff5f57}.l.yellow{background:#febc2e}.l.green{background:#28c840}
-.win-title { color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.win-title { color:var(--muted); font-size:12.5px; font-weight:500; letter-spacing:0;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .win-title.plain { color:var(--text); font-weight:600; }
 .wt-icon { color:var(--c); }
 .win-body { flex:1; min-height:0; overflow:auto; }
@@ -344,7 +353,7 @@ p { margin:8px 0; }
   padding:12px 16px; margin-bottom:8px; }
 .doc > header { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .doc p { margin:0; white-space:pre-wrap; font-size:12px; color:var(--muted); max-height:220px; overflow:auto; }
-.big-stat b { font-size:32px; font-weight:600; letter-spacing:-.5px; }
+.big-stat b { font-size:34px; font-weight:600; letter-spacing:-.025em; }
 .big-stat span { margin-left:8px; }
 .plain-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
 .plain-list li { display:flex; gap:8px; align-items:baseline; }
@@ -354,7 +363,7 @@ p { margin:8px 0; }
   padding:12px 16px; display:grid; gap:8px; }
 .card.high { border-color:color-mix(in srgb, var(--approval) 55%, transparent); }
 .card.focus { box-shadow:0 0 0 2px color-mix(in srgb, var(--approval) 45%, transparent); }
-.card .what { font-weight:600; }
+.card .what { font-weight:600; letter-spacing:-.01em; font-size:13.5px; }
 .card .meta { color:var(--muted); font-size:12px; }
 .card .touches { color:var(--faint); font-size:12px; }
 .card .acts { display:flex; gap:8px; }

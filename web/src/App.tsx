@@ -3,7 +3,7 @@ import { useLiveState, observe, post } from './lib/api';
 import { useTheme } from './lib/theme';
 import { usePerf } from './lib/perf';
 import type { Room, Agent, Inbox } from './lib/api';
-import { useWindows, layout, lanes, zonePreview, zoneAt, isCorner, type Zone, type Win, type Edge } from './desktop/wm';
+import { useWindows, layout, lanes, freeArea, centreIn, zonePreview, zoneAt, isCorner, type Zone, type Win, type Edge } from './desktop/wm';
 import { Window } from './desktop/Window';
 import { Wallpaper } from './desktop/Wallpaper';
 import { MenuBar } from './desktop/MenuBar';
@@ -46,11 +46,21 @@ export default function App() {
   }, [snap !== null]);
   useEffect(() => { observe(VIEW, 'view.enter'); }, []);
 
+  // Apps open in the middle of whatever desktop is free, never under a docked rail.
+  const live = useRef<{ wins: Win[]; stage: { w: number; h: number } }>({ wins: [], stage });
+  live.current = { wins, stage };
+  const place = useCallback((w: number, h: number) => {
+    const { wins: ws, stage: st } = live.current;
+    const nth = ws.filter((x) => !x.snappable).length;
+    const r = centreIn(freeArea(ws, st), w, h, nth);
+    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  }, []);
+
   const openAgent = useCallback((a: Agent) => {
     observe(VIEW, 'agent.open', { agent: a.name });
     open({ id: `agent:${a.id}`, kind: 'agent', ref: a.id, title: `${a.name} — ${a.role}`,
-           icon: a.avatar, color: a.color, w: 700, h: 520 });
-  }, [open]);
+           icon: a.avatar, color: a.color, ...place(720, 540) });
+  }, [open, place]);
 
   const openRoomWindow = useCallback((r: Room, side?: 'left' | 'right') => {
     open({ id: `roomwin:${r.id}`, kind: 'room', ref: r.id, title: r.name, icon: r.icon, color: r.color,
@@ -59,9 +69,9 @@ export default function App() {
 
   const openRoomConsole = useCallback((r: Room) => {
     observe(VIEW, 'room.open', { room: r.key });
-    open({ id: `room:${r.id}`, kind: 'room', ref: r.id, title: `${r.name} — console`,
-           icon: r.icon, color: r.color, w: 780, h: 540 });
-  }, [open]);
+    open({ id: `room:${r.id}`, kind: 'room', ref: r.id, title: r.name,
+           icon: r.icon, color: r.color, ...place(800, 560) });
+  }, [open, place]);
 
   const launch = useCallback((k: 'floor' | 'list' | 'inbox' | 'settings') => {
     if (k === 'inbox') { setSidebar(true); return; }
@@ -69,8 +79,8 @@ export default function App() {
       floor: ['🗺️', 'Floor', '#7f93b5'], list: ['📜', 'Activity', '#7f93b5'], settings: ['⚙️', 'Settings', '#7f93b5'],
     };
     open({ id: k, kind: k, title: meta[k][1], icon: meta[k][0], color: meta[k][2],
-           w: k === 'floor' ? 880 : 720, h: k === 'floor' ? 560 : 500 });
-  }, [open]);
+           ...place(k === 'floor' ? 900 : 740, k === 'floor' ? 580 : 520) });
+  }, [open, place]);
 
   // First boot: rooms park themselves on the rails, the way a desktop restores a layout.
   const booted = useRef(false);

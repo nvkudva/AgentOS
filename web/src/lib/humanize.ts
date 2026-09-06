@@ -31,7 +31,8 @@ export function friendlyActivity(activity: string, state: string) {
   if (!activity) return friendlyState(state);
   if (activity === 'done') return 'Finished';
   if (activity === 'starting' || activity === 'resuming') return 'Getting going';
-  if (activity.startsWith('waiting on you:')) return activity.replace('waiting on you:', 'Needs you:').trim();
+  if (activity.startsWith('waiting on you:'))
+    return plainDetail(activity.replace('waiting on you:', 'Needs you:')).trim();
   if (activity.startsWith('killed: loop_detected')) return 'Stopped — it was going in circles';
   if (activity.startsWith('killed: step_budget')) return 'Stopped — it ran out of steps';
   if (activity.startsWith('killed: cost_budget')) return 'Stopped — it reached its spending limit';
@@ -39,7 +40,8 @@ export function friendlyActivity(activity: string, state: string) {
   if (activity.startsWith('scope violation')) return "Stopped — that isn't allowed here";
   if (activity.startsWith('halted:')) return 'Paused — the room hit its limit';
   if (activity === 'rejected by you') return 'You said no';
-  return activity[0].toUpperCase() + activity.slice(1);
+  const t = plainDetail(activity);
+  return t[0].toUpperCase() + t.slice(1);
 }
 
 export const friendlyState = (s: string) => ({

@@ -76,6 +76,29 @@ export function lanes(wins: Win[], stage: { w: number; h: number }): Lanes {
   };
 }
 
+/**
+ * The desktop that is actually free: the stage minus whatever rooms are docked.
+ * Apps open centred here and maximise to here — they never hide behind a rail.
+ */
+export function freeArea(wins: Win[], stage: { w: number; h: number }): Rect {
+  const ln = lanes(wins, stage);
+  const l = ln.left ? LANE : 0, r = ln.right ? LANE : 0;
+  const t = ln.top ? STRIP : 0, b = ln.bottom ? STRIP : 0;
+  return { left: l, top: t, width: Math.max(240, stage.w - l - r), height: Math.max(180, stage.h - t - b) };
+}
+
+/** Where a newly opened app should sit: centred in the free desktop, gently cascaded. */
+export function centreIn(area: Rect, w: number, h: number, nth = 0): Rect {
+  const width = Math.min(w, area.width - 32);
+  const height = Math.min(h, area.height - 32);
+  const off = (nth % 5) * 22;
+  return {
+    left: Math.round(area.left + (area.width - width) / 2 + off - 44),
+    top: Math.round(area.top + (area.height - height) / 2 + off - 44),
+    width, height,
+  };
+}
+
 /** Geometry for everything that is NOT inside a lane. */
 export function layout(wins: Win[], stage: { w: number; h: number }): Map<string, Rect> {
   const out = new Map<string, Rect>();
@@ -95,7 +118,7 @@ export function layout(wins: Win[], stage: { w: number; h: number }): Map<string
       out.set(w.id, { left, top, width: cw, height: ch });
       continue;
     }
-    if (w.max) { out.set(w.id, { left: lw, top: th, width: midW, height: stage.h - th - bh }); continue; }
+    if (w.max) { out.set(w.id, freeArea(wins, stage)); continue; }
     out.set(w.id, { left: w.x, top: w.y, width: w.w, height: w.h });
   }
   return out;
