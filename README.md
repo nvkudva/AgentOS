@@ -51,6 +51,8 @@ npm test                        # 20 tests: scope, budget, approval, replay, pro
 | `npm run agents:start [names…]` | start every agent, or the ones you name |
 | `npm run decide <id> approve\|reject` | decide one approval |
 | `npm run replay:verify` | fold the event log and diff it against live state |
+| `npm run setup:workspace -- --force` | rebuild the repo the engineering room edits |
+| `npm run evidence:restore` | clone the bundled branches an agent really pushed |
 | `npm run report:thesis` | the desktop-versus-chat-list comparison |
 
 ---
@@ -92,7 +94,7 @@ Verified in this repository, not mocked.
 | Room | Real effect | Evidence |
 |---|---|---|
 | **analytics** | queries real PostgreSQL (`bizdata`: 120 customers, 900 orders, 40 deals) through its **own DB role** | reports built from real aggregates; the role can `SELECT` and cannot `UPDATE` (test) |
-| **engineering** | reads a real git repo, patches it, runs the **real test suite**, pushes a **real branch**, opens a PR | commits in `workspace/`, branches in `workspace-remote.git`; the suite genuinely fails before the fix and passes after |
+| **engineering** | reads a real git repo, patches it, runs the **real test suite**, pushes a **real branch**, opens a PR | `npm run setup` builds `workspace/` from [`fixtures/pricing-service`](fixtures/pricing-service) with the rounding bug still in it; the suite fails on `main` and passes on the agent's branch. Branches from an earlier run are kept in [`docs/evidence/workspace-remote.bundle`](docs/evidence) |
 | **support** | reads a real ticket table and **sends a real reply** once approved | `support.ticket` rows moving `open → answered`, reply stored |
 | **marketing** | writes a real row into the real content queue, publishes only after approval | `content_queue` rows moving `draft → published` |
 | **finance** | closes the month from the real orders table | a memo with real paid/refunded totals |
@@ -252,7 +254,18 @@ web/src/
   apps/NewRoom.tsx           the room creator
   lib/humanize.ts            one place that turns the system's language into English
   lib/perf.ts                measures itself, drops effects rather than frames
-workspace/                   a real git repo the engineering room really edits
+fixtures/pricing-service/    the source that workspace/ is built from — bug included
+docs/evidence/               a git bundle of branches an agent really pushed
+workspace/                   generated: the repo the engineering room really edits
+```
+
+`workspace/` and `workspace-remote.git/` are **generated, not committed** — a git repository
+inside a git repository is a trap. `npm run setup` builds them from the fixture, which still
+contains the rounding bug, so a fresh clone can watch an agent find it, fix it, run the real
+tests and push a real branch. The branches from an earlier run survive as a git bundle:
+
+```bash
+npm run evidence:restore     # clones docs/evidence/workspace-remote.bundle and lists its branches
 ```
 
 ---
