@@ -7,9 +7,16 @@
 One human operator. Many rooms, one per business function. Several agents in every room.
 Rooms are permission scopes, not decoration.
 
+**[Try the desktop →](https://dddbd549.agentos-cx9.pages.dev)**
+
 </div>
 
 ![The Atrium desktop](docs/desktop-dark.png)
+
+The hosted build has no server behind it — no Postgres, no scheduler, no agents — so it
+serves a frozen snapshot of a real seeded instance. Every interaction is the real one:
+dragging, parking, resizing, alignment, the keyboard triage and its undo all work against
+it. Only the data underneath is standing still. Run it locally for the working system.
 
 ---
 
