@@ -89,6 +89,17 @@ export function Supervisor({ ctx, alert, speak: speakOn }: { ctx: CmdCtx; alert:
     return () => removeEventListener('keydown', k);
   }, [listening]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'k' || !(e.metaKey || e.ctrlKey)) return;
+      e.preventDefault();
+      setTyping(true); show(20000);
+      setTimeout(() => box.current?.focus(), 30);
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
+
   const line = typing ? '' : listening ? (heard || 'Listening…') : (reply || 'Ask me anything.');
 
   return (

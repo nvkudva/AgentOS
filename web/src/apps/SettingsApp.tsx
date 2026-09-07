@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NewRoom } from './NewRoom';
 import { post } from '../lib/api';
-import { money } from '../lib/humanize';
+import { hours } from '../lib/humanize';
 import type { Room } from '../lib/api';
 
 export function SettingsApp({ rooms, config, perf, theme, setTheme }: {
@@ -39,11 +39,11 @@ export function SettingsApp({ rooms, config, perf, theme, setTheme }: {
 
       <h4>Global</h4>
       <label>
-        Global cap (cents)
+        Global cap (agent-minutes)
         <input type="number" value={g} onChange={(e) => setG(Number(e.target.value))} />
         <button onClick={() => post('/api/budget', { cents: g })}>Save</button>
       </label>
-      <p className="muted">Spent {money(config.global_spent_cents)}. When a cap is hit, work halts — it never overruns.</p>
+      <p className="muted">Spent {hours(config.global_spent_cents)}. When a cap is hit, work halts — it never overruns.</p>
       <button className={config.panic_stop ? 'primary' : 'danger'} onClick={() => post('/api/panic', { on: !config.panic_stop })}>
         {config.panic_stop ? 'Resume everything' : 'Stop everything'}
       </button>
@@ -61,7 +61,7 @@ export function SettingsApp({ rooms, config, perf, theme, setTheme }: {
             <tr key={r.id}>
               <td><span style={{ color: (r as any).color }}>{(r as any).icon}</span> {r.name}</td>
               <td><RoomCap room={r} /></td>
-              <td>{money(r.spent_cents)}</td>
+              <td>{hours(r.spent_cents)}</td>
               <td className="mono">{r.db_role ?? '—'}</td>
               <td className="mono">{r.tool_grants.length}</td>
               <td>{r.status !== 'open'

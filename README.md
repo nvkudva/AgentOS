@@ -101,7 +101,8 @@ Verified in this repository, not mocked.
 | **sales** | reads pipeline, writes a real annotation through a role granted `UPDATE (note)` on one column | `bizdata.pipeline.note` |
 | **research / strategy / legal** | read every room's shared notes, check a number, escalate to you | briefs citing the other rooms |
 
-Money, budgets, kills, approvals and the event log are all real. **Agent reasoning is not:**
+Budgets, kills, approvals and the event log are all real — budgets are shown as agent
+hours, one minute of agent time per unit of cap. **Agent reasoning is not:**
 there is no LLM API key in this environment, so policies are deterministic programs that
 choose real tools and do real work. `LlmDriver` is the same interface — set
 `ANTHROPIC_API_KEY` and `AGENT_DRIVER=llm`. Stated rather than hidden, because a pretty
@@ -184,10 +185,16 @@ Plus a global **Stop all** that refuses every tool call while engaged.
 </tr>
 </table>
 
-**Rooms are windows.** Drag one anywhere. Drop it on the **left or right edge** and it joins
-that rail; on the **top or bottom** and it becomes a strip; in a **corner** and it tucks away
-— 90% off screen with a 10% handle in the room's colour. Only rooms snap; work floats,
-because the work belongs in the middle and the furniture at the edges.
+**Rooms are windows**, and they behave like windows: a drag tracks the pointer 1:1 and the
+window lands exactly where you let go — nothing re-arranges itself around you, because where
+you put a room *is* how you rank it. Every edge and corner resizes; neighbouring edges and
+the desk's centre lines pull with a 6px magnet and show a hairline while they hold.
+
+**Park a room** by dragging it into either side gutter. It tucks to a 72px rail carrying the
+room's colour, its icon, and its crew as live faces with their status dots — enough to see
+whether it needs you without opening it. Hovering scrubs it back out; clicking or dragging
+it off the rail restores the desk you had. Your whole arrangement — positions, sizes,
+stacking, what is parked — survives a refresh.
 
 <img src="docs/orb.png" alt="The supervisor orb" width="360" align="right">
 
@@ -246,7 +253,7 @@ server/src/
   tools/                     real tools: postgres, git, github, tickets, content queue
   policies/                  what each agent does, step by step
 web/src/
-  desktop/wm.ts              window manager: snap lanes, corner tucking, z-order
+  desktop/wm.ts              window manager: geometry, parking rails, z-order
   desktop/Orb.tsx            the supervisor: sphere, ring, microphone
   desktop/commands.ts        its grammar — deliberately deterministic, never approves
   desktop/Wallpaper.tsx      the generated landscape

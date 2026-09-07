@@ -5,18 +5,17 @@ import { Supervisor } from './Supervisor';
 import type { CmdCtx } from './commands';
 import type { Theme } from '../lib/theme';
 
-export function MenuBar({ config, inbox, fps, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen }: {
-  config: any; inbox: Inbox[]; fps: number; needsMe: boolean; view: string;
+export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen }: {
+  config: any; inbox: Inbox[]; needsMe: boolean; view: string;
   theme: Theme; setTheme: (t: Theme) => void; ctx: CmdCtx;
   sidebar: boolean; onSidebar: (b: boolean) => void;
   onOpen: (k: 'floor' | 'list' | 'inbox' | 'settings') => void;
 }) {
-  const gp = Math.min(100, (config.global_spent_cents / Math.max(1, config.global_budget_cents)) * 100);
   const cycle = () => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'auto' : 'dark');
 
   return (
     <div className="menubar">
-      <span className="logo">◍</span>
+      <Logo />
       <b>Atrium</b>
       <span className="menu" onClick={() => onOpen('floor')}>Overview</span>
       <span className="menu" onClick={() => onOpen('list')}>Activity</span>
@@ -27,11 +26,6 @@ export function MenuBar({ config, inbox, fps, needsMe, view, theme, setTheme, ct
       <Supervisor ctx={ctx} alert={needsMe} speak={true} />
       <span className="spacer" />
 
-      <span className="mb-meter" title="frames per second">{fps} fps</span>
-      <span className="mb-meter" title="global spend against the global cap">
-        <span className={`bar${gp > 95 ? ' over' : gp > 70 ? ' warn' : ''}`}><i style={{ width: `${gp}%` }} /></span>
-        ${(config.global_spent_cents / 100).toFixed(2)}
-      </span>
       <span className="menu" onClick={cycle} title={`theme: ${theme}`}>
         {theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '🌗'}
       </span>
@@ -43,5 +37,26 @@ export function MenuBar({ config, inbox, fps, needsMe, view, theme, setTheme, ct
         {config.panic_stop ? 'Resume' : 'Stop all'}
       </button>
     </div>
+  );
+}
+
+/**
+ * The system mark, in the seat the Apple logo occupies: an agent — a ring of attention
+ * with a core — rather than a letterform, so it reads at 16px and in either theme.
+ */
+function Logo() {
+  return (
+    <svg className="logo" viewBox="0 0 24 24" aria-label="AgentOS" role="img">
+      <defs>
+        <linearGradient id="agentos-mark" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="currentColor" stopOpacity=".95" />
+          <stop offset="1" stopColor="currentColor" stopOpacity=".55" />
+        </linearGradient>
+      </defs>
+      <path fill="url(#agentos-mark)"
+            d="M12 1.6a10.4 10.4 0 1 0 0 20.8 10.4 10.4 0 0 0 0-20.8Zm0 2.9a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15Z" />
+      <circle cx="12" cy="12" r="4.1" fill="url(#agentos-mark)" />
+      <circle cx="18.6" cy="5.4" r="2.5" fill="currentColor" />
+    </svg>
   );
 }

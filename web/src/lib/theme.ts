@@ -4,7 +4,7 @@ export type Theme = 'light' | 'dark' | 'auto';
 
 /** Theme lives on <html data-theme>, so CSS decides everything and React re-renders nothing. */
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('atrium.theme') as Theme) ?? 'dark');
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('atrium.theme') as Theme) ?? 'light');
 
   useEffect(() => {
     const mq = matchMedia('(prefers-color-scheme: dark)');

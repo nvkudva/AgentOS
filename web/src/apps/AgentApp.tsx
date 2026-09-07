@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { get, post } from '../lib/api';
-import { describe, money, friendlyActivity, plainDetail, type Said } from '../lib/humanize';
+import { describe, hours, friendlyActivity, plainDetail, type Said } from '../lib/humanize';
 
 type Turn = { said: Said; at: string; steps: { glyph: string; text: string }[] };
 
@@ -52,7 +52,7 @@ export function AgentApp({ agentId }: { agentId: string }) {
                   <span className={`tdot ${r.status}`} />
                   <span className="titem-text">
                     <b>{plainDetail(r.goal)}</b>
-                    <em>{time(r.started_at)} · {money(r.spent_cents)}</em>
+                    <em>{time(r.started_at)} · {hours(r.spent_cents)}</em>
                   </span>
                 </button>
               ))}
@@ -70,7 +70,7 @@ export function AgentApp({ agentId }: { agentId: string }) {
             <p className="status-line">{friendlyActivity(a.activity, a.state)}</p>
           </div>
           <span className="spacer" />
-          <span className="spend-badge" title="spent on this task">{money(a.spent_cents)}</span>
+          <span className="spend-badge" title="spent on this task">{hours(a.spent_cents)}</span>
           {a.state === 'working'
             ? <button className="danger" onClick={() => post(`/api/agents/${a.id}/kill`, { reason: 'operator' }).then(load)}>Pause</button>
             : <button className="primary" onClick={start}>New task</button>}

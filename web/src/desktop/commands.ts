@@ -1,5 +1,5 @@
 import type { Agent, Room, Inbox } from '../lib/api';
-import { money } from '../lib/humanize';
+import { hours } from '../lib/humanize';
 
 export type CmdCtx = {
   agents: Agent[]; rooms: Room[]; inbox: Inbox[]; panic: boolean;
@@ -48,7 +48,7 @@ export function run(raw: string, c: CmdCtx): CmdResult {
     if (!wait && !stuck.length) return { say: `All calm. ${busy} working.`, ok: true };
     const bits: string[] = [];
     if (wait) bits.push(`${wait} waiting on you`);
-    if (c.inbox[0]) bits.push(`biggest is ${money(c.inbox[0].est_cost_cents)}`);
+    if (c.inbox[0]) bits.push(`biggest is ${hours(c.inbox[0].est_cost_cents)}`);
     if (stuck.length) bits.push(`${stuck.map((s) => s.name).join(' and ')} stopped`);
     return { say: bits.join(', ') + '.', ok: true };
   }

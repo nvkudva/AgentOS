@@ -23,8 +23,13 @@ const TOOL: Record<string, { verb: string; place: string; glyph: string }> = {
 export const toolName = (t: string) => TOOL[t]?.place ?? t;
 export const toolGlyph = (t: string) => TOOL[t]?.glyph ?? '•';
 
-/** Cents are an implementation detail. People read money in dollars. */
-export const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+/**
+ * What a run costs is measured in agent time, not currency: one cent of budget is one
+ * agent-minute. Under an hour it reads in minutes, because "0.3h" is not a duration
+ * anyone thinks in.
+ */
+export const hours = (cents: number) =>
+  cents < 60 ? `${Math.round(cents)}m` : `${(cents / 60).toFixed(1)}h`;
 
 /** The live one-line status, in words an operator would use. */
 export function friendlyActivity(activity: string, state: string) {

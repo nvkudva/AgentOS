@@ -5,6 +5,7 @@
    Elevation: e1 chip/tile · e2 card/dock · e3 window · e4 focused/floating
    ============================================================ */
 :root {
+  --sliver:72px;
   color-scheme: light;
   --text:#0d1319; --muted:#59646f; --faint:#8b95a1;
   --solid:#f6f8fb; --win-fill:#fbfdfef7;
@@ -120,10 +121,9 @@ p { margin:8px 0; }
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
   backdrop-filter:blur(28px) saturate(180%); }
 [data-perf="lite"] .menubar { backdrop-filter:none; background:color-mix(in srgb,var(--solid) 96%, transparent); }
-.logo { color:var(--working); font-size:16px; }
+.logo { width:17px; height:17px; color:var(--working); flex:none; }
 .menu { color:var(--muted); cursor:pointer; padding:4px 8px; border-radius:999px; }
 .menu:hover { background:var(--tint-2); color:var(--text); }
-.mb-meter { display:flex; align-items:center; gap:8px; color:var(--muted); font-variant-numeric:tabular-nums; }
 .bell { position:relative; cursor:pointer; padding:4px 6px; border-radius:999px; filter:grayscale(1) opacity(.5); }
 .bell.lit { filter:none; } .bell.on { background:var(--tint-2); }
 .bell i { position:absolute; top:0; right:-2px; background:var(--failed); color:#fff; font-style:normal;
@@ -226,37 +226,8 @@ p { margin:8px 0; }
 .empty { position:absolute; inset:0; display:grid; place-content:center; text-align:center; gap:4px;
   color:var(--faint); text-shadow:0 1px 3px rgb(0 0 0 / .25); }
 [data-theme="light"] .empty { text-shadow:none; color:var(--muted); }
-.snap-preview { position:absolute; z-index:4; border-radius:var(--r-shell); pointer-events:none;
-  background:color-mix(in srgb, var(--working) 16%, transparent);
-  border:1.5px dashed color-mix(in srgb, var(--working) 60%, transparent); }
-.ghost { position:fixed; z-index:120; pointer-events:none; padding:8px 16px; border-radius:999px;
-  background:var(--win-fill); border:.5px solid var(--rim); box-shadow:var(--e4); }
-.ghost span { color:var(--c); }
-
-/* --- docked lane: a column of room cards, no wrapper and no group header --- */
-.lane { position:absolute; display:flex; flex-direction:column; gap:8px; padding:8px;
-  overflow-y:auto; overscroll-behavior:contain; }
-.lane.h { flex-direction:row; }
-.lane.h .roomcard { flex:1; }
-.roomcard { border-radius:var(--r-win); padding:10px 12px 12px; flex:none;
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
-  backdrop-filter:blur(28px) saturate(180%);
-  border:.5px solid var(--rim);
-  box-shadow:inset 0 1px 0 var(--spec), var(--e3); contain:paint; }
-[data-perf="lite"] .roomcard { backdrop-filter:none;
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 96%, transparent); }
-.roomcard.needs { box-shadow:inset 0 1px 0 var(--spec), var(--e3),
-  0 0 0 1px color-mix(in srgb, var(--room) 45%, transparent); }
-.roomcard > header { display:flex; align-items:center; gap:8px; cursor:pointer;
-  touch-action:none; user-select:none; }
-.roomcard > header .x { opacity:0; transition:opacity .12s; }
-.roomcard:hover > header .x { opacity:1; }
-.sec-icon { color:var(--room); }
-.sec-spend { color:var(--faint); font-size:11px; font-variant-numeric:tabular-nums; }
-.sec-bar { display:block; height:3px; border-radius:999px; background:var(--tint-2); margin:8px 0; overflow:hidden; }
-.sec-bar > i { display:block; height:100%; background:var(--room); opacity:.85; }
-.roomcard ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
-.lane.h .roomcard ul { flex-direction:row; flex-wrap:wrap; gap:8px; }
+.roomwin { padding:8px 10px 10px; }
+.roomwin ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
 
 .crew { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; cursor:pointer; }
 .crew:hover { background:var(--tint); }
@@ -284,6 +255,57 @@ p { margin:8px 0; }
 .win { position:absolute; display:flex; flex-direction:column; border-radius:var(--r-win); overflow:hidden;
   background:var(--win-fill); border:.5px solid var(--rim); box-shadow:var(--e3); }
 .win.hidden { display:none; }
+.win-bar { cursor:grab; }
+.win.dragging .win-bar { cursor:grabbing; }
+
+/* Depth is read from de-emphasis: only the front window carries full weight. */
+.win.back { box-shadow:var(--e1); }
+.win.back .win-title { color:var(--faint); }
+.win.back .l { filter:grayscale(1) opacity(.55); }
+
+/* --- parked: a place at the edge, not a minimise --- */
+.win.parked { width:var(--sliver); height:var(--ph);
+  transition:width .2s cubic-bezier(.32,.72,0,1);
+  cursor:pointer; overflow:hidden; }
+.win.parked.left { left:8px; right:auto; }
+.win.parked.right { right:8px; left:auto; }
+/* Only the width moves: a scrubbed rail keeps the height it has on the rail, so the
+   stack below it never shifts under the pointer. */
+.win.parked:hover { width:340px; z-index:70; }
+.win.parked:hover .win-body { overflow:auto; }
+/* while something is being dragged, a rail must not swell under the pointer */
+body.dragging .win.parked:hover { width:var(--sliver); }
+.win.parked .win-bar, .win.parked .win-body { display:none; }
+.win.parked:hover .win-bar, .win.parked:hover .win-body { display:flex; }
+.win.parked:hover .win-body { display:block; }
+.win.parked:hover .pk-hold { display:none; }
+.pk-hold { flex:1; min-height:0; display:flex; cursor:grab; touch-action:none; user-select:none; }
+.win.parked.dragging .pk-hold { cursor:grabbing; }
+.win.parked.dragging { width:auto; transition:none; }
+
+.pk-rail { flex:1; min-height:0; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:8px; padding:8px 0; border-left:3px solid var(--room); }
+.win.parked.right .pk-rail { border-left:0; border-right:3px solid var(--room); }
+.pk-icon { width:22px; height:22px; flex:none; display:grid; place-items:center; font-size:13px;
+  border-radius:7px; color:#fff; background:var(--room);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.2); }
+.pk-faces { display:flex; flex-direction:column; align-items:center; gap:6px; flex:none; }
+.pk-faces em { font-style:normal; font-size:10px; color:var(--faint); }
+.pk-bar { width:26px; height:3px; border-radius:999px; background:var(--tint-2);
+  overflow:hidden; flex:none; }
+.pk-bar > i { display:block; height:100%; background:var(--room); }
+
+/* The shelf that says the gutter is armed, drawn under the window being dragged. */
+.park-shelf { position:absolute; top:0; bottom:0; z-index:3; pointer-events:none;
+  border-radius:var(--r-card); background:color-mix(in srgb, var(--working) 20%, transparent);
+  border:1.5px dashed color-mix(in srgb, var(--working) 55%, transparent);
+  animation:shelf-in .16s cubic-bezier(.32,.72,0,1); }
+.park-shelf.left { left:8px; }
+.park-shelf.right { right:8px; }
+@keyframes shelf-in { from { opacity:0; transform:scaleX(.6); } }
+/* lifted off the desktop while it is being dragged, and never fighting the pointer */
+.win.dragging { box-shadow:var(--e4); will-change:left, top, width, height; }
+.win.dragging .win-body { pointer-events:none; }
 .win-bar { height:38px; flex:none; display:flex; align-items:center; gap:12px; padding:0 12px;
   border-bottom:.5px solid var(--line-soft); user-select:none; touch-action:none;
   background:linear-gradient(var(--sheen-1), transparent); }
@@ -296,14 +318,6 @@ p { margin:8px 0; }
 .wt-icon { color:var(--c); }
 .win-body { flex:1; min-height:0; overflow:auto; }
 .grip { position:absolute; right:0; bottom:0; width:18px; height:18px; cursor:nwse-resize; touch-action:none; }
-.win.peeking { cursor:pointer; box-shadow:var(--e4); transition:transform .18s cubic-bezier(.32,.72,0,1); }
-.win.peeking .win-bar, .win.peeking .win-body { opacity:.35; pointer-events:none; }
-.win.peeking.tl:hover, .win.peeking.bl:hover { transform:translateX(26px); }
-.win.peeking.tr:hover, .win.peeking.br:hover { transform:translateX(-26px); }
-.peek-tab { position:absolute; z-index:2; top:0; bottom:0; width:28px; display:grid; place-items:center;
-  font-size:15px; cursor:pointer; background:color-mix(in srgb, var(--c) 26%, var(--win-fill)); }
-.win.peeking.tl .peek-tab, .win.peeking.bl .peek-tab { right:0; }
-.win.peeking.tr .peek-tab, .win.peeking.br .peek-tab { left:0; }
 
 /* --- slide-over --- */
 .scrim { position:fixed; inset:var(--menubar) 0 0 0; z-index:90; background:rgb(0 0 0 / .35);
@@ -337,15 +351,18 @@ p { margin:8px 0; }
 [data-perf="lite"] .dock { backdrop-filter:none;
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb,var(--solid) 96%, transparent); }
 .tile { position:relative; width:48px; height:48px; padding:0; border-radius:var(--r-card);
-  border:.5px solid var(--line-soft); background:linear-gradient(var(--sheen-1), var(--tint));
-  display:grid; place-items:center; box-shadow:var(--e1);
+  border:0; background:none; box-shadow:none;
+  display:grid; place-items:center;
   transition:transform .13s cubic-bezier(.32,.72,0,1); }
 .tile .glyph { font-size:24px; line-height:1; }
-.tile:hover { transform:translateY(-10px) scale(1.2); z-index:2; }
+.appicon { width:44px; height:44px; display:block; border-radius:999px;
+  box-shadow:0 1px 2px rgba(0,0,0,.28), 0 4px 10px rgba(0,0,0,.18); }
+.tile { transform-origin:50% 100%; will-change:transform; }
+.tile:hover { z-index:2; }
+@media (prefers-reduced-motion:reduce) { .tile { transform:none !important; } }
 .tile:hover::after { content:attr(data-label); position:absolute; bottom:118%; white-space:nowrap;
   background:var(--win-fill); border:.5px solid var(--rim); border-radius:999px; padding:2px 10px;
   font-size:11px; color:var(--text); box-shadow:var(--e2); }
-.tile.room { box-shadow:var(--e1), inset 0 -2px 0 -1px color-mix(in srgb, var(--c) 70%, transparent); }
 .tile .badge { position:absolute; top:-4px; right:-4px; background:var(--failed); color:#fff;
   font-style:normal; font-size:9px; border-radius:999px; padding:0 5px; }
 .tile .run { position:absolute; bottom:-6px; width:4px; height:4px; border-radius:999px; background:var(--muted); }
@@ -510,3 +527,131 @@ p { margin:8px 0; }
 .problem-line { color:var(--failed); font-size:12.5px; }
 .needs-grant { display:flex; align-items:center; gap:8px; width:100%; padding:6px 8px 0 44px;
   color:var(--blocked); font-size:11.5px; }
+
+/* --- desk props: three apps that are scenery, not system --- */
+.music, .ride, .maps { display:flex; flex-direction:column; gap:10px; padding:12px; height:100%;
+  box-sizing:border-box; }
+
+.mu-now { display:flex; gap:12px; }
+.mu-art { position:relative; width:104px; height:104px; flex:none; border-radius:var(--r-card);
+  box-shadow:var(--e2); display:grid; place-items:center; overflow:hidden; }
+.mu-art i { width:26px; height:26px; border-radius:999px; background:rgba(0,0,0,.34);
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.5); }
+.mu-art i.spin { animation:mu-spin 3.5s linear infinite; }
+@keyframes mu-spin { to { transform:rotate(360deg); } }
+.mu-meta { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.mu-meta > b { font-size:14px; }
+.mu-meta > em { color:var(--muted); font-style:normal; font-size:12px; margin-bottom:6px; }
+.mu-bar { display:block; height:4px; border-radius:999px; background:var(--tint-2); cursor:pointer; }
+.mu-bar > i { display:block; height:100%; border-radius:999px; background:var(--text); }
+.mu-time { display:flex; justify-content:space-between; font-size:10.5px; color:var(--faint);
+  font-variant-numeric:tabular-nums; }
+.mu-ctl { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:6px; }
+.mu-ctl button { border:0; background:none; padding:0; font-size:15px; color:var(--text); }
+.mu-ctl button.big { font-size:22px; }
+.mu-list { list-style:none; margin:0; padding:0; overflow:auto; }
+.mu-list li { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:10px; cursor:pointer; }
+.mu-list li:hover { background:var(--tint); }
+.mu-list li.on { background:var(--tint-2); }
+.mu-dot { width:8px; height:8px; border-radius:999px; flex:none; }
+.mu-t, .rd-t, .mp-t { flex:1; min-width:0; display:flex; flex-direction:column; }
+.mu-t b, .rd-t b, .mp-t b { font-size:12.5px; }
+.mu-t em, .rd-t em, .mp-t em { font-style:normal; font-size:11px; color:var(--muted); }
+
+.rd-map, .mp-canvas { position:relative; border-radius:var(--r-card); overflow:hidden;
+  border:.5px solid var(--line-soft); flex:none; }
+.rd-map svg { display:block; width:100%; height:150px; }
+.rd-field { display:flex; align-items:center; gap:8px; background:var(--tint);
+  border:.5px solid var(--line); border-radius:var(--r-ctl); padding:0 10px; }
+.rd-field input { border:0; background:none; padding:8px 0; flex:1; min-width:0; }
+.rd-pip { width:8px; height:8px; flex:none; }
+.rd-pip.from { border-radius:999px; background:var(--working); }
+.rd-pip.to { border-radius:2px; background:var(--text); }
+.rd-tiers { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px;
+  overflow:auto; flex:1; }
+.rd-tiers li { display:flex; align-items:center; gap:10px; padding:8px; border-radius:12px;
+  border:.5px solid transparent; cursor:pointer; }
+.rd-tiers li:hover { background:var(--tint); }
+.rd-tiers li.on { background:var(--tint-2); border-color:var(--line); }
+.rd-glyph { font-size:20px; }
+.rd-live { display:flex; flex-direction:column; gap:4px; padding:12px; border-radius:var(--r-card);
+  background:var(--tint); border:.5px solid var(--line-soft); }
+.rd-live em { font-style:normal; font-size:11.5px; color:var(--muted); }
+
+.mp-canvas svg { display:block; width:100%; height:170px; transform-origin:center;
+  transition:transform .18s cubic-bezier(.32,.72,0,1); }
+.mp-zoom { position:absolute; right:8px; top:8px; display:flex; flex-direction:column; gap:1px; }
+.mp-zoom button { width:26px; height:26px; padding:0; border-radius:8px; background:var(--win-fill); }
+.mp-search { display:flex; align-items:center; gap:8px; background:var(--tint);
+  border:.5px solid var(--line); border-radius:999px; padding:0 12px; }
+.mp-search input { border:0; background:none; padding:8px 0; flex:1; min-width:0; }
+.mp-card { display:flex; align-items:center; gap:10px; padding:10px; border-radius:var(--r-card);
+  background:var(--tint); border:.5px solid var(--line-soft); }
+.mp-glyph { font-size:22px; }
+.mp-list { list-style:none; margin:0; padding:0; overflow:auto; flex:1; }
+.mp-list li { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:10px; cursor:pointer; }
+.mp-list li:hover { background:var(--tint); }
+.mp-list li.on { background:var(--tint-2); }
+
+/* Traffic lights are chrome, not decoration: colour arrives with the pointer, and the
+   front window keeps it — which is also how you see at a glance which window is live. */
+.win .l { background:var(--tint-2); transition:background .12s; }
+.win:hover .l.red, .win:not(.back) .l.red { background:#ff5f57; }
+.win:hover .l.yellow, .win:not(.back) .l.yellow { background:#febc2e; }
+.win:hover .l.green, .win:not(.back) .l.green { background:#28c840; }
+
+/* --- the first five seconds --- */
+.sitdown { position:absolute; z-index:90; left:50%; top:12px; transform:translateX(-50%);
+  display:flex; align-items:center; gap:12px; padding:8px 16px; border-radius:999px;
+  background:var(--win-fill); border:.5px solid var(--rim); box-shadow:var(--e3);
+  font-size:12.5px; white-space:nowrap;
+  animation:sit-in .22s cubic-bezier(.32,.72,0,1); }
+.sitdown .muted { font-size:11px; }
+@keyframes sit-in { from { opacity:0; transform:translate(-50%, -8px); } }
+
+/* --- keyboard triage --- */
+.keyhint { margin:0 0 8px; font-size:11px; color:var(--faint); letter-spacing:.02em; }
+.card.sel { box-shadow:var(--e2), 0 0 0 2px color-mix(in srgb, var(--working) 65%, transparent); }
+.card.undone { position:relative; display:flex; align-items:center; gap:10px; overflow:hidden;
+  color:var(--muted); font-size:12.5px; }
+.card.undone b { color:var(--text); }
+.undo-run { position:absolute; left:0; bottom:0; height:2px; width:100%;
+  background:var(--working); transform-origin:left; animation:undo-run linear forwards; }
+@keyframes undo-run { from { transform:scaleX(1); } to { transform:scaleX(0); } }
+@media (prefers-reduced-motion:reduce) { .undo-run { animation:none; } }
+
+/* --- eight-way resize: thin outside, forgiving inside --- */
+.edge { position:absolute; touch-action:none; }
+.edge.n, .edge.s { left:10px; right:10px; height:8px; }
+.edge.e, .edge.w { top:10px; bottom:10px; width:8px; }
+.edge.n { top:-3px; cursor:ns-resize; }
+.edge.s { bottom:-3px; cursor:ns-resize; }
+.edge.w { left:-3px; cursor:ew-resize; }
+.edge.e { right:-3px; cursor:ew-resize; }
+.edge.ne, .edge.nw, .edge.se, .edge.sw { width:14px; height:14px; }
+.edge.nw { left:-3px; top:-3px; cursor:nwse-resize; }
+.edge.se { right:-3px; bottom:-3px; cursor:nwse-resize; }
+.edge.ne { right:-3px; top:-3px; cursor:nesw-resize; }
+.edge.sw { left:-3px; bottom:-3px; cursor:nesw-resize; }
+
+/* --- alignment hairlines --- */
+.guide { position:absolute; z-index:75; pointer-events:none;
+  background:color-mix(in srgb, var(--working) 75%, transparent); }
+.guide.v { top:0; bottom:0; width:1px; }
+.guide.h { left:0; right:0; height:1px; }
+
+/* --- traffic lights carry their glyph once you go for them --- */
+.l { display:grid; place-items:center; font-size:9px; line-height:1; color:transparent; }
+.lights:hover .l { color:rgba(0,0,0,.55); }
+.l.red::after { content:"\00d7"; }
+.l.yellow::after { content:"\2212"; }
+.l.green::after { content:"\002b"; }
+
+/* --- a window arrives and leaves, rather than blinking --- */
+.win { animation:win-in .18s cubic-bezier(.32,.72,0,1); }
+@keyframes win-in { from { opacity:0; transform:scale(.94); } }
+.win.closing { animation:win-out .15s cubic-bezier(.32,.72,0,1) forwards; pointer-events:none; }
+@keyframes win-out { to { opacity:0; transform:scale(.92); } }
+@media (prefers-reduced-motion:reduce) {
+  .win, .win.closing { animation:none; }
+}

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { Room, Agent } from '../lib/api';
-import { friendlyActivity, money } from '../lib/humanize';
+import { friendlyActivity, hours } from '../lib/humanize';
 
 const NEEDS = new Set(['awaiting_approval']);
 const WARN = new Set(['blocked', 'failed']);
@@ -37,7 +37,7 @@ function Widget({ room, agents, onOpen }: { room: Room; agents: Agent[]; onOpen:
         <span className={`bar${pct > 95 ? ' over' : pct > 70 ? ' warn' : ''}`} style={{ width: 64 }}>
           <i style={{ width: `${pct}%` }} />
         </span>
-        <span>{money(room.spent_cents)} of {money(room.budget_cents)}</span>
+        <span>{hours(room.spent_cents)} of {hours(room.budget_cents)}</span>
         <span className="spacer" />
         <span>{room.tool_grants.length} tools</span>
       </div>

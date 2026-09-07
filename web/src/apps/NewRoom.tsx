@@ -74,7 +74,7 @@ export function NewRoom({ onDone }: { onDone: () => void }) {
       </div>
       <div className="field"><label>Spending limit</label>
         <input type="number" value={budget} onChange={(e) => setBudget(Number(e.target.value))} />
-        <span className="muted tiny">cents. Work halts here rather than going over.</span></div>
+        <span className="muted tiny">agent-minutes. Work halts here rather than going over.</span></div>
 
       <h4>What may it reach?</h4>
       {cat.access.map((a: any) => (

@@ -1,29 +1,31 @@
 import { useCallback, useState } from 'react';
 
-export type WinKind = 'agent' | 'room' | 'floor' | 'list' | 'settings' | 'inbox';
-export type Edge = 'left' | 'right' | 'top' | 'bottom';
-export type Corner = 'tl' | 'tr' | 'bl' | 'br';
-export type Zone = Edge | Corner | null;
+export type WinKind = 'agent' | 'room' | 'floor' | 'list' | 'settings' | 'inbox'
+  | 'music' | 'ride' | 'maps';
+/** Everything that opens from the dock rather than from a room or an agent. */
+export type AppKind = Exclude<WinKind, 'agent' | 'room'>;
+/** A parked window is tucked against a side edge with only its rail showing. */
+export type Park = 'left' | 'right';
 
 export type Win = {
   id: string; kind: WinKind; title: string; icon: string; color: string; ref?: string;
   x: number; y: number; w: number; h: number;
   z: number; min: boolean; max: boolean;
-  /** Only rooms snap and peek. Apps float. */
-  snappable: boolean;
-  snap: Edge | null;
-  peek: Corner | null;
+  /** Rooms wear plain chrome: a title and a close button, no traffic lights. */
+  plain: boolean;
+  /** Parked against an edge — a place, not a minimise. */
+  park: Park | null;
+  /** The rect to restore on un-park. */
+  home: Rect | null;
 };
 export type Rect = { left: number; top: number; width: number; height: number };
 
-export const LANE = 264;      // width of a docked side lane
-export const STRIP = 132;     // height of a docked top/bottom strip
-export const PEEK = 0.1;      // how much of a corner-tucked room stays on screen
-
 let seqZ = 10;
 
-export function useWindows() {
-  const [wins, setWins] = useState<Win[]>([]);
+export function useWindows(initial: Win[] = []) {
+  const [wins, setWins] = useState<Win[]>(initial);
+  // Restored windows carry their old z values; new ones must open above them.
+  seqZ = Math.max(seqZ, ...initial.map((w) => w.z), 10);
 
   const focus = useCallback((id: string) =>
     setWins((ws) => ws.map((w) => (w.id === id ? { ...w, z: ++seqZ, min: false } : w))), []);
@@ -31,11 +33,11 @@ export function useWindows() {
   const open = useCallback((spec: Partial<Win> & Pick<Win, 'id' | 'kind' | 'title' | 'icon' | 'color'>) => {
     setWins((ws) => {
       if (ws.some((w) => w.id === spec.id))
-        return ws.map((w) => (w.id === spec.id ? { ...w, z: ++seqZ, min: false, peek: null } : w));
+        return ws.map((w) => (w.id === spec.id ? { ...w, z: ++seqZ, min: false } : w));
       const n = ws.length;
       return [...ws, {
         x: 90 + (n % 6) * 28, y: 60 + (n % 6) * 28, w: 680, h: 470,
-        z: ++seqZ, min: false, max: false, snappable: false, snap: null, peek: null, ...spec,
+        z: ++seqZ, min: false, max: false, plain: false, park: null, home: null, ...spec,
       } as Win];
     });
   }, []);
@@ -49,42 +51,9 @@ export function useWindows() {
   return { wins, open, close, focus, patch, patchAll, setWins };
 }
 
-/**
- * Where every window actually sits.
- *
- * Docked rooms share a lane: three rooms on the left edge split that lane's height
- * between them, which is what makes "snap to the side" feel like a rail rather than
- * one window covering the others. Corner-tucked rooms keep a 10% handle on screen.
- */
-export type Lanes = Record<Edge, { wins: Win[]; rect: Rect } | null>;
-
-/** One docked edge = ONE panel holding its rooms as sections, not N stacked windows. */
-export function lanes(wins: Win[], stage: { w: number; h: number }): Lanes {
-  const of = (e: Edge) => wins.filter((w) => w.snap === e && !w.peek && !w.min);
-  const L = of('left'), R = of('right'), T = of('top'), B = of('bottom');
-  const lw = L.length ? LANE : 0, rw = R.length ? LANE : 0;
-  const th = T.length ? STRIP : 0, bh = B.length ? STRIP : 0;
-  const midW = Math.max(120, stage.w - lw - rw);
-  // The 8px inset is what makes a docked rail read as a floating popover rather
-  // than a panel welded to the window edge.
-  const G = 8;
-  return {
-    left:   L.length ? { wins: L, rect: { left: G, top: G, width: lw - G * 2, height: stage.h - G * 2 } } : null,
-    right:  R.length ? { wins: R, rect: { left: stage.w - rw + G, top: G, width: rw - G * 2, height: stage.h - G * 2 } } : null,
-    top:    T.length ? { wins: T, rect: { left: lw + G, top: G, width: midW - G * 2, height: th - G * 2 } } : null,
-    bottom: B.length ? { wins: B, rect: { left: lw + G, top: stage.h - bh + G, width: midW - G * 2, height: bh - G * 2 } } : null,
-  };
-}
-
-/**
- * The desktop that is actually free: the stage minus whatever rooms are docked.
- * Apps open centred here and maximise to here — they never hide behind a rail.
- */
-export function freeArea(wins: Win[], stage: { w: number; h: number }): Rect {
-  const ln = lanes(wins, stage);
-  const l = ln.left ? LANE : 0, r = ln.right ? LANE : 0;
-  const t = ln.top ? STRIP : 0, b = ln.bottom ? STRIP : 0;
-  return { left: l, top: t, width: Math.max(240, stage.w - l - r), height: Math.max(180, stage.h - t - b) };
+/** The desktop a window can occupy. */
+export function stageArea(stage: { w: number; h: number }): Rect {
+  return { left: 0, top: 0, width: stage.w, height: stage.h };
 }
 
 /** Where a newly opened app should sit: centred in the free desktop, gently cascaded. */
@@ -99,61 +68,54 @@ export function centreIn(area: Rect, w: number, h: number, nth = 0): Rect {
   };
 }
 
-/** Geometry for everything that is NOT inside a lane. */
-export function layout(wins: Win[], stage: { w: number; h: number }): Map<string, Rect> {
+export const SLIVER = 72;   // how much of a parked window stays on screen
+const PARK_PAD = 8, PARK_GAP = 8;
+
+/**
+ * Where every window sits.
+ *
+ * A parked window is only as tall as its crew needs — it is a shelf of faces, not a
+ * column filling the edge. They stack from the top and only start overlapping once
+ * there are more of them than the edge can hold.
+ */
+export function layout(
+  wins: Win[],
+  stage: { w: number; h: number },
+  railHeight: (w: Win) => number = () => 96,
+): Map<string, Rect> {
   const out = new Map<string, Rect>();
-  const ln = lanes(wins, stage);
-  const lw = ln.left?.rect.width ?? 0, rw = ln.right?.rect.width ?? 0;
-  const th = ln.top?.rect.height ?? 0, bh = ln.bottom?.rect.height ?? 0;
-  const midW = Math.max(120, stage.w - lw - rw);
+
+  for (const side of ['left', 'right'] as Park[]) {
+    const ps = wins.filter((w) => w.park === side && !w.min);
+    if (!ps.length) continue;
+    const hs = ps.map(railHeight);
+    const span = hs.reduce((a, b) => a + b, 0) + PARK_GAP * (ps.length - 1);
+    const room = stage.h - PARK_PAD * 2;
+    // Fan rather than shrink: heights stay honest, the gaps go negative instead.
+    const squeeze = span > room && ps.length > 1
+      ? (room - hs[hs.length - 1]) / (span - hs[hs.length - 1])
+      : 1;
+    let top = PARK_PAD;
+    ps.forEach((w, i) => {
+      out.set(w.id, {
+        left: side === 'left' ? PARK_PAD : stage.w - SLIVER - PARK_PAD,
+        top: Math.round(top), width: SLIVER, height: hs[i],
+      });
+      top += (hs[i] + PARK_GAP) * squeeze;
+    });
+  }
 
   for (const w of wins) {
-    if (w.snap && !w.peek && !w.min) continue;   // lives in a lane panel
-    if (w.peek) {
-      // 90% off the edge, 10% left to grab — and that 10% is kept fully on screen,
-      // clear of the dock, so the handle is always clickable.
-      const cw = 260, ch = 170, show = cw * PEEK;
-      const left = w.peek === 'tl' || w.peek === 'bl' ? -(cw - show) : stage.w - show;
-      const top = w.peek === 'tl' || w.peek === 'tr' ? 10 : Math.max(10, stage.h - ch - 10);
-      out.set(w.id, { left, top, width: cw, height: ch });
-      continue;
-    }
-    if (w.max) { out.set(w.id, freeArea(wins, stage)); continue; }
+    if (out.has(w.id)) continue;
+    if (w.max) { out.set(w.id, stageArea(stage)); continue; }
     out.set(w.id, { left: w.x, top: w.y, width: w.w, height: w.h });
   }
   return out;
 }
 
-/** The zone the pointer is currently over, or null for "leave it floating". */
-export function zoneAt(px: number, py: number, stage: { w: number; h: number }): Zone {
-  const EDGE = 56, CORNER = 130;
-  const nearL = px < CORNER, nearR = px > stage.w - CORNER;
-  const nearT = py < CORNER, nearB = py > stage.h - CORNER;
-  if (nearL && nearT) return 'tl';
-  if (nearR && nearT) return 'tr';
-  if (nearL && nearB) return 'bl';
-  if (nearR && nearB) return 'br';
-  if (px < EDGE) return 'left';
-  if (px > stage.w - EDGE) return 'right';
-  if (py < EDGE) return 'top';
-  if (py > stage.h - EDGE) return 'bottom';
+/** The edge the pointer is asking for, or null. */
+export function parkEdge(px: number, width: number, gutter = 28): Park | null {
+  if (px <= gutter) return 'left';
+  if (px >= width - gutter) return 'right';
   return null;
-}
-
-export const isCorner = (z: Zone): z is Corner => z === 'tl' || z === 'tr' || z === 'bl' || z === 'br';
-
-export function zonePreview(z: Zone, stage: { w: number; h: number }): Rect | null {
-  if (!z) return null;
-  if (isCorner(z)) {
-    const cw = 240, ch = 150;
-    return {
-      left: z === 'tl' || z === 'bl' ? 8 : stage.w - cw - 8,
-      top: z === 'tl' || z === 'tr' ? 8 : stage.h - ch - 8,
-      width: cw, height: ch,
-    };
-  }
-  if (z === 'left')  return { left: 0, top: 0, width: LANE, height: stage.h };
-  if (z === 'right') return { left: stage.w - LANE, top: 0, width: LANE, height: stage.h };
-  if (z === 'top')   return { left: 0, top: 0, width: stage.w, height: STRIP };
-  return { left: 0, top: stage.h - STRIP, width: stage.w, height: STRIP };
 }

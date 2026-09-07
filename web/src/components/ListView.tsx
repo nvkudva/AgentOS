@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { get } from '../lib/api';
-import { describe, friendlyActivity, money } from '../lib/humanize';
+import { describe, friendlyActivity, hours } from '../lib/humanize';
 import type { Agent, Room } from '../lib/api';
 
 /**
@@ -25,7 +25,7 @@ export function ListView({ rooms, agents }: { rooms: Room[]; agents: Agent[] }) 
               <span style={{ color: 'var(--faint)' }}>{roomOf[a.room_id]?.name}</span>
               <span className="activity">{friendlyActivity(a.activity, a.state)}</span>
               <span className="spacer" />
-              <span className="tag">{money(a.spent_cents)}</span>
+              <span className="tag">{hours(a.spent_cents)}</span>
             </summary>
             <div className="body rows">
               {mine.map((e) => {

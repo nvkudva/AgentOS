@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { get, post, observe } from '../lib/api';
 import type { Room } from '../lib/api';
-import { describe, money, toolName, toolGlyph } from '../lib/humanize';
+import { describe, hours, toolName, toolGlyph } from '../lib/humanize';
 
 const TABS = ['Activity', 'Files', 'Spending', 'History', 'Permissions'] as const;
 type Tab = typeof TABS[number];
@@ -92,8 +92,8 @@ export function RoomApp({ room, view }: { room: Room; view: string }) {
         {tab === 'Spending' && (
           <>
             <div className="big-stat">
-              <b>{money(spent)}</b>
-              <span className="muted">of {money(cap)} allowed this room</span>
+              <b>{hours(spent)}</b>
+              <span className="muted">of {hours(cap)} allowed this room</span>
               <span className="mini-bar wide"><i style={{ width: `${Math.min(100, (spent / Math.max(1, cap)) * 100)}%` }} /></span>
               <p className="muted tiny">When the limit is reached the room stops. It never goes over.</p>
             </div>
@@ -103,7 +103,7 @@ export function RoomApp({ room, view }: { room: Room; view: string }) {
                 <div className="row" key={l.id}>
                   <span className="sg">{toolGlyph(String(l.reason).split(' ')[0])}</span>
                   <span className="rtext">{toolName(String(l.reason).split(' ')[0])}</span>
-                  <span className="when">{money(l.cents)}</span>
+                  <span className="when">{hours(l.cents)}</span>
                 </div>
               ))}
             </div>
@@ -117,7 +117,7 @@ export function RoomApp({ room, view }: { room: Room; view: string }) {
                 <span className="sg">{r.status === 'done' ? '✅' : r.status === 'running' ? '⏳' : '⚠️'}</span>
                 <span className="rtext">
                   {r.goal}
-                  <em className="muted"> · {r.steps_used} steps · {money(r.spent_cents)}
+                  <em className="muted"> · {r.steps_used} steps · {hours(r.spent_cents)}
                     {r.kill_reason ? ` · ${r.kill_reason}` : ''}</em>
                 </span>
                 <span className="when">{new Date(r.started_at).toLocaleDateString()}</span>
