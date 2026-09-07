@@ -11,15 +11,20 @@ const TICK_MS = Number(process.env.ATRIUM_TICK_MS ?? 400);
 let timer: NodeJS.Timeout | null = null;
 const inflight = new Set<string>();
 
-export async function startAgent(agentId: string, goalOverride?: string) {
+/** The chain of custody a run belongs to. Set when a manager assigns, absent otherwise. */
+export type RunLink = { mandate_id?: string | null; task_id?: string | null };
+
+export async function startAgent(agentId: string, goalOverride?: string, link?: RunLink) {
   const agent = await one<Agent>('SELECT * FROM agent WHERE id=$1', [agentId]);
   if (!agent) throw new Error('no such agent');
   if (agent.state === 'working' || agent.state === 'awaiting_approval') return agent.current_run_id;
   const policy = POLICIES[agent.policy_key];
   if (!policy) throw new Error(`no policy ${agent.policy_key}`);
   const runId = id('run');
-  await q(`INSERT INTO run (id, agent_id, room_id, goal, status, scratch) VALUES ($1,$2,$3,$4,'running','{}')`,
-    [runId, agent.id, agent.room_id, goalOverride ?? policy.goal]);
+  await q(`INSERT INTO run (id, agent_id, room_id, goal, status, scratch, mandate_id, task_id)
+           VALUES ($1,$2,$3,$4,'running','{}',$5,$6)`,
+    [runId, agent.id, agent.room_id, goalOverride ?? policy.goal, link?.mandate_id ?? null, link?.task_id ?? null]);
+  if (link?.task_id) await q(`UPDATE task SET run_id=$2, state='working' WHERE id=$1`, [link.task_id, runId]);
   await q(`UPDATE agent SET state='working', current_run_id=$2, activity=$3, steps_used=0, spent_cents=0 WHERE id=$1`,
     [agent.id, runId, 'starting']);
   await append({ type: 'run.started', room_id: agent.room_id, agent_id: agent.id, run_id: runId,
@@ -35,7 +40,14 @@ export async function killAgent(agentId: string, reason: string) {
     await q(`UPDATE run SET status='killed', kill_reason=$2, ended_at=now() WHERE id=$1`, [a.current_run_id, reason]);
   }
   await q(`UPDATE approval SET state='expired', decided_at=now() WHERE run_id=$1 AND state='pending'`, [a.current_run_id]);
+  await settleTask(a.current_run_id, 'killed', reason);
   await append({ type: 'agent.killed', room_id: a.room_id, agent_id: agentId, run_id: a.current_run_id, payload: { reason } });
+}
+
+/** A task's state is its run's state. One write, so the two can never disagree. */
+export async function settleTask(runId: string | null | undefined, state: string, reason?: string) {
+  if (!runId) return;
+  await q(`UPDATE task SET state=$2, kill_reason=$3 WHERE run_id=$1`, [runId, state, reason ?? null]);
 }
 
 async function say(a: Agent, activity: string) {
@@ -63,7 +75,9 @@ async function step(agentRow: Agent) {
   if (idx >= policy.steps.length) {
     await q(`UPDATE run SET status='done', ended_at=now() WHERE id=$1`, [run.id]);
     await q(`UPDATE agent SET state='idle', activity='done', current_run_id=NULL WHERE id=$1`, [agentRow.id]);
+    await settleTask(run.id, 'done');
     await append({ type: 'run.finished', room_id: room.id, agent_id: agentRow.id, run_id: run.id, payload: { steps: agentRow.steps_used } });
+    bus.publish({ type: 'refresh' });
     return;
   }
 
@@ -91,10 +105,12 @@ async function step(agentRow: Agent) {
     } else if (e instanceof ScopeViolation) {
       await q(`UPDATE agent SET state='failed', activity=$2 WHERE id=$1`, [agentRow.id, `scope violation: ${e.message}`]);
       await q(`UPDATE run SET status='failed', ended_at=now(), kill_reason=$2 WHERE id=$1`, [run.id, e.message]);
+      await settleTask(run.id, 'failed', e.message);
       await append({ type: 'run.failed', room_id: room.id, agent_id: agentRow.id, run_id: run.id, payload: { error: e.message } });
     } else {
       await q(`UPDATE agent SET state='failed', activity=$2 WHERE id=$1`, [agentRow.id, String(e?.message ?? e).slice(0, 200)]);
       await q(`UPDATE run SET status='failed', ended_at=now(), kill_reason=$2 WHERE id=$1`, [run.id, String(e?.message ?? e).slice(0, 300)]);
+      await settleTask(run.id, 'failed', String(e?.message ?? e).slice(0, 300));
       await append({ type: 'run.failed', room_id: room.id, agent_id: agentRow.id, run_id: run.id, payload: { error: String(e?.message ?? e) } });
     }
   }

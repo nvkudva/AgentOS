@@ -9,12 +9,14 @@ export type Room = {
 };
 export type Agent = {
   id: string; room_id: string; name: string; role: string; policy_key: string;
+  tier: 'manager' | 'worker';
   state: 'idle' | 'working' | 'blocked' | 'awaiting_approval' | 'failed' | 'killed';
   activity: string; current_run_id: string | null;
   step_budget: number; cost_budget_cents: number; steps_used: number; spent_cents: number;
 };
 export type Run = {
   id: string; agent_id: string; room_id: string; goal: string;
+  mandate_id: string | null; task_id: string | null;
   status: string; steps_used: number; spent_cents: number;
   kill_reason: string | null; scratch: Record<string, any>;
 };

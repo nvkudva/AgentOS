@@ -132,3 +132,46 @@ export function describe(e: any, who: string): Said {
 }
 
 const capital = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+/**
+ * What a piece of work will have to touch, and what that costs it.
+ *
+ * The blast radius and reversibility of every tool are the server's, copied here for
+ * one purpose only: telling the operator, before they let go of a chit, whether a room
+ * may do this work at all and whether it will stop and ask them. The server still
+ * decides — this only has to agree with it.
+ */
+const BLAST: Record<string, { blast: 'low' | 'medium' | 'high'; back: boolean }> = {
+  'sql.query':      { blast: 'low',    back: true },
+  'crm.note':       { blast: 'medium', back: true },
+  'artifact.write': { blast: 'low',    back: true },
+  'artifact.read':  { blast: 'low',    back: true },
+  'queue.draft':    { blast: 'medium', back: true },
+  'queue.publish':  { blast: 'high',   back: false },
+  'repo.read':      { blast: 'low',    back: true },
+  'repo.patch':     { blast: 'medium', back: true },
+  'repo.test':      { blast: 'low',    back: true },
+  'github.pr.open': { blast: 'high',   back: false },
+  'escalate':       { blast: 'low',    back: true },
+};
+
+const NEEDS: [RegExp, string[]][] = [
+  [/churn|revenue|cohort|pipeline|number|metric|analys|data|quer|report|forecast/i,
+    ['sql.query', 'artifact.write']],
+  [/post|blog|publish|campaign|content|announce|launch/i, ['queue.draft', 'queue.publish']],
+  [/bug|test|fix|patch|code|refactor|pull request|\bpr\b|ship/i, ['repo.read', 'repo.patch', 'repo.test']],
+  [/deal|crm|account|customer|lead/i, ['crm.note']],
+  [/write up|summar|note|brief|memo|draft/i, ['artifact.write']],
+];
+
+/** The tools one sentence of intent implies. Empty means "nothing but reading and writing notes". */
+export function requiredTools(text: string): string[] {
+  const out = new Set<string>();
+  for (const [re, tools] of NEEDS) if (re.test(text)) tools.forEach((t) => out.add(t));
+  if (!out.size) { out.add('artifact.read'); out.add('artifact.write'); }
+  return [...out];
+}
+
+/** Would this work stop and ask the operator in this room? */
+export const tripsApproval = (policy: Record<string, string>, tools: string[]) =>
+  tools.some((t) => BLAST[t] && (!BLAST[t].back || policy[BLAST[t].blast] === 'approve'));

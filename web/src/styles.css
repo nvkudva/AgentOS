@@ -33,6 +33,23 @@
 
   --r-shell:26px; --r-win:18px; --r-card:12px; --r-ctl:9px;
   --menubar:44px; --dock:84px;
+
+  /* ONE easing family, ONE duration scale. Nothing in this file may state a curve
+     or a duration of its own — a second family reads as a second product.
+     --ease        anything arriving or moving under its own steam
+     --ease-out    anything leaving, dismissed, or springing back
+     --ease-settle the release of a drag or carry, and nothing else: that is the one
+                   moment the operator's hand imparted momentum, so it overshoots */
+  --ease:cubic-bezier(.32,.72,0,1);
+  --ease-out:cubic-bezier(.4,0,1,1);
+  --ease-settle:cubic-bezier(.2,.9,.25,1.04);
+  --t-tint:110ms;      /* colour and state */
+  --t-ui:180ms;        /* windows, panels, rails */
+  --t-near:260ms;      /* travel inside one window */
+  --t-far:420ms;       /* travel across the desk */
+  --t-cascade:700ms;   /* a staged multi-hop */
+  --t-breathe:2.4s;    /* a row that just changed */
+  --t-rest:4.8s;       /* the same row once it is old news */
 }
 [data-theme="dark"] {
   color-scheme: dark;
@@ -77,7 +94,7 @@ body { margin:0; color:var(--text); background:var(--solid); overflow:hidden;
   text-rendering:optimizeLegibility;
   font-variant-numeric:tabular-nums; }
 button { font:inherit; color:inherit; background:var(--tint); border:.5px solid var(--line);
-  border-radius:var(--r-ctl); padding:6px 12px; cursor:pointer; transition:background .12s; }
+  border-radius:var(--r-ctl); padding:6px 12px; cursor:pointer; transition:background var(--t-tint); }
 button:hover { background:var(--tint-2); }
 button:disabled { opacity:.45; cursor:default; }
 button.primary { background:var(--working); border-color:transparent; color:#fff; box-shadow:var(--e1); }
@@ -132,7 +149,7 @@ p { margin:8px 0; }
 /* --- supervisor: the orb, and the panel that grows out of it --- */
 .sup { position:relative; display:flex; align-items:center; }
 .orb-btn { position:relative; z-index:2; padding:0; border:0; background:none; cursor:pointer;
-  line-height:0; transition:transform .16s cubic-bezier(.32,.72,0,1); }
+  line-height:0; transition:transform var(--t-ui) var(--ease); }
 .orb-btn:hover { transform:scale(1.06); background:none; }
 .orb-btn:active { transform:scale(.97); }
 
@@ -186,9 +203,6 @@ p { margin:8px 0; }
   0%,100% { box-shadow:0 0 18px -6px color-mix(in srgb, var(--glow) 60%, transparent) }
   50%     { box-shadow:0 0 34px -2px color-mix(in srgb, var(--glow) 95%, transparent) }
 }
-@media (prefers-reduced-motion:reduce) {
-  .plasma, .orb-halo { animation:none !important; }
-}
 /* On a machine that cannot hold 60fps the core stops turning and the ring carries the
    state on its own — same as trading blur for flat surfaces elsewhere. */
 [data-perf="lite"] .plasma { animation:none !important; }
@@ -201,7 +215,7 @@ p { margin:8px 0; }
   backdrop-filter:blur(28px) saturate(180%);
   border:.5px solid var(--rim);
   box-shadow:inset 0 1px 0 var(--spec), var(--e4);
-  transition:transform .22s cubic-bezier(.32,.72,0,1), opacity .18s; }
+  transition:transform var(--t-ui) var(--ease), opacity var(--t-ui); }
 /* The orb's light spills onto the panel below it, so the two read as one object. */
 .sup-panel::before { content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
   background:radial-gradient(90px 60px at 50% 0%, color-mix(in srgb, var(--working) 26%, transparent), transparent 70%); }
@@ -219,7 +233,6 @@ p { margin:8px 0; }
 .wave i { width:3px; height:3px; border-radius:999px; background:var(--faint); }
 .wave.on i { background:var(--working); animation:bars 1.1s ease-in-out infinite alternate; }
 @keyframes bars { from { height:4px } to { height:18px } }
-@media (prefers-reduced-motion:reduce) { .wave.on i { animation:none; height:11px } }
 
 /* --- stage --- */
 .stage { position:relative; z-index:10; flex:1; min-height:0; overflow:hidden; }
@@ -232,11 +245,20 @@ p { margin:8px 0; }
 .crew { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; cursor:pointer; }
 .crew:hover { background:var(--tint); }
 .crew.on { background:var(--tint-2); }
-.crew-text { min-width:0; display:flex; flex-direction:column; line-height:1.3; }
+.crew-text { min-width:0; flex:1; display:flex; flex-direction:column; line-height:1.3; }
 .crew-text b { font-weight:500; font-size:12.5px; letter-spacing:-.005em; }
 .crew-text em { font-style:normal; color:var(--faint); font-size:11px;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:168px; }
 .crew.attn .crew-text em { color:var(--text); }
+/* A caption that slides makes a still list look busy, so the two texts cross-fade in
+   place: the old one leaving over the new one arriving, no reflow either way. */
+.crew-text em.cap { position:relative; display:block; width:100%; height:14px; }
+.cap i { position:absolute; inset:0; font-style:normal; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }
+.cap-in  { animation:cap-in 140ms var(--ease) both; }
+.cap-out { animation:cap-out var(--t-tint) var(--ease-out) forwards; }
+@keyframes cap-in  { from { opacity:0 } to { opacity:1 } }
+@keyframes cap-out { to { opacity:0 } }
 
 .face { position:relative; width:26px; height:26px; flex:none; border-radius:999px; display:grid; place-items:center;
   font-size:13px; background:color-mix(in srgb, var(--c) 20%, var(--solid));
@@ -245,11 +267,15 @@ p { margin:8px 0; }
 .face.sm { width:20px; height:20px; font-size:10px; }
 .st { position:absolute; right:-1px; bottom:-1px; width:9px; height:9px; border-radius:999px;
   background:var(--idle); box-shadow:0 0 0 2px var(--solid); }
-.st.working { background:var(--working); animation:breathe 2.4s ease-in-out infinite; }
+.st.working { background:var(--working); animation:rest var(--t-rest) ease-in-out infinite; }
+/* Full breathe only while the row is fresh (RoomWindow marks it on a state change and
+   clears it after 20s); after that a half-swing pulse at half the rate. Fourteen
+   agents breathing forever is weather, and weather drowns the real handoffs. */
+.crew.fresh .st.working { animation:breathe var(--t-breathe) ease-in-out infinite; }
 .st.blocked { background:var(--blocked); } .st.awaiting_approval { background:var(--approval); }
 .st.failed { background:var(--failed); } .st.killed { background:var(--killed); }
 @keyframes breathe { 0%,100%{opacity:.35} 50%{opacity:1} }
-@media (prefers-reduced-motion:reduce) { .st.working { animation:none } }
+@keyframes rest    { 0%,100%{opacity:.68} 50%{opacity:1} }
 
 /* --- windows --- */
 .win { position:absolute; display:flex; flex-direction:column; border-radius:var(--r-win); overflow:hidden;
@@ -265,7 +291,7 @@ p { margin:8px 0; }
 
 /* --- parked: a place at the edge, not a minimise --- */
 .win.parked { width:var(--sliver); height:var(--ph);
-  transition:width .2s cubic-bezier(.32,.72,0,1);
+  transition:width var(--t-ui) var(--ease);
   cursor:pointer; overflow:hidden; }
 .win.parked.left { left:8px; right:auto; }
 .win.parked.right { right:8px; left:auto; }
@@ -299,7 +325,7 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .park-shelf { position:absolute; top:0; bottom:0; z-index:3; pointer-events:none;
   border-radius:var(--r-card); background:color-mix(in srgb, var(--working) 20%, transparent);
   border:1.5px dashed color-mix(in srgb, var(--working) 55%, transparent);
-  animation:shelf-in .16s cubic-bezier(.32,.72,0,1); }
+  animation:shelf-in var(--t-ui) var(--ease); }
 .park-shelf.left { left:8px; }
 .park-shelf.right { right:8px; }
 @keyframes shelf-in { from { opacity:0; transform:scaleX(.6); } }
@@ -321,14 +347,14 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 
 /* --- slide-over --- */
 .scrim { position:fixed; inset:var(--menubar) 0 0 0; z-index:90; background:rgb(0 0 0 / .35);
-  opacity:0; pointer-events:none; transition:opacity .2s; }
+  opacity:0; pointer-events:none; transition:opacity var(--t-ui); }
 .scrim.on { opacity:1; pointer-events:auto; }
 .slideover { position:fixed; top:calc(var(--menubar) + 8px); right:8px; bottom:8px; width:min(380px, 92vw);
   z-index:100; border-radius:var(--r-shell); overflow:hidden; display:flex; flex-direction:column;
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
   backdrop-filter:blur(28px) saturate(180%); border:.5px solid var(--rim);
   box-shadow:inset 0 1px 0 var(--spec), var(--e4);
-  transform:translateX(calc(100% + 16px)); transition:transform .24s cubic-bezier(.32,.72,0,1); contain:paint; }
+  transform:translateX(calc(100% + 16px)); transition:transform var(--t-near) var(--ease); contain:paint; }
 [data-perf="lite"] .slideover { backdrop-filter:none; background:var(--win-fill); }
 .slideover.on { transform:none; }
 .slideover > header { display:flex; align-items:center; gap:8px; padding:12px 12px 12px 16px;
@@ -353,13 +379,12 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .tile { position:relative; width:48px; height:48px; padding:0; border-radius:var(--r-card);
   border:0; background:none; box-shadow:none;
   display:grid; place-items:center;
-  transition:transform .13s cubic-bezier(.32,.72,0,1); }
+  transition:transform var(--t-tint) var(--ease); }
 .tile .glyph { font-size:24px; line-height:1; }
 .appicon { width:44px; height:44px; display:block; border-radius:999px;
   box-shadow:0 1px 2px rgba(0,0,0,.28), 0 4px 10px rgba(0,0,0,.18); }
 .tile { transform-origin:50% 100%; will-change:transform; }
 .tile:hover { z-index:2; }
-@media (prefers-reduced-motion:reduce) { .tile { transform:none !important; } }
 .tile:hover::after { content:attr(data-label); position:absolute; bottom:118%; white-space:nowrap;
   background:var(--win-fill); border:.5px solid var(--rim); border-radius:999px; padding:2px 10px;
   font-size:11px; color:var(--text); box-shadow:var(--e2); }
@@ -394,7 +419,7 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .steps > summary { list-style:none; cursor:pointer; padding:8px 12px; display:flex; gap:8px;
   align-items:center; color:var(--muted); font-size:12px; }
 .steps > summary::-webkit-details-marker { display:none; }
-.steps .chev { display:inline-block; transition:transform .18s; }
+.steps .chev { display:inline-block; transition:transform var(--t-ui); }
 .steps[open] .chev { transform:rotate(90deg); }
 .step-list { padding:0 12px 8px 32px; display:flex; flex-direction:column; gap:6px; }
 .step { display:flex; gap:8px; align-items:baseline; font-size:12px; }
@@ -579,7 +604,7 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .rd-live em { font-style:normal; font-size:11.5px; color:var(--muted); }
 
 .mp-canvas svg { display:block; width:100%; height:170px; transform-origin:center;
-  transition:transform .18s cubic-bezier(.32,.72,0,1); }
+  transition:transform var(--t-ui) var(--ease); }
 .mp-zoom { position:absolute; right:8px; top:8px; display:flex; flex-direction:column; gap:1px; }
 .mp-zoom button { width:26px; height:26px; padding:0; border-radius:8px; background:var(--win-fill); }
 .mp-search { display:flex; align-items:center; gap:8px; background:var(--tint);
@@ -595,7 +620,7 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 
 /* Traffic lights are chrome, not decoration: colour arrives with the pointer, and the
    front window keeps it — which is also how you see at a glance which window is live. */
-.win .l { background:var(--tint-2); transition:background .12s; }
+.win .l { background:var(--tint-2); transition:background var(--t-tint); }
 .win:hover .l.red, .win:not(.back) .l.red { background:#ff5f57; }
 .win:hover .l.yellow, .win:not(.back) .l.yellow { background:#febc2e; }
 .win:hover .l.green, .win:not(.back) .l.green { background:#28c840; }
@@ -605,7 +630,7 @@ body.dragging .win.parked:hover { width:var(--sliver); }
   display:flex; align-items:center; gap:12px; padding:8px 16px; border-radius:999px;
   background:var(--win-fill); border:.5px solid var(--rim); box-shadow:var(--e3);
   font-size:12.5px; white-space:nowrap;
-  animation:sit-in .22s cubic-bezier(.32,.72,0,1); }
+  animation:sit-in var(--t-ui) var(--ease); }
 .sitdown .muted { font-size:11px; }
 @keyframes sit-in { from { opacity:0; transform:translate(-50%, -8px); } }
 
@@ -618,7 +643,6 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .undo-run { position:absolute; left:0; bottom:0; height:2px; width:100%;
   background:var(--working); transform-origin:left; animation:undo-run linear forwards; }
 @keyframes undo-run { from { transform:scaleX(1); } to { transform:scaleX(0); } }
-@media (prefers-reduced-motion:reduce) { .undo-run { animation:none; } }
 
 /* --- eight-way resize: thin outside, forgiving inside --- */
 .edge { position:absolute; touch-action:none; }
@@ -648,10 +672,214 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .l.green::after { content:"\002b"; }
 
 /* --- a window arrives and leaves, rather than blinking --- */
-.win { animation:win-in .18s cubic-bezier(.32,.72,0,1); }
+.win { animation:win-in var(--t-ui) var(--ease); }
 @keyframes win-in { from { opacity:0; transform:scale(.94); } }
-.win.closing { animation:win-out .15s cubic-bezier(.32,.72,0,1) forwards; pointer-events:none; }
+.win.closing { animation:win-out var(--t-ui) var(--ease-out) forwards; pointer-events:none; }
 @keyframes win-out { to { opacity:0; transform:scale(.92); } }
+
+/* ============================================================
+   REDUCED MOTION — one contract, and the substitute matters more than the removal.
+
+   SURVIVES: state colours, opacity cross-fades, the status dot, the approval pip,
+   elevation changes and every rim tint. Those carry meaning, not decoration.
+
+   REMOVED: courier travel, the decomposition bloom stagger, spine walks, the dock
+   magnification wave, window scale-in, the refusal shake.
+
+   SUBSTITUTED: every removed travel becomes a 90ms opacity fade at the DESTINATION
+   plus one rim tint there — an operator who cannot have motion must still be told
+   where the thing went, or objects teleport with no attribution at all, which is
+   worse than no motion.
+   ============================================================ */
+
+/* ============================================================
+   Carrying work: the ghost, the targets, the consequence slab
+   Work is a physical object. It leaves its seat at 4px, rides a fixed layer no render
+   can touch, and lands only where the desk had already said yes — legality is declared
+   at pickup, never discovered by hovering.
+   ============================================================ */
+.carry-layer, .courier-layer { position:fixed; inset:0; z-index:900; pointer-events:none; }
+.ghost { position:fixed; will-change:transform; }
+.ghost-in { width:100%; height:100%; transform:scale(1.04);
+  filter:drop-shadow(0 24px 40px rgb(0 0 0 / .30)) drop-shadow(0 3px 8px rgb(0 0 0 / .16));
+  animation:ghost-lift 120ms var(--ease); }
+@keyframes ghost-lift { from { transform:scale(1) } }
+.carrying { opacity:.35; }
+body.carrying { cursor:grabbing; }
+body.carrying .win.parked:hover { width:var(--sliver); }
+body.carrying .crew:hover { background:none; }
+
+[data-drop].drop-ok { box-shadow:inset 0 0 0 1.5px var(--c, var(--working));
+  transition:box-shadow var(--t-tint) var(--ease), transform 100ms var(--ease); }
+[data-drop].drop-ask { box-shadow:inset 0 0 0 1.5px var(--blocked); }
+[data-drop].drop-hot { transform:scale(1.06); }
+/* Illegal targets recede and hatch. Nothing about them is a surprise on arrival. */
+[data-drop].drop-no { opacity:.55;
+  background-image:repeating-linear-gradient(45deg,
+    color-mix(in srgb, var(--text) 12%, transparent) 0 1px, transparent 1px 4px); }
+[data-drop].refuse { animation:refuse 220ms var(--ease-out), refuse-rim 60ms linear; }
+@keyframes refuse { 0%,100%{transform:translateX(0)} 16%{transform:translateX(-6px)}
+  33%{transform:translateX(6px)} 50%{transform:translateX(-6px)} 66%{transform:translateX(6px)}
+  83%{transform:translateX(-6px)} }
+@keyframes refuse-rim { from { box-shadow:inset 0 0 0 1.5px var(--failed) } }
+
+/* Anchored to the ghost, never to the target: the answer follows your hand. */
+.slab { position:fixed; left:0; top:0; z-index:910; pointer-events:none; opacity:0;
+  display:flex; flex-direction:column; gap:2px; max-width:220px; padding:8px 10px;
+  border-radius:var(--r-ctl); background:var(--win-fill); box-shadow:var(--e3);
+  font-size:11px; color:var(--muted); transition:opacity 100ms var(--ease); }
+.slab.on { opacity:1; }
+.slab.swap b, .slab.swap i, .slab.swap u { animation:cap-in 60ms linear both; }
+.slab b { font-weight:500; font-size:12.5px; color:var(--text); }
+.slab b span { font-weight:400; color:var(--faint); font-size:11px; }
+.slab i, .slab u { font-style:normal; text-decoration:none; }
+.slab u { color:var(--faint); }
+.slab em { font-style:normal; align-self:flex-start; margin-top:2px; padding:1px 7px; border-radius:999px;
+  font-size:10px; color:var(--solid); background:var(--blocked); }
+
+/* ============================================================
+   Chits: one object for work at every tier
+   ============================================================ */
+.chit { position:relative; box-sizing:border-box; display:inline-flex; align-items:center; gap:8px;
+  flex:none; min-width:120px; height:26px; padding:0 8px 0 11px; border-radius:8px; overflow:hidden;
+  background:var(--win-fill); box-shadow:var(--e1); cursor:grab; touch-action:none; user-select:none;
+  max-width:100%; font-size:11.5px; color:var(--text); }
+.chit::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--c); }
+.chit b { font-weight:500; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chit u { flex:none; text-decoration:none; font-size:10.5px; color:var(--faint); }
+.chit.more { min-width:0; justify-content:center; color:var(--faint); }
+.chit.more::before { display:none; }
+/* Nobody has picked this up yet, and it says so quietly rather than flashing. */
+.chit.waiting { animation:chit-wait 2.8s ease-in-out infinite; }
+@keyframes chit-wait { 0%,100%{opacity:.6} 50%{opacity:1} }
+.chit.walker { position:fixed; z-index:920; pointer-events:none; box-shadow:var(--e2); }
+
+/* Collapsed against a worker's line. Aiming at it for 200ms opens it enough to hit. */
+.chit.tick { min-width:0; width:4px; height:14px; padding:0; border-radius:2px;
+  background:var(--c); box-shadow:none;
+  transition:width 140ms var(--ease) 200ms, height 140ms var(--ease) 200ms,
+             background 140ms var(--ease) 200ms, box-shadow 140ms var(--ease) 200ms, opacity 120ms linear; }
+.chit.tick::before { opacity:0; }
+.chit.tick b, .chit.tick u { opacity:0; transition:opacity 140ms var(--ease) 200ms; }
+.chit.tick:hover { width:120px; height:26px; padding:0 8px 0 11px; border-radius:8px;
+  background:var(--win-fill); box-shadow:var(--e1); }
+.chit.tick:hover::before, .chit.tick:hover b, .chit.tick:hover u { opacity:1; }
+.chit.pending { opacity:0; }
+
+.chit-menu { position:fixed; z-index:940; display:flex; flex-direction:column; min-width:130px;
+  padding:4px; border-radius:var(--r-ctl); background:var(--win-fill); box-shadow:var(--e3); }
+.chit-menu button { border:0; background:none; font:inherit; font-size:12px; color:var(--text);
+  text-align:left; padding:6px 10px; border-radius:6px; cursor:pointer; }
+.chit-menu button:hover { background:var(--tint-2); }
+
+/* ============================================================
+   The manager, the spine, and the task strip
+   ============================================================ */
+.roomwin ul { position:relative; overflow:hidden; }
+.crew { position:relative; }
+.roomwin .crew .face { width:32px; height:32px; font-size:15px; }
+/* The face is 32px and the hand is not: the target it answers to is 40px. */
+.roomwin .crew .face::after { content:''; position:absolute; inset:-4px; border-radius:999px; }
+.crew.mgr { min-height:52px; }
+.crew.mgr .face { width:44px; height:44px; font-size:20px;
+  box-shadow:inset 0 0 0 .5px color-mix(in srgb, var(--c) 55%, transparent), 0 0 0 2px var(--room); }
+.crew.mgr .st { animation:none; }
+.arc { position:absolute; inset:-7px; width:calc(100% + 14px); height:calc(100% + 14px);
+  overflow:visible; transform:rotate(-90deg); }
+.arc circle { fill:none; stroke:var(--room); stroke-width:2; stroke-linecap:round;
+  transition:stroke-dasharray 200ms var(--ease); }
+.crew.mgr.arrive .arc, .crew.mgr .arc.pop { animation:arc-pop 320ms var(--ease); }
+@keyframes arc-pop { 50% { transform:rotate(-90deg) scale(1.14) } }
+
+/* The spine: a hairline from under the manager's face down the workers' left edge,
+   one 8px stub each, tinted while that worker is holding an open task. */
+.crew.mgr::before { content:''; position:absolute; left:34px; top:50%; bottom:0; width:1px;
+  background:var(--line-soft); }
+.roomwin .crew:not(.mgr) { padding-left:46px; }
+.roomwin .crew:not(.mgr)::before { content:''; position:absolute; left:34px; top:0; bottom:0; width:1px;
+  background:var(--line-soft); transition:background var(--t-tint) var(--ease); }
+.roomwin .crew:not(.mgr) .face::before { content:''; position:absolute; left:-12px; top:50%;
+  width:8px; height:1px; background:var(--line-soft); }
+.roomwin .crew.busy::before { background:var(--working); }
+/* Assigned straight to a worker: the tier is not bypassed in silence. */
+.crew.threaded::after { content:''; position:absolute; left:34px; top:-999px; height:calc(999px + 50%);
+  border-left:1px dashed var(--room); }
+.qbadge { position:absolute; right:8px; top:6px; font-style:normal; font-size:10px; opacity:0;
+  padding:1px 6px; border-radius:999px; background:var(--tint-2); color:var(--muted);
+  transition:opacity var(--t-tint) var(--ease); }
+body.carrying .crew.full:hover .qbadge { opacity:1; }
+.ticks { display:flex; align-items:center; gap:4px; flex:none; margin-left:auto; }
+
+.roomwin .strip { display:grid; grid-template-rows:0fr; list-style:none;
+  transition:grid-template-rows 200ms var(--ease); }
+.roomwin .strip.open { grid-template-rows:1fr; }
+.roomwin .strip > div { box-sizing:border-box; overflow:hidden; display:flex; flex-direction:column;
+  align-items:flex-start; gap:4px; padding-left:46px; padding-right:10px; }
+.roomwin .strip.open > div { padding-block:2px 6px; }
+/* A room window is 210px tall: the strip may push the crew down, never off. */
+.roomwin .strip > div { max-height:98px; overflow-y:auto; }
+.chit.bloom { animation:bloom 260ms var(--ease) backwards; }
+.strip .chit.bloom:nth-child(1) { animation-delay:280ms }
+.strip .chit.bloom:nth-child(2) { animation-delay:325ms }
+.strip .chit.bloom:nth-child(3) { animation-delay:370ms }
+.strip .chit.bloom:nth-child(4) { animation-delay:415ms }
+.strip .chit.bloom:nth-child(5) { animation-delay:460ms }
+@keyframes bloom { from { transform:scale(.4); opacity:0 } }
+
+.undo-strip { position:relative; display:flex; align-items:center; gap:10px; overflow:hidden;
+  margin:6px 2px 0; padding:6px 10px; border-radius:var(--r-ctl); background:var(--tint-2);
+  font-size:11.5px; color:var(--muted); }
+.undo-strip span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.undo-strip button { border:0; background:none; font:inherit; font-size:11.5px; font-weight:500;
+  color:var(--working); cursor:pointer; }
+
+/* ============================================================
+   The courier: instructions down, results up
+   18px labelled capsule or 5px dot — size and label are the whole grammar, because a
+   room parked on the left inverts the arc and direction would lie.
+   ============================================================ */
+.courier { position:fixed; z-index:905; pointer-events:none; will-change:transform; }
+.courier.cap { height:18px; max-width:180px; padding:0 9px; border-radius:999px;
+  display:flex; align-items:center; white-space:nowrap; overflow:hidden;
+  font-size:10.5px; color:var(--solid); background:var(--c); box-shadow:var(--e2); }
+.courier.dot { width:5px; height:5px; border-radius:999px; background:var(--c);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--c) 25%, transparent); }
+
+/* Arrival: the rim takes the room's colour and the window lifts — a shadow, never a
+   transform, because a window that moves on arrival is a window that lost its place. */
+.win.arrive { animation:win-arrive 400ms var(--ease); }
+@keyframes win-arrive {
+  0%   { box-shadow:var(--e3) }
+  35%  { box-shadow:var(--e4), inset 0 0 0 1.5px var(--arrive) }
+  100% { box-shadow:var(--e3) } }
+.pk-rail.pk-arrive { animation:pk-arrive var(--t-near) var(--ease); }
+@keyframes pk-arrive { 50% { padding-left:6px; padding-right:6px; filter:brightness(1.35) } }
+.pk-tick { width:14px; height:3px; border-radius:2px; background:var(--c); flex:none; }
+.pk-faces .face.mgr { box-shadow:inset 0 0 0 .5px color-mix(in srgb, var(--c) 55%, transparent),
+  0 0 0 2px var(--room); }
+.tile.dock-bounce { animation:dock-bounce 420ms var(--ease); }
+@keyframes dock-bounce { 40% { transform:translateY(-14px) scale(1.12) } }
+
 @media (prefers-reduced-motion:reduce) {
+  /* removed: ambient texture and travel */
+  .plasma, .orb-halo { animation:none !important; }
+  .wave.on i { animation:none; height:11px; }
+  .undo-run { animation:none; }
   .win, .win.closing { animation:none; }
+  .tile { transform:none !important; }          /* the dock's magnification wave */
+  .courier, .bloom, .spine-walk, .walker, .refuse { animation:none !important; }
+  .ghost-in, .chit.waiting, .dock-bounce, .pk-arrive { animation:none !important; }
+
+  /* substituted: arrive at the destination, and tint its rim so it is attributable.
+     Every travel this file removes must land its object under .arrived, and tint the
+     thing it landed on with .rim-tint — nothing may simply appear. */
+  .arrived { animation:rm-land 90ms linear both; }
+  @keyframes rm-land { from { opacity:0 } to { opacity:1 } }
+  .rim-tint { animation:rm-tint var(--t-near) linear both; }
+  @keyframes rm-tint { 0% { box-shadow:0 0 0 1.5px var(--c, var(--working)) inset } 100% { box-shadow:none } }
+
+  /* survives: colour, the dot, the pip, elevation, cross-fades */
+  .st.working, .crew.fresh .st.working { animation:rest var(--t-rest) ease-in-out infinite; }
+  .cap-in { animation:cap-in 90ms linear both; }
+  .cap-out { animation:cap-out 90ms linear forwards; }
 }

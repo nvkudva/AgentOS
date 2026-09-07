@@ -4,6 +4,7 @@ import path from 'node:path';
 import { handle, snapshot } from './api.js';
 import { bus } from './bus.js';
 import { startScheduler } from './runtime/scheduler.js';
+import { ensureManagers } from './provision.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const WEB_DIST = path.resolve(process.cwd(), '../web/dist');
@@ -55,4 +56,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => console.log(`[atrium] http://localhost:${PORT}`));
+ensureManagers().catch((e) => console.error('[managers]', e));
 startScheduler();

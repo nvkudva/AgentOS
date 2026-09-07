@@ -1,4 +1,5 @@
 import { q, one } from './db.js';
+import { id } from './ids.js';
 import { append } from './events.js';
 import { bus } from './bus.js';
 import { startAgent, killAgent } from './runtime/scheduler.js';
@@ -8,10 +9,16 @@ export type Req = { method: string; path: string; body: any; query: URLSearchPar
 
 export async function snapshot() {
   const rooms = await q(`SELECT * FROM room ORDER BY y, x`);
-  const agents = await q(`SELECT * FROM agent ORDER BY room_id, name`);
+  // Managers first, so the crew list is already in tier order everywhere it is read.
+  const agents = await q(`SELECT * FROM agent ORDER BY room_id, (tier<>'manager'), name`);
   const inbox = await inboxRows();
   const config = await one(`SELECT * FROM global_config WHERE id=1`);
-  return { rooms, agents, inbox, config, now: new Date().toISOString() };
+  const mandates = await q(`SELECT * FROM mandate ORDER BY created_at DESC LIMIT 40`);
+  const tasks = mandates.length
+    ? await q(`SELECT * FROM task WHERE mandate_id = ANY($1) ORDER BY mandate_id, ord`,
+              [mandates.map((m: any) => m.id)])
+    : [];
+  return { rooms, agents, inbox, config, mandates, tasks, now: new Date().toISOString() };
 }
 
 /** Oldest and most expensive first — cheap-and-new must never bury expensive-and-old. */
@@ -92,6 +99,14 @@ export async function handle(req: Req): Promise<any> {
     };
   }
 
+  if (p === '/api/mandates' && req.method === 'POST') return heard(req.body);
+  if ((m = p.match(/^\/api\/mandates\/([\w]+)\/route$/)) && req.method === 'POST') {
+    return route(m[1], req.body?.room_key);
+  }
+  if ((m = p.match(/^\/api\/mandates\/([\w]+)\/recall$/)) && req.method === 'POST') {
+    return recall(m[1]);
+  }
+
   if ((m = p.match(/^\/api\/agents\/([\w]+)\/start$/)) && req.method === 'POST') {
     const runId = await startAgent(m[1], req.body?.goal);
     bus.publish({ type: 'refresh' });
@@ -137,6 +152,99 @@ export async function handle(req: Req): Promise<any> {
   }
 
   return { error: 'not found', status: 404 };
+}
+
+/**
+ * A MANDATE — one sentence of human intent, as a row. It is heard before it is
+ * routed, so the operator can hold it on the desk and aim it, and it keeps its own
+ * words through recall and redirect: those change where it is, never what was asked.
+ */
+async function heard(body: any) {
+  const text = String(body?.text ?? '').trim();
+  if (!text) return { error: 'a mandate needs words', status: 400 };
+  const room = body?.room_key
+    ? await one<any>(`SELECT * FROM room WHERE key=$1 OR id=$1`, [body.room_key])
+    : null;
+  const mid = id('mnd');
+  await q(`INSERT INTO mandate (id, text, room_id, state) VALUES ($1,$2,$3,'heard')`,
+    [mid, text, room?.id ?? null]);
+  await append({ type: 'mandate.heard', room_id: room?.id ?? null, payload: { mandate_id: mid, text } });
+  bus.publish({ type: 'refresh' });
+  return { mandate: await one(`SELECT * FROM mandate WHERE id=$1`, [mid]) };
+}
+
+/**
+ * Routing hands the mandate to a room's manager. The colour is frozen here, from
+ * the room it went to — recolouring a room later must not recolour work already
+ * done under it, and the client must never compute a mandate colour itself.
+ * Routing an already-working mandate is a REDIRECT: its work stands down with
+ * kill_reason 'handed_over' and its artifacts travel to the new manager as context.
+ */
+async function route(mandateId: string, roomKey: string) {
+  const md = await one<any>(`SELECT * FROM mandate WHERE id=$1`, [mandateId]);
+  if (!md) return { error: 'no such mandate', status: 404 };
+  const room = await one<any>(`SELECT * FROM room WHERE key=$1 OR id=$1`, [roomKey]);
+  if (!room) return { error: 'no such room', status: 404 };
+
+  const carried = md.room_id ? await standDown(mandateId, 'handed_over') : [];
+
+  const manager = await one<any>(
+    `SELECT * FROM agent WHERE room_id=$1 AND tier='manager' LIMIT 1`, [room.id]);
+  if (!manager) return { error: `${room.name} has no manager`, status: 409 };
+  if (manager.state === 'working' || manager.state === 'awaiting_approval') {
+    return { error: `${manager.name} is still on the last one`, status: 409 };
+  }
+
+  // What this is likely to cost, quoted before anything runs: what the room's crew
+  // is allowed to spend, capped by what the room has left.
+  const crew = await q<any>(
+    `SELECT cost_budget_cents FROM agent WHERE room_id=$1 AND tier='worker'`, [room.id]);
+  const quoted = Math.min(
+    crew.reduce((a, c) => a + c.cost_budget_cents, 0),
+    Math.max(0, room.budget_cents - room.spent_cents));
+
+  await q(`UPDATE mandate SET room_id=$2, state='routed', color=$3, quoted_cents=$4,
+                              context=$5, report='', artifact_id=NULL WHERE id=$1`,
+    [mandateId, room.id, room.color, quoted, JSON.stringify([...(md.context ?? []), ...carried])]);
+  const runId = await startAgent(manager.id, md.text, { mandate_id: mandateId });
+  await append({ type: 'mandate.routed', room_id: room.id, agent_id: manager.id, run_id: runId,
+    payload: { mandate_id: mandateId, text: md.text, carried } });
+  bus.publish({ type: 'refresh' });
+  return { mandate: await one(`SELECT * FROM mandate WHERE id=$1`, [mandateId]), run_id: runId };
+}
+
+/** Recall returns the mandate to the operator's hand: un-routed, still their words. */
+async function recall(mandateId: string) {
+  const md = await one<any>(`SELECT * FROM mandate WHERE id=$1`, [mandateId]);
+  if (!md) return { error: 'no such mandate', status: 404 };
+  await standDown(mandateId, 'recalled');
+  await q(`UPDATE mandate SET state='recalled', room_id=NULL, color=NULL WHERE id=$1`, [mandateId]);
+  await append({ type: 'mandate.recalled', room_id: md.room_id, payload: { mandate_id: mandateId } });
+  bus.publish({ type: 'refresh' });
+  return { mandate: await one(`SELECT * FROM mandate WHERE id=$1`, [mandateId]) };
+}
+
+/**
+ * Stops everything running under a mandate and returns the artifact ids it produced.
+ * The crew stands down rather than dying: a recalled worker did nothing wrong, and a
+ * killed agent never works again.
+ */
+async function standDown(mandateId: string, reason: string): Promise<string[]> {
+  const runs = await q<any>(
+    `SELECT * FROM run WHERE mandate_id=$1 AND status IN ('running','awaiting_approval')`, [mandateId]);
+  for (const r of runs) {
+    await q(`UPDATE run SET status='killed', kill_reason=$2, ended_at=now() WHERE id=$1`, [r.id, reason]);
+    await q(`UPDATE approval SET state='expired', decided_at=now() WHERE run_id=$1 AND state='pending'`, [r.id]);
+    await q(`UPDATE agent SET state='idle', activity=$2, current_run_id=NULL WHERE id=$1`,
+      [r.agent_id, reason === 'recalled' ? 'recalled by you' : 'handed over']);
+    await append({ type: 'run.stood_down', room_id: r.room_id, agent_id: r.agent_id, run_id: r.id,
+      payload: { mandate_id: mandateId, reason } });
+  }
+  await q(`UPDATE task SET state='killed', kill_reason=$2
+            WHERE mandate_id=$1 AND state IN ('queued','working')`, [mandateId, reason]);
+  const arts = await q<any>(
+    `SELECT a.id FROM artifact a JOIN run r ON r.id=a.run_id WHERE r.mandate_id=$1`, [mandateId]);
+  return arts.map((a) => a.id);
 }
 
 async function decide(approvalId: string, body: any) {

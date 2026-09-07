@@ -8,6 +8,7 @@ export type Room = {
 };
 export type Agent = {
   id: string; room_id: string; name: string; role: string; policy_key: string;
+  tier: 'manager' | 'worker';
   state: 'idle' | 'working' | 'blocked' | 'awaiting_approval' | 'failed' | 'killed';
   activity: string; spent_cents: number; cost_budget_cents: number; steps_used: number; step_budget: number;
   persona: string; color: string; avatar: string;
@@ -17,7 +18,22 @@ export type Inbox = {
   action: string; blast_radius: string; est_cost_cents: number; run_spent_cents: number;
   touches: string[]; created_at: string; args: any;
 };
-export type Snapshot = { rooms: Room[]; agents: Agent[]; inbox: Inbox[]; config: any };
+/** One sentence of human intent. Its colour is frozen server-side at route time. */
+export type Mandate = {
+  id: string; text: string; room_id: string | null;
+  state: 'heard' | 'routed' | 'planned' | 'working' | 'blocked' | 'done' | 'recalled';
+  color: string | null; quoted_cents: number; spent_cents: number;
+  report: string; artifact_id: string | null; context: string[]; created_at: string;
+};
+export type Task = {
+  id: string; mandate_id: string; agent_id: string | null; run_id: string | null;
+  title: string; state: 'queued' | 'working' | 'done' | 'failed' | 'killed';
+  ord: number; kill_reason: string | null;
+};
+export type Snapshot = {
+  rooms: Room[]; agents: Agent[]; inbox: Inbox[]; config: any;
+  mandates: Mandate[]; tasks: Task[];
+};
 
 /**
  * With no server behind the page there is nothing to write to, and a rejected fetch

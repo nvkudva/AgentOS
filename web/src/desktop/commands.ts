@@ -1,6 +1,9 @@
 import type { Agent, Room, Inbox } from '../lib/api';
 import { hours } from '../lib/humanize';
 
+/** An unrouted sentence and the rooms that answered to it, best first. */
+export type Proposal = { kind: 'propose'; room: Room; rooms: Room[]; text: string };
+
 export type CmdCtx = {
   agents: Agent[]; rooms: Room[]; inbox: Inbox[]; panic: boolean;
   startAgent: (a: Agent) => void;
@@ -12,12 +15,52 @@ export type CmdCtx = {
   setTheme: (t: 'light' | 'dark' | 'auto') => void;
   setSidebar: (open: boolean) => void;
   focusApproval: (id: string) => void;
+  /** commit a proposal: create the mandate, route it, and fly it there from `from` */
+  dispatch: (text: string, room: Room, from: DOMRect) => void;
 };
-export type CmdResult = { say: string; ok: boolean };
+export type CmdResult = { say: string; ok: boolean; propose?: Proposal };
 
 const WAKE = /^\s*(hey\s+)?atrium[,!.\s]*/i;
 export const stripWake = (s: string) => s.replace(WAKE, '').trim();
 export const hasWake = (s: string) => WAKE.test(s);
+
+/** Words that appear in every sentence and so choose nothing. */
+const STOP = new Set(('the a an and or of to in on for from with our my your this that last next '
+  + 'please can you we us it its is are was were do does did run go get make give take put show '
+  + 'tell me about into over out up down all any some more most new old why how what when who')
+  .split(' '));
+
+/**
+ * Which room a sentence belongs to. Keywords score against the room's own words —
+ * its key and name loudest, then its objective, then the tools it is trusted with,
+ * because a room's grants are the truest statement of what it is allowed to be asked.
+ *
+ * It never picks on a tie of zero: a sentence that matches nothing is a question back
+ * to the operator, not a guess dressed as a decision.
+ */
+export function routeRooms(text: string, rooms: Room[]): Room[] {
+  const words = [...new Set(text.toLowerCase().split(/[^a-z0-9]+/)
+    .filter((w) => w.length > 2 && !STOP.has(w)))];
+  if (!words.length) return [];
+  const open = rooms.filter((r) => r.status === 'open');
+  const scored = open.map((r) => {
+    const name = `${r.key} ${r.name}`.toLowerCase();
+    const objective = (r.objective ?? '').toLowerCase();
+    const grants = r.tool_grants.join(' ').toLowerCase().replace(/[._*]/g, ' ');
+    let n = 0;
+    for (const w of words) {
+      if (name.includes(w)) n += 4;
+      else if (objective.includes(w)) n += 2;
+      else if (grants.includes(w)) n += 1;
+    }
+    return { r, n };
+  }).filter((x) => x.n > 0).sort((a, b) => b.n - a.n);
+  if (!scored.length) return [];
+  // The winner first, then every other open room: cycling with the arrows must be able
+  // to reach a room the keywords never mentioned.
+  const rest = open.filter((r) => !scored.some((s) => s.r.id === r.id));
+  return [...scored.map((s) => s.r), ...rest];
+}
 
 const find = <T extends { name?: string; key?: string }>(xs: T[], q: string) =>
   xs.find((x) => (x.name ?? '').toLowerCase() === q) ??
@@ -106,6 +149,17 @@ export function run(raw: string, c: CmdCtx): CmdResult {
   if (/^auto( mode)?$/.test(t)) { c.setTheme('auto'); return { say: 'Following the system.', ok: true }; }
   if (/^(hide|close)\s+(the\s+)?(sidebar|notifications?)/.test(t)) { c.setSidebar(false); return { say: 'Hidden.', ok: true }; }
   if (/^(show|open)\s+(the\s+)?(sidebar|notifications?)/.test(t)) { c.setSidebar(true); return { say: 'Here.', ok: true }; }
+
+  // --- intent: an unmatched sentence is a piece of work looking for a room ---
+  // Nothing dispatches here. The result is a proposal the operator confirms; the orb
+  // holds it uncommitted until they press Return, drag it out, or throw it away.
+  const said = stripWake(raw).replace(/[.!?]+$/, '').trim();
+  const ranked = routeRooms(t, c.rooms);
+  if (ranked.length) {
+    return { say: `${ranked[0].name}?`, ok: true,
+             propose: { kind: 'propose', room: ranked[0], rooms: ranked, text: said } };
+  }
+  if (said.split(/\s+/).length >= 3) return { say: 'Which room should take that?', ok: false };
 
   return { say: `I did not understand "${t}".`, ok: false };
 }

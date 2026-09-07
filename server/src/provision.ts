@@ -101,12 +101,52 @@ async function nextSlot() {
   return { x: 0, y: 40, w: 2, h: 1 };
 }
 
+
+/**
+ * THE MANAGER TIER. Exactly one per room, and never on the form — a room with no
+ * manager has nobody to receive a mandate, so this is structure, not configuration.
+ * It polls its own tasks while its crew works, hence the roomy step budget.
+ */
+const MANAGER_NAMES: Record<string, string> = {
+  analytics: 'Vera', engineering: 'Otto', marketing: 'Juno', sales: 'Cleo',
+  support: 'Mira', finance: 'Hugo', research: 'Piet', strategy: 'Zara',
+};
+const POOL = ['Nan', 'Rune', 'Elis', 'Tam', 'Vic', 'Orin', 'Sol', 'Wren'];
+
+function managerName(key: string) {
+  if (MANAGER_NAMES[key]) return MANAGER_NAMES[key];
+  let h = 0;
+  for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return POOL[h % POOL.length];
+}
+
+async function seedManager(roomId: string, key: string, roomName: string, color: string) {
+  const has = await one('SELECT id FROM agent WHERE room_id=$1 AND tier=$2', [roomId, 'manager']);
+  if (has) return;
+  await q(
+    `INSERT INTO agent (id, room_id, name, role, policy_key, tier, step_budget, cost_budget_cents,
+                        persona, color, avatar)
+     VALUES ($1,$2,$3,'manager','room.manager','manager',300,60,$4,$5,'◆')`,
+    [id('agt'), roomId, managerName(key), `Runs ${roomName}. Breaks what you ask for into tasks, hands them out, and reports back.`, color]);
+}
+
+/** Idempotent, and called at boot: rooms provisioned before the tier existed get theirs. */
+export async function ensureManagers() {
+  for (const r of await q<any>('SELECT id, key, name, color FROM room')) {
+    await seedManager(r.id, r.key, r.name, r.color ?? '#8b95a1');
+  }
+}
+
 export async function provisionRoom(spec: RoomSpec) {
   const bad = validate(spec);
   if (bad.length) throw Object.assign(new Error(bad.join('; ')), { status: 400, problems: bad });
 
   const exists = await one('SELECT id FROM room WHERE key=$1', [spec.key]);
   if (exists) throw Object.assign(new Error(`a room called "${spec.key}" already exists`), { status: 409 });
+
+  // Every room gets the manager tier and the two tools that tier needs. Neither is
+  // offered on the form: a room without a manager has nobody to receive a mandate.
+  const tools = Array.from(new Set([...(spec.tools ?? []), 'assign', 'report']));
 
   const role = `atrium_${spec.key}`;              // key is validated against KEY, so this is safe to inline
   await pool.query(
@@ -122,9 +162,10 @@ export async function provisionRoom(spec: RoomSpec) {
     `INSERT INTO room (id,key,name,objective,x,y,w,h,budget_cents,tool_grants,approval_policy,db_role,color,icon)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
     [rid, spec.key, spec.name, spec.objective, slot.x, slot.y, slot.w, slot.h, spec.budget_cents,
-     JSON.stringify(spec.tools), JSON.stringify(spec.approval_policy ?? { low: 'auto', medium: 'auto', high: 'approve' }),
+     JSON.stringify(tools), JSON.stringify(spec.approval_policy ?? { low: 'auto', medium: 'auto', high: 'approve' }),
      spec.access === 'none' ? null : role, spec.color, spec.icon]);
 
+  await seedManager(rid, spec.key, spec.name, spec.color);
   for (const a of spec.agents) {
     await q(
       `INSERT INTO agent (id, room_id, name, role, policy_key, step_budget, cost_budget_cents, persona, color, avatar)

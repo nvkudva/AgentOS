@@ -62,6 +62,13 @@ export async function fold(): Promise<Projected> {
         if (e.agent_id) { const a = agent(e.agent_id); a.state = 'failed'; a.activity = String(pay.error ?? '').slice(0, 200); }
         if (e.run_id) { run(e.run_id).status = 'failed'; run(e.run_id).kill_reason = String(pay.error ?? '').slice(0, 300); }
         break;
+      case 'run.stood_down':
+        // A recalled or handed-over run ends, but the worker did nothing wrong:
+        // it goes back to idle rather than to killed.
+        if (e.agent_id) { const a = agent(e.agent_id); a.state = 'idle'; a.current_run_id = null;
+                          a.activity = pay.reason === 'recalled' ? 'recalled by you' : 'handed over'; }
+        if (e.run_id) { run(e.run_id).status = 'killed'; run(e.run_id).kill_reason = pay.reason; }
+        break;
       case 'agent.killed':
         if (e.agent_id) { const a = agent(e.agent_id); a.state = 'killed'; a.activity = `killed: ${pay.reason}`; }
         if (e.run_id) { run(e.run_id).status = 'killed'; run(e.run_id).kill_reason = pay.reason; }

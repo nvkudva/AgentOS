@@ -37,8 +37,10 @@ test('a room created at runtime is a real room', async () => {
   });
   assert.ok(room, 'the room exists');
   assert.strictEqual((room as any).key, KEY);
-  const agents = await q('SELECT * FROM agent WHERE room_id=$1', [(room as any).id]);
-  assert.strictEqual(agents.length, 1, 'its agent was created with it');
+  const agents = await q<any>('SELECT * FROM agent WHERE room_id=$1', [(room as any).id]);
+  assert.strictEqual(agents.length, 2, 'its agent was created with it, and so was its manager');
+  const tiers = agents.map((a) => a.tier).sort();
+  assert.deepStrictEqual(tiers, ['manager', 'worker'], 'exactly one manager, and it was not on the form');
   const role = await q(`SELECT 1 FROM pg_roles WHERE rolname=$1`, [`atrium_${KEY}`]);
   assert.strictEqual(role.length, 1, 'it got its own database account');
 });

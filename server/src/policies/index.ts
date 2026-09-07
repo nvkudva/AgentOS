@@ -1,5 +1,7 @@
 import type { Ctx } from '../runtime/types.js';
 import { callTool } from '../runtime/toolbelt.js';
+import { q, one } from '../db.js';
+import { pump } from '../tools/assign.js';
 
 export type Step = { activity: string; run: (ctx: Ctx, s: Record<string, any>) => Promise<void> };
 /** `uses` is what the job needs granted. A room cannot hire for work it cannot do. */
@@ -257,6 +259,114 @@ const researchBrief: Policy = {
   ],
 };
 
+
+/**
+ * THE MANAGER TIER. It does no tool work of its own — it reads the sentence you
+ * spoke, cuts it into tasks, hands each one to a worker, waits, and tells you what
+ * happened. If it ever needed a real grant it would be a worker with a better title.
+ */
+const DECOMPOSITIONS: Record<string, { match: string[]; tasks: string[] }[]> = {
+  analytics: [
+    { match: ['churn', 'retention', 'cancel', 'leaving'],
+      tasks: ['Pull churn by plan for the period', 'Split churn by region and tenure', 'Write the churn read-out'] },
+    { match: ['revenue', 'growth', 'quarter', 'sales', 'numbers'],
+      tasks: ['Total paid revenue by month', 'Rank regions by revenue', 'Write up the quarterly numbers'] },
+    { match: [], tasks: ['Query the numbers behind the question', 'Sanity-check them against last quarter', 'Write the finding up'] },
+  ],
+  engineering: [
+    { match: ['bug', 'fix', 'broken', 'rounding', 'crash'],
+      tasks: ['Read the code path that is wrong', 'Patch it on a branch and run the tests', 'Open the pull request'] },
+    { match: [], tasks: ['Reproduce what was asked for', 'Make the change on a branch', 'Run the tests and report'] },
+  ],
+  marketing: [
+    { match: ['post', 'launch', 'announce', 'blog', 'write'],
+      tasks: ['Pull the numbers worth quoting', 'Draft the post', 'Cut it down and queue it'] },
+    { match: [], tasks: ['Read what the other rooms published', 'Draft something worth sending', 'Queue it for your approval'] },
+  ],
+  sales: [
+    { match: ['pipeline', 'deal', 'stale', 'forecast'],
+      tasks: ['List deals untouched for 30 days', 'Annotate the stalest deal', 'Summarise what is rotting'] },
+    { match: [], tasks: ['Read the pipeline as it stands', 'Flag what has gone quiet', 'Write up what needs a call'] },
+  ],
+  support: [
+    { match: ['ticket', 'customer', 'refund', 'angry', 'waiting'],
+      tasks: ['List the tickets that have waited longest', 'Draft a reply to the oldest', 'Write up what was answered'] },
+    { match: [], tasks: ['Read the open queue', 'Answer the one that has waited longest', 'Write up what was answered'] },
+  ],
+  finance: [
+    { match: ['close', 'month', 'burn', 'spend', 'refund'],
+      tasks: ['Add up the last full month', 'Check what is still open', 'Write the month-end memo'] },
+    { match: [], tasks: ['Pull the figures the question needs', 'Tie each one back to a row', 'Write the memo'] },
+  ],
+  research: [
+    { match: ['brief', 'compare', 'look into', 'investigate'],
+      tasks: ['Read what every room published', 'Check one number independently', 'Write the brief'] },
+    { match: [], tasks: ['Gather what is already known', 'Verify the load-bearing number', 'Write the brief'] },
+  ],
+  strategy: [
+    { match: ['decide', 'priorit', 'trade-off', 'bet'],
+      tasks: ['Read what the rooms are reporting', 'Name the trade-off out loud', 'Write the synthesis'] },
+    { match: [], tasks: ['Read across the rooms', 'Write the synthesis'] },
+  ],
+};
+const FALLBACK = [
+  { match: [], tasks: ['Read what this room already knows', 'Do the work that was asked for', 'Write up the result'] },
+];
+
+/** Deterministic: same room, same words, same plan. 2–4 titles, never more. */
+export function decompose(roomKey: string, text: string): string[] {
+  const t = (text ?? '').toLowerCase();
+  const table = DECOMPOSITIONS[roomKey] ?? FALLBACK;
+  const hit = table.find((r) => r.match.length && r.match.some((k) => t.includes(k)))
+           ?? table[table.length - 1];
+  return hit.tasks.slice(0, 4);
+}
+
+const roomManager: Policy = {
+  key: 'room.manager',
+  goal: 'Take what the operator asked for, break it up, and see it done',
+  uses: ['assign', 'report'],
+  steps: [
+    { activity: 'reading what you asked for', async run(ctx, s) {
+        const m = await one<any>(`SELECT * FROM mandate WHERE id=$1`, [ctx.run.mandate_id]);
+        s.mandate_id = m?.id ?? null;
+        s.text = m?.text ?? ctx.run.goal;
+        // A redirected mandate arrives holding what the last room already produced.
+        s.context = m?.context ?? [];
+        if (s.context.length) await ctx.say(`carrying ${s.context.length} artifact(s) from the last room`);
+        if (m) await q(`UPDATE mandate SET state='planned' WHERE id=$1`, [m.id]);
+      } },
+    { activity: 'breaking it into tasks', async run(ctx, s) {
+        s.titles = decompose(ctx.room.key, s.text);
+        s.plan = await T(ctx, 'assign', { mandate_id: s.mandate_id, titles: s.titles });
+        await ctx.say(`assigned ${s.titles.length} tasks`);
+      } },
+    { activity: 'watching its workers', async run(ctx, s) {
+        if (!s.mandate_id) return;
+        await pump(s.mandate_id, ctx.room.id);
+        // Only the tasks this room owns. After a redirect the previous room's tasks are
+        // still on the mandate, and counting them would report someone else's work.
+        const rows = await q<any>(
+          `SELECT t.state, count(*)::int AS n FROM task t
+             JOIN agent a ON a.id=t.agent_id
+            WHERE t.mandate_id=$1 AND a.room_id=$2 GROUP BY 1`, [s.mandate_id, ctx.room.id]);
+        const by: Record<string, number> = Object.fromEntries(rows.map((r) => [r.state, r.n]));
+        const total = rows.reduce((a, r) => a + r.n, 0);
+        const open = (by.queued ?? 0) + (by.working ?? 0);
+        if (open > 0) {
+          await ctx.say(`${by.done ?? 0} of ${total} done`);
+          s.__repeat = true;
+          // Waiting is not looping. The scheduler kills three identical steps in a row;
+          // a manager whose crew is still working must be allowed to keep waiting.
+          s.__sameStep = 0;
+        }
+      } },
+    { activity: 'reporting back to you', async run(ctx, s) {
+        s.said = await T(ctx, 'report', { mandate_id: s.mandate_id });
+      } },
+  ],
+};
+
 function table(res: any): string {
   const rows = res?.rows ?? [];
   if (!rows.length) return '_no rows_';
@@ -267,5 +377,5 @@ function table(res: any): string {
 
 export const POLICIES: Record<string, Policy> = Object.fromEntries(
   [analyticsWeekly, engineeringFix, marketingLaunch, salesHygiene, strategySynth,
-   supportTriage, financeClose, researchBrief, loopTrap].map((p) => [p.key, p])
+   supportTriage, financeClose, researchBrief, loopTrap, roomManager].map((p) => [p.key, p])
 );

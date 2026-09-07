@@ -18,12 +18,14 @@ export const DEMO: Snapshot = {
       "w": 2,
       "h": 1,
       "budget_cents": 300,
-      "spent_cents": 6,
+      "spent_cents": 24,
       "tool_grants": [
         "sql.query",
         "artifact.write",
         "artifact.read",
-        "escalate"
+        "escalate",
+        "assign",
+        "report"
       ],
       "approval_policy": {
         "low": "auto",
@@ -52,7 +54,9 @@ export const DEMO: Snapshot = {
         "repo.test",
         "github.pr.open",
         "artifact.write",
-        "escalate"
+        "escalate",
+        "assign",
+        "report"
       ],
       "approval_policy": {
         "low": "auto",
@@ -80,7 +84,9 @@ export const DEMO: Snapshot = {
         "queue.publish",
         "artifact.read",
         "artifact.write",
-        "escalate"
+        "escalate",
+        "assign",
+        "report"
       ],
       "approval_policy": {
         "low": "auto",
@@ -107,7 +113,9 @@ export const DEMO: Snapshot = {
         "sql.query",
         "crm.note",
         "artifact.write",
-        "escalate"
+        "escalate",
+        "assign",
+        "report"
       ],
       "approval_policy": {
         "low": "auto",
@@ -134,7 +142,9 @@ export const DEMO: Snapshot = {
         "ticket.list",
         "ticket.reply",
         "artifact.write",
-        "escalate"
+        "escalate",
+        "assign",
+        "report"
       ],
       "approval_policy": {
         "low": "auto",
@@ -161,7 +171,9 @@ export const DEMO: Snapshot = {
         "sql.query",
         "artifact.write",
         "artifact.read",
-        "escalate"
+        "escalate",
+        "assign",
+        "report"
       ],
       "approval_policy": {
         "low": "auto",
@@ -183,12 +195,14 @@ export const DEMO: Snapshot = {
       "w": 2,
       "h": 1,
       "budget_cents": 180,
-      "spent_cents": 1,
+      "spent_cents": 3,
       "tool_grants": [
         "artifact.read",
         "artifact.write",
         "sql.query",
-        "escalate"
+        "escalate",
+        "assign",
+        "report"
       ],
       "approval_policy": {
         "low": "auto",
@@ -214,7 +228,9 @@ export const DEMO: Snapshot = {
       "tool_grants": [
         "artifact.read",
         "artifact.write",
-        "escalate"
+        "escalate",
+        "assign",
+        "report"
       ],
       "approval_policy": {
         "low": "auto",
@@ -228,6 +244,25 @@ export const DEMO: Snapshot = {
     }
   ],
   "agents": [
+    {
+      "id": "agt_482ca98ceadf",
+      "room_id": "room_1a7f30408fbc",
+      "name": "Vera",
+      "role": "manager",
+      "policy_key": "room.manager",
+      "state": "idle",
+      "activity": "done",
+      "current_run_id": null,
+      "step_budget": 300,
+      "cost_budget_cents": 60,
+      "steps_used": 13,
+      "spent_cents": 0,
+      "created_at": "2026-09-07T16:13:23.387Z",
+      "persona": "Runs Analytics. Breaks what you ask for into tasks, hands them out, and reports back.",
+      "color": "#4bb3d4",
+      "avatar": "\u25c6",
+      "tier": "manager"
+    },
     {
       "id": "agt_0525bcb1b92b",
       "room_id": "room_1a7f30408fbc",
@@ -244,7 +279,8 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.097Z",
       "persona": "Cautious. Will not state a number she has not queried twice.",
       "color": "#4bb3d4",
-      "avatar": "\ud83d\udd2d"
+      "avatar": "\ud83d\udd2d",
+      "tier": "worker"
     },
     {
       "id": "agt_430eefa475d0",
@@ -262,7 +298,27 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.097Z",
       "persona": "Fast and rough. Good for a first read, never the final one.",
       "color": "#63c9c0",
-      "avatar": "\ud83d\udcd0"
+      "avatar": "\ud83d\udcd0",
+      "tier": "worker"
+    },
+    {
+      "id": "agt_4704a527013f",
+      "room_id": "room_366519d8b1ca",
+      "name": "Otto",
+      "role": "manager",
+      "policy_key": "room.manager",
+      "state": "idle",
+      "activity": "handed over",
+      "current_run_id": null,
+      "step_budget": 300,
+      "cost_budget_cents": 60,
+      "steps_used": 10,
+      "spent_cents": 0,
+      "created_at": "2026-09-07T16:13:23.388Z",
+      "persona": "Runs Engineering. Breaks what you ask for into tasks, hands them out, and reports back.",
+      "color": "#6f8ef5",
+      "avatar": "\u25c6",
+      "tier": "manager"
     },
     {
       "id": "agt_5944c95b2e8e",
@@ -280,7 +336,8 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.101Z",
       "persona": "Small diffs, real tests, no heroics. Refuses to ship red.",
       "color": "#6f8ef5",
-      "avatar": "\ud83d\udd27"
+      "avatar": "\ud83d\udd27",
+      "tier": "worker"
     },
     {
       "id": "agt_1211e62a0082",
@@ -288,8 +345,8 @@ export const DEMO: Snapshot = {
       "name": "Rex",
       "role": "engineer",
       "policy_key": "demo.loop",
-      "state": "idle",
-      "activity": "",
+      "state": "killed",
+      "activity": "killed: loop_detected",
       "current_run_id": "run_41c5ea5b9b9b",
       "step_budget": 6,
       "cost_budget_cents": 4,
@@ -298,7 +355,27 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.101Z",
       "persona": "Gets stuck in loops on purpose. He exists to prove the kill switch works.",
       "color": "#8a93a5",
-      "avatar": "\ud83c\udf00"
+      "avatar": "\ud83c\udf00",
+      "tier": "worker"
+    },
+    {
+      "id": "agt_21f7ae7e6002",
+      "room_id": "room_37f9cff4ad76",
+      "name": "Hugo",
+      "role": "manager",
+      "policy_key": "room.manager",
+      "state": "idle",
+      "activity": "",
+      "current_run_id": null,
+      "step_budget": 300,
+      "cost_budget_cents": 60,
+      "steps_used": 0,
+      "spent_cents": 0,
+      "created_at": "2026-09-07T16:13:23.392Z",
+      "persona": "Runs Finance. Breaks what you ask for into tasks, hands them out, and reports back.",
+      "color": "#c9a227",
+      "avatar": "\u25c6",
+      "tier": "manager"
     },
     {
       "id": "agt_707273e2c656",
@@ -316,7 +393,8 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.120Z",
       "persona": "Ties every number to a row. Will not round in your favour.",
       "color": "#c9a227",
-      "avatar": "\ud83e\uddfe"
+      "avatar": "\ud83e\uddfe",
+      "tier": "worker"
     },
     {
       "id": "agt_20fd3a618c0f",
@@ -334,7 +412,27 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.120Z",
       "persona": "Looks for the line that moved and asks why.",
       "color": "#d9b64a",
-      "avatar": "\ud83d\udcb1"
+      "avatar": "\ud83d\udcb1",
+      "tier": "worker"
+    },
+    {
+      "id": "agt_11541093df36",
+      "room_id": "room_45dc31b85bfd",
+      "name": "Juno",
+      "role": "manager",
+      "policy_key": "room.manager",
+      "state": "idle",
+      "activity": "",
+      "current_run_id": null,
+      "step_budget": 300,
+      "cost_budget_cents": 60,
+      "steps_used": 0,
+      "spent_cents": 0,
+      "created_at": "2026-09-07T16:13:23.389Z",
+      "persona": "Runs Marketing. Breaks what you ask for into tasks, hands them out, and reports back.",
+      "color": "#e0794b",
+      "avatar": "\u25c6",
+      "tier": "manager"
     },
     {
       "id": "agt_a00189646174",
@@ -352,7 +450,8 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.104Z",
       "persona": "Writes plainly, cites the analytics room, never publishes without asking.",
       "color": "#e0794b",
-      "avatar": "\u2712\ufe0f"
+      "avatar": "\u2712\ufe0f",
+      "tier": "worker"
     },
     {
       "id": "agt_df92974127df",
@@ -370,7 +469,27 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.105Z",
       "persona": "Second pair of eyes. Cuts a draft by a third before it goes anywhere.",
       "color": "#d9a441",
-      "avatar": "\ud83d\uddde\ufe0f"
+      "avatar": "\ud83d\uddde\ufe0f",
+      "tier": "worker"
+    },
+    {
+      "id": "agt_cfe9290eaed8",
+      "room_id": "room_7ddf9205542d",
+      "name": "Mira",
+      "role": "manager",
+      "policy_key": "room.manager",
+      "state": "idle",
+      "activity": "",
+      "current_run_id": null,
+      "step_budget": 300,
+      "cost_budget_cents": 60,
+      "steps_used": 0,
+      "spent_cents": 0,
+      "created_at": "2026-09-07T16:13:23.390Z",
+      "persona": "Runs Support. Breaks what you ask for into tasks, hands them out, and reports back.",
+      "color": "#e05b8f",
+      "avatar": "\u25c6",
+      "tier": "manager"
     },
     {
       "id": "agt_b3a96b064a24",
@@ -388,7 +507,8 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.115Z",
       "persona": "Reads the whole thread before replying. Slower, fewer follow-ups.",
       "color": "#d67aa8",
-      "avatar": "\ud83d\udedf"
+      "avatar": "\ud83d\udedf",
+      "tier": "worker"
     },
     {
       "id": "agt_56b4316efe98",
@@ -406,7 +526,27 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.114Z",
       "persona": "Answers the oldest urgent thing first. Never promises a date.",
       "color": "#e05b8f",
-      "avatar": "\ud83c\udfa7"
+      "avatar": "\ud83c\udfa7",
+      "tier": "worker"
+    },
+    {
+      "id": "agt_693f560f583d",
+      "room_id": "room_bd5742dc4f6a",
+      "name": "Piet",
+      "role": "manager",
+      "policy_key": "room.manager",
+      "state": "idle",
+      "activity": "1 of 6 done",
+      "current_run_id": null,
+      "step_budget": 300,
+      "cost_budget_cents": 60,
+      "steps_used": 6,
+      "spent_cents": 0,
+      "created_at": "2026-09-07T16:13:23.391Z",
+      "persona": "Runs Research. Breaks what you ask for into tasks, hands them out, and reports back.",
+      "color": "#7f8cd6",
+      "avatar": "\u25c6",
+      "tier": "manager"
     },
     {
       "id": "agt_5080f4b050a0",
@@ -424,7 +564,27 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.126Z",
       "persona": "Digs for the thing nobody asked about. Slow, occasionally right.",
       "color": "#7f8cd6",
-      "avatar": "\ud83d\udd0e"
+      "avatar": "\ud83d\udd0e",
+      "tier": "worker"
+    },
+    {
+      "id": "agt_e73bf1cbcc5c",
+      "room_id": "room_db4c56c3bf69",
+      "name": "Cleo",
+      "role": "manager",
+      "policy_key": "room.manager",
+      "state": "idle",
+      "activity": "",
+      "current_run_id": null,
+      "step_budget": 300,
+      "cost_budget_cents": 60,
+      "steps_used": 0,
+      "spent_cents": 0,
+      "created_at": "2026-09-07T16:13:23.392Z",
+      "persona": "Runs Sales. Breaks what you ask for into tasks, hands them out, and reports back.",
+      "color": "#3fb27f",
+      "avatar": "\u25c6",
+      "tier": "manager"
     },
     {
       "id": "agt_794ac034835e",
@@ -442,7 +602,8 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.108Z",
       "persona": "Pipeline janitor. Flags stale deals before they rot.",
       "color": "#3fb27f",
-      "avatar": "\ud83d\udcc7"
+      "avatar": "\ud83d\udcc7",
+      "tier": "worker"
     },
     {
       "id": "agt_99ed37f3b1da",
@@ -460,7 +621,27 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.108Z",
       "persona": "Reads the pipeline as numbers, not stories. Blunt about what is dead.",
       "color": "#57b6a0",
-      "avatar": "\ud83d\udcca"
+      "avatar": "\ud83d\udcca",
+      "tier": "worker"
+    },
+    {
+      "id": "agt_18f661d396e2",
+      "room_id": "room_e53a12f33afb",
+      "name": "Zara",
+      "role": "manager",
+      "policy_key": "room.manager",
+      "state": "idle",
+      "activity": "",
+      "current_run_id": null,
+      "step_budget": 300,
+      "cost_budget_cents": 60,
+      "steps_used": 0,
+      "spent_cents": 0,
+      "created_at": "2026-09-07T16:13:23.385Z",
+      "persona": "Runs Strategy. Breaks what you ask for into tasks, hands them out, and reports back.",
+      "color": "#a472e0",
+      "avatar": "\u25c6",
+      "tier": "manager"
     },
     {
       "id": "agt_c37b6c119eed",
@@ -468,8 +649,8 @@ export const DEMO: Snapshot = {
       "name": "Iris",
       "role": "strategist",
       "policy_key": "strategy.synth",
-      "state": "idle",
-      "activity": "",
+      "state": "blocked",
+      "activity": "waiting on you: Two rooms report opposite signals on the enterprise plan. Chase revenue or churn first?",
       "current_run_id": "run_a201d468354e",
       "step_budget": 40,
       "cost_budget_cents": 120,
@@ -478,7 +659,8 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.128Z",
       "persona": "Reads every room, commits to nothing without asking you first.",
       "color": "#a472e0",
-      "avatar": "\ud83e\udded"
+      "avatar": "\ud83e\udded",
+      "tier": "worker"
     }
   ],
   "inbox": [
@@ -572,8 +754,58 @@ export const DEMO: Snapshot = {
   "config": {
     "id": 1,
     "global_budget_cents": 5000,
-    "global_spent_cents": 27,
+    "global_spent_cents": 47,
     "panic_stop": false
   },
-  "now": "2026-09-07T15:32:42.470Z"
+  "mandates": [
+    {
+      "id": "mnd_6d1cd87d9301",
+      "text": "look into churn for last quarter",
+      "room_id": "room_1a7f30408fbc",
+      "state": "done",
+      "color": "#4bb3d4",
+      "quoted_cents": 240,
+      "spent_cents": 9,
+      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
+      "artifact_id": "art_c80717ca5469",
+      "context": [],
+      "created_at": "2026-09-07T16:15:06.210Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_3249fb83dbf4",
+      "mandate_id": "mnd_6d1cd87d9301",
+      "agent_id": "agt_0525bcb1b92b",
+      "run_id": "run_78590b65daf1",
+      "title": "Pull churn by plan for the period",
+      "state": "done",
+      "ord": 0,
+      "kill_reason": null,
+      "created_at": "2026-09-07T16:15:07.049Z"
+    },
+    {
+      "id": "task_aeba4b8d5a62",
+      "mandate_id": "mnd_6d1cd87d9301",
+      "agent_id": "agt_430eefa475d0",
+      "run_id": "run_6eb21a994f11",
+      "title": "Split churn by region and tenure",
+      "state": "done",
+      "ord": 1,
+      "kill_reason": null,
+      "created_at": "2026-09-07T16:15:07.050Z"
+    },
+    {
+      "id": "task_dbe2b78d3789",
+      "mandate_id": "mnd_6d1cd87d9301",
+      "agent_id": "agt_0525bcb1b92b",
+      "run_id": "run_a519c0445b4b",
+      "title": "Write the churn read-out",
+      "state": "done",
+      "ord": 2,
+      "kill_reason": null,
+      "created_at": "2026-09-07T16:15:07.052Z"
+    }
+  ],
+  "now": "2026-09-07T16:16:25.741Z"
 } as unknown as Snapshot;

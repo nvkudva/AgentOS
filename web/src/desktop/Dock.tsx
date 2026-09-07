@@ -63,7 +63,7 @@ export function Dock({ wins, agents, inbox, rooms, onLaunch, onFocus, onRoom }: 
           const w = wins.find((x) => x.id === `room:${r.id}`);
           return (
             <button key={r.id} className="tile" onClick={() => onRoom(r.id)} data-label={r.name}
-                    style={{ ['--c' as any]: r.color }}>
+                    data-dock-room={r.id} style={{ ['--c' as any]: r.color }}>
               <span className="face big" style={{ ['--c' as any]: r.color }}>{r.icon}</span>
               {w && !w.min && <i className="run" />}
             </button>

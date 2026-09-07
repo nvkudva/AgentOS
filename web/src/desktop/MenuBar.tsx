@@ -3,13 +3,20 @@ import type { Inbox } from '../lib/api';
 import { GlanceTest } from './GlanceTest';
 import { Supervisor } from './Supervisor';
 import type { CmdCtx } from './commands';
+import type { Result, Clarify } from './intent';
 import type { Theme } from '../lib/theme';
 
-export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen }: {
+export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen,
+                          bell, results, clarifies, onResult, onClarify }: {
   config: any; inbox: Inbox[]; needsMe: boolean; view: string;
   theme: Theme; setTheme: (t: Theme) => void; ctx: CmdCtx;
   sidebar: boolean; onSidebar: (b: boolean) => void;
   onOpen: (k: 'floor' | 'list' | 'inbox' | 'settings') => void;
+  /** what the badge is allowed to say — it lags the queue until the flight lands */
+  bell: number;
+  results: Result[]; clarifies: Clarify[];
+  onResult: (r: Result, what: 'open' | 'done') => void;
+  onClarify: (c: Clarify, answer: string | null) => void;
 }) {
   const cycle = () => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'auto' : 'dark');
 
@@ -23,15 +30,16 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
       <GlanceTest view={view} truth={needsMe} />
 
       <span className="spacer" />
-      <Supervisor ctx={ctx} alert={needsMe} speak={true} />
+      <Supervisor ctx={ctx} alert={needsMe} speak={true}
+                  results={results} clarifies={clarifies} onResult={onResult} onClarify={onClarify} />
       <span className="spacer" />
 
       <span className="menu" onClick={cycle} title={`theme: ${theme}`}>
         {theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '🌗'}
       </span>
-      <span className={`bell${inbox.length ? ' lit' : ''}${sidebar ? ' on' : ''}`} onClick={() => onSidebar(!sidebar)}
-            title="notifications and approvals">
-        {inbox.length ? '🔔' : '🔕'}{inbox.length > 0 && <i>{inbox.length}</i>}
+      <span className={`bell${bell ? ' lit' : ''}${sidebar ? ' on' : ''}`} data-bell=""
+            onClick={() => onSidebar(!sidebar)} title="notifications and approvals">
+        {bell ? '🔔' : '🔕'}{bell > 0 && <i>{bell}</i>}
       </span>
       <button className={config.panic_stop ? 'primary' : 'danger'} onClick={() => post('/api/panic', { on: !config.panic_stop })}>
         {config.panic_stop ? 'Resume' : 'Stop all'}
