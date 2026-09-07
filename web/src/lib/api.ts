@@ -19,9 +19,14 @@ export type Inbox = {
 };
 export type Snapshot = { rooms: Room[]; agents: Agent[]; inbox: Inbox[]; config: any };
 
+/**
+ * With no server behind the page there is nothing to write to, and a rejected fetch
+ * would strand whatever was mid-gesture. Both calls fail quietly instead.
+ */
 export const post = (p: string, body: any = {}) =>
-  fetch(p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json());
-export const get = (p: string) => fetch(p).then((r) => r.json());
+  fetch(p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    .then((r) => r.json()).catch(() => ({}));
+export const get = (p: string) => fetch(p).then((r) => r.json()).catch(() => null);
 
 /** Records what the operator does, in whichever view. This is how the thesis gets tested. */
 export const observe = (view: string, action: string, payload: any = {}) =>
@@ -40,6 +45,16 @@ export function useLiveState() {
   const [, force] = useState(0);
 
   useEffect(() => {
+    // No server behind this build — the hosted demo — so serve the frozen desk instead
+    // of hanging on "connecting…". The windows are the point; they work either way.
+    let offline = false;
+    const fallback = setTimeout(async () => {
+      if (ref.current) return;
+      offline = true;
+      const { DEMO } = await import('./demo');
+      ref.current = DEMO; dirty.current = true;
+    }, 2500);
+
     const flush = () => {
       if (dirty.current && ref.current) { dirty.current = false; setSnap({ ...ref.current }); }
       raf = requestAnimationFrame(flush);
@@ -47,7 +62,11 @@ export function useLiveState() {
     let raf = requestAnimationFrame(flush);
 
     const es = new EventSource('/api/stream');
-    const refetch = async () => { ref.current = await get('/api/state'); dirty.current = true; };
+    const refetch = async () => {
+      if (offline) return;
+      const next = await get('/api/state');
+      if (next) { ref.current = next; dirty.current = true; }
+    };
     es.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.type === 'snapshot') { ref.current = m; dirty.current = true; return; }
@@ -64,7 +83,10 @@ export function useLiveState() {
       }
     };
     const poll = setInterval(refetch, 3000);   // cheap safety net; SSE does the real work
-    return () => { es.close(); clearInterval(poll); cancelAnimationFrame(raf); force(0); };
+    return () => {
+      es.close(); clearInterval(poll); clearTimeout(fallback);
+      cancelAnimationFrame(raf); force(0);
+    };
   }, []);
 
   return snap;

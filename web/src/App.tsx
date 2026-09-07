@@ -239,7 +239,7 @@ export default function App() {
 
         {!wins.length && (
           <div className="empty">
-            <p>Drag a room to any edge to dock it. Drop one in a corner to tuck it away.</p>
+            <p>Drag a room anywhere; it stays where you drop it. Push one into a side gutter to park it.</p>
             <p className="muted">Ask the orb: “Atrium, what needs me?”</p>
           </div>
         )}
