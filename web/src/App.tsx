@@ -181,13 +181,23 @@ export default function App() {
            icon: a.avatar, color: a.color, ...place() });
   }, [open, place]);
 
-  const openRoomWindow = useCallback((r: Room) => {
+  /**
+   * A room arrives parked, on the side the floor plan already puts it. The desk you sit
+   * down to is the rails and whatever you opened — not eight windows you have to clear
+   * before you can see anything. It still carries the rect it would have tiled to, so
+   * un-parking one puts it somewhere sensible rather than at the origin.
+   */
+  const openRoomWindow = useCallback((r: Room, parked = true) => {
     const by = new Map<string, number>();
     for (const a of live.current.agents) by.set(a.room_id, (by.get(a.room_id) ?? 0) + 1);
     const crew = by.get(r.id) ?? 0;
     const tallest = Math.max(1, ...by.values());
+    const at = tile(r, live.current.stage, crew, tallest);
     open({ id: `roomwin:${r.id}`, kind: 'room', ref: r.id, title: r.name, icon: r.icon, color: r.color,
-           plain: true, ...tile(r, live.current.stage, crew, tallest) });
+           plain: true, ...at,
+           // the floor plan's own left and right columns, so seven rooms fit two rails
+           ...(parked ? { park: (r.x < COLS / 2 ? 'left' : 'right') as Park,
+                          home: { left: at.x, top: at.y, width: at.w, height: at.h } } : {}) });
   }, [open]);
 
   const openRoomConsole = useCallback((r: Room) => {
@@ -215,6 +225,7 @@ export default function App() {
    * the shipped rooms from the ones the operator added; that is the whole point.
    */
   const known = useRef(new Set<string>(loadSeen()));
+  const firstRun = useRef(restored.length === 0);
   useEffect(() => {
     if (!snap) return;
     snap.rooms.forEach((r) => {
@@ -223,7 +234,10 @@ export default function App() {
       openRoomWindow(r);
     });
     saveSeen(known.current);
-  }, [snap?.rooms, openRoomWindow]);
+    // Nothing saved means nobody has arranged this desk yet: give it the middle it is
+    // missing. Once anything is saved, the arrangement is theirs and this stays out.
+    if (firstRun.current && snap.rooms.length) { firstRun.current = false; launch('floor'); }
+  }, [snap?.rooms, openRoomWindow, launch]);
 
   /**
    * A parked room is as tall as the room itself: title bar plus a row per crew member.
