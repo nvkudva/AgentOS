@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Backend on 8787, Vite (with /api proxied to it) on 5173.
+# Backend on 8788, Vite (with /api proxied to it) on 5173.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 kill_port() { local p; p=$(lsof -ti "tcp:$1" -sTCP:LISTEN 2>/dev/null); [ -n "${p:-}" ] && kill $p 2>/dev/null; sleep 1; return 0; }
 case "${1:-start}" in
-  stop) kill_port 8787; kill_port 5173; echo stopped ;;
+  stop) kill_port 8788; kill_port 5173; echo stopped ;;
   start)
     kill_port 5173
     "$ROOT/scripts/serve.sh" start

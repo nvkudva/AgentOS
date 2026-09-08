@@ -6,7 +6,7 @@ import { bus } from './bus.js';
 import { startScheduler } from './runtime/scheduler.js';
 import { ensureManagers } from './provision.js';
 
-const PORT = Number(process.env.PORT ?? 8787);
+const PORT = Number(process.env.PORT ?? 8788);
 const WEB_DIST = path.resolve(process.cwd(), '../web/dist');
 
 const server = http.createServer(async (req, res) => {

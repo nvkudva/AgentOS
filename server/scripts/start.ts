@@ -1,4 +1,4 @@
-const base = 'http://localhost:8787';
+const base = 'http://localhost:8788';
 const s: any = await (await fetch(`${base}/api/state`)).json();
 const want = process.argv.slice(2);
 for (const a of s.agents) {

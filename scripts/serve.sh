@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # start/stop the Atrium server. Kills by listening port: setsid means the recorded pid is
-# the launcher, not the node process, so a pidfile alone leaves the old server holding 8787.
+# the launcher, not the node process, so a pidfile alone leaves the old server holding 8788.
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PORT="${PORT:-8787}"
+PORT="${PORT:-8788}"
 
 listeners() { lsof -ti "tcp:$PORT" -sTCP:LISTEN 2>/dev/null; }
 

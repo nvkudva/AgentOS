@@ -1,4 +1,4 @@
-const base = 'http://localhost:8787';
+const base = 'http://localhost:8788';
 const [aid, decision, ...note] = process.argv.slice(2);
 const r = await fetch(`${base}/api/approvals/${aid}/decide`, {
   method: 'POST', headers: { 'content-type': 'application/json' },

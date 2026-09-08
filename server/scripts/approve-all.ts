@@ -1,4 +1,4 @@
-const base = process.env.ATRIUM_URL ?? 'http://localhost:8787';
+const base = process.env.ATRIUM_URL ?? 'http://localhost:8788';
 const decision = process.argv[2] === 'reject' ? 'reject' : 'approve';
 const s: any = await (await fetch(`${base}/api/state`)).json();
 for (const it of s.inbox) {
