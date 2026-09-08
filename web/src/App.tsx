@@ -152,9 +152,15 @@ export default function App() {
     setTimeout(() => setUndo((u) => (u === it ? null : u)), 8000);
   }, []);
 
+  /** False until the desk has been measured. Placing anything before that centres it in
+   *  the assumed 1000x640, which on a real screen is up in the top-left corner. */
+  const [measured, setMeasured] = useState(false);
   useLayoutEffect(() => {
     const el = stageRef.current; if (!el) return;
-    const ro = new ResizeObserver(([e]) => setStage({ w: e.contentRect.width, h: e.contentRect.height }));
+    const ro = new ResizeObserver(([e]) => {
+      setStage({ w: e.contentRect.width, h: e.contentRect.height });
+      if (e.contentRect.width) setMeasured(true);
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, [snap !== null]);
@@ -236,8 +242,8 @@ export default function App() {
     saveSeen(known.current);
     // Nothing saved means nobody has arranged this desk yet: give it the middle it is
     // missing. Once anything is saved, the arrangement is theirs and this stays out.
-    if (firstRun.current && snap.rooms.length) { firstRun.current = false; launch('floor'); }
-  }, [snap?.rooms, openRoomWindow, launch]);
+    if (firstRun.current && snap.rooms.length && measured) { firstRun.current = false; launch('floor'); }
+  }, [snap?.rooms, openRoomWindow, launch, measured]);
 
   /**
    * A parked room is as tall as the room itself: title bar plus a row per crew member.
