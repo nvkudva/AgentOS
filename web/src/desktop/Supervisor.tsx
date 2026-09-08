@@ -67,6 +67,28 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     if (f && open) f.scrollTop = f.scrollHeight;
   }, [turns, open, prop, clarifies.length, results.length]);
 
+  /**
+   * A press anywhere else puts it away. The panel is a thing you opened, so the desk
+   * behind it is the dismiss target — the same way clicking off a menu closes it.
+   *
+   * On pointerdown rather than click, so it is gone before whatever you actually
+   * reached for gets it. A drag that begins on the desk closes it too, which is right:
+   * you have moved on. Listening is left alone — the voice session ends by speaking or
+   * by clicking the orb, not by looking away.
+   */
+  const shell = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || listening) return;
+    const away = (e: PointerEvent) => {
+      if (shell.current?.contains(e.target as Node)) return;
+      clearTimeout(hide.current);
+      setOpen(false); setTyping(false);
+    };
+    // capture, so it still fires when something below stops the event on its way up
+    addEventListener('pointerdown', away, true);
+    return () => removeEventListener('pointerdown', away, true);
+  }, [open, listening]);
+
   const show = (ms = 6000) => {
     setOpen(true);
     clearTimeout(hide.current);
@@ -243,7 +265,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const line = typing ? '' : listening ? (heard || 'Listening…') : (reply || 'Ask me anything.');
 
   return (
-    <div className={`sup skin-${skin}${open ? ' open' : ''}`}>
+    <div className={`sup skin-${skin}${open ? ' open' : ''}`} ref={shell}>
       {/* One box. Collapsed it is exactly the orb; opening grows that same box downward
           into the panel, so the panel is the orb expanding rather than a second surface
           arriving underneath it. The orb sits at the top of the shell and never moves. */}
