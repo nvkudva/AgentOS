@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
 export type WinKind = 'agent' | 'room' | 'floor' | 'list' | 'settings' | 'inbox'
-  | 'music' | 'ride' | 'maps' | 'orblab';
+  | 'music' | 'ride' | 'maps';
 /** Everything that opens from the dock rather than from a room or an agent. */
 export type AppKind = Exclude<WinKind, 'agent' | 'room'>;
 /** A parked window is tucked against a side edge with only its rail showing. */

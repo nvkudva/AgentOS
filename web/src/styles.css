@@ -217,13 +217,15 @@ p { margin:8px 0; }
   transform:translateZ(0); will-change:rotate; }
 /* Softness is baked into the gradient stops rather than a blur filter: an animated
    filter cannot stay on its own layer, and that is what costs the frames. */
+/* The turn only reads if the wedges differ in brightness, not just in hue. The darks
+   stay deep and the accents are pushed well up, so the rotation is visible at 38px. */
 .plasma.a { background:conic-gradient(from 0deg,
-  #123a8f, #2b3fae 12%, #5b2fd0 26%, #3a54c8 40%, #0e8f9c 55%, #1668b5 70%, #1746a8 85%, #123a8f); }
+  #0d1c58, #3f5ae0 12%, #9061ff 26%, #4f7dff 40%, #22d3ee 55%, #2b8ae6 70%, #16307d 85%, #0d1c58); }
 /* No blend mode: blending a rotating, blurred layer re-rasterises the whole sphere every
    frame and costs a third of the frame rate. Plain alpha looks the same at this size. */
-.plasma.b { opacity:.5;
-  background:conic-gradient(from 140deg, transparent, #7c4ae688 18%, transparent 34%,
-             #12c9a088 62%, transparent 80%, transparent); }
+.plasma.b { opacity:.65;
+  background:conic-gradient(from 140deg, transparent, #a78bfaaa 18%, transparent 34%,
+             #34e6c0aa 62%, transparent 80%, transparent); }
 .orb.listening .plasma.a, .orb.thinking .plasma.a, .orb.alert .plasma.a { animation:orbspin 9s linear infinite; }
 .orb.listening .plasma.b, .orb.thinking .plasma.b, .orb.alert .plasma.b { animation:orbspin 15s linear infinite reverse; }
 .orb.thinking .plasma.a { animation-duration:3.2s; }
@@ -231,8 +233,8 @@ p { margin:8px 0; }
 
 /* spherical shading: a lit shoulder, a shadowed underside, a hard little dome highlight */
 .orb-shade { position:absolute; inset:0; border-radius:999px;
-  background:radial-gradient(circle at 30% 24%, rgb(255 255 255 / .5), rgb(255 255 255 / 0) 40%),
-             radial-gradient(circle at 74% 82%, rgb(0 0 0 / .62), rgb(0 0 0 / 0) 58%),
+  background:radial-gradient(circle at 31% 22%, rgb(255 255 255 / .5), rgb(255 255 255 / 0) 24%),
+             radial-gradient(circle at 74% 82%, rgb(0 0 0 / .4), rgb(0 0 0 / 0) 58%),
              radial-gradient(circle at 50% 50%, transparent 78%, rgb(0 0 0 / .3)); }
 /* a thin bright arc along the shadowed edge: the one cue that sells a sphere */
 .orb-sphere::after { content:''; position:absolute; inset:0; border-radius:999px; pointer-events:none;
@@ -248,9 +250,17 @@ p { margin:8px 0; }
   0%,100% { box-shadow:0 0 18px -6px color-mix(in srgb, var(--glow) 60%, transparent) }
   50%     { box-shadow:0 0 34px -2px color-mix(in srgb, var(--glow) 95%, transparent) }
 }
-/* On a machine that cannot hold 60fps the core stops turning and the ring carries the
-   state on its own — same as trading blur for flat surfaces elsewhere. */
-[data-perf="lite"] .plasma { animation:none !important; }
+/* On a machine that cannot hold 60fps the core used to stop turning, because the bar
+   ring carried the state instead. The ring is gone, so stopping the core leaves the orb
+   with nothing to say. It slows to a third instead: one composited layer rotating is
+   cheap — it was never what cost the frames. */
+[data-perf="lite"] .orb.listening .plasma.a,
+[data-perf="lite"] .orb.thinking .plasma.a,
+[data-perf="lite"] .orb.alert .plasma.a { animation-duration:27s; }
+[data-perf="lite"] .orb.listening .plasma.b,
+[data-perf="lite"] .orb.thinking .plasma.b,
+[data-perf="lite"] .orb.alert .plasma.b { animation-duration:45s; }
+[data-perf="lite"] .orb.thinking .plasma.a { animation-duration:9.6s; }
 
 .heard { color:var(--muted); font-style:italic; max-width:280px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .sup-label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--faint); font-weight:500; }
@@ -1161,23 +1171,6 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
   .sup-shell { transition:opacity var(--t-ui) !important; }
 }
 
-/* --- the lab: four supervisors, same words, judged side by side --- */
-.orblab { display:flex; flex-direction:column; height:100%; }
-.lab-head { display:flex; align-items:center; gap:12px; padding:14px 16px 10px; }
-.lab-head b { font-size:14px; }
-.lab-head p { margin:2px 0 0; font-size:12px; }
-.lab-grid { flex:1; min-height:0; overflow:auto; display:grid; gap:14px; padding:0 16px 16px;
-  grid-template-columns:repeat(2, minmax(0, 1fr)); }
-.lab-cell { display:flex; flex-direction:column; align-items:center; gap:10px;
-  padding:18px 12px 12px; border-radius:var(--r-card);
-  background:var(--tint); border:.5px solid var(--line-soft); }
-.lab-cell.picked { border-color:color-mix(in srgb, var(--working) 55%, transparent);
-  background:color-mix(in srgb, var(--working) 6%, var(--tint)); }
-/* the shell is absolute inside .sup, so the cell needs room for it to grow into */
-.lab-cell .sup { height:300px; }
-.lab-foot { margin-top:auto; text-align:center; }
-.lab-foot b { font-size:12.5px; text-transform:capitalize; }
-.lab-foot p { margin:3px 0 8px; font-size:11.5px; color:var(--muted); line-height:1.35; }
 
 /* --- the sphere itself changes with the skin ---
    The panel material is only half the treatment. An orb made of the app's glass and an

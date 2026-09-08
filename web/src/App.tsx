@@ -21,7 +21,6 @@ import { ListView } from './components/ListView';
 import { MusicApp } from './apps/MusicApp';
 import { RideApp } from './apps/RideApp';
 import { MapsApp } from './apps/MapsApp';
-import { OrbLab } from './apps/OrbLab';
 import type { Skin } from './desktop/Supervisor';
 import { CarryLayer } from './desktop/CarryLayer';
 import { CourierLayer } from './desktop/CourierLayer';
@@ -195,7 +194,6 @@ export default function App() {
       music:    ['🎵', 'Music',    '#fb5c74'],
       ride:     ['🚗', 'Ride',     '#15181c'],
       maps:     ['📍', 'Maps',     '#2f9d63'],
-      orblab:   ['🔮', 'Orb lab',  '#7a9bff'],
     };
     const [icon, title, color] = meta[k];
     open({ id: k, kind: k, title, icon, color, ...place() });
@@ -634,10 +632,6 @@ export default function App() {
         {w.kind === 'music' && <MusicApp />}
         {w.kind === 'ride' && <RideApp />}
         {w.kind === 'maps' && <MapsApp />}
-        {w.kind === 'orblab' && <OrbLab current={skin} onPick={(s) => {
-          setSkin(s);
-          try { localStorage.setItem('atrium.orbSkin', s); } catch { /* ignore */ }
-        }} />}
       </Window>
     );
   };
