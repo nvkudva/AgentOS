@@ -6,9 +6,14 @@ A single-operator workspace for running scripted software agents against real sy
 
 It exists to test one question: whether a desktop of permission-scoped "rooms" beats a chat list for supervising many agents at once.
 
-[Product spec and kill criteria](prd.md) - [Code review](REVIEW.md)
+[Try the desktop](https://main.agentos-cx9.pages.dev) - [Product spec and kill criteria](prd.md) - [Code review](REVIEW.md)
 
 ![The Atrium desktop](docs/desktop-dark.png)
+
+The hosted build has no server behind it — no Postgres, no scheduler, no agents — so it
+serves a frozen snapshot of a real seeded instance. Every interaction is the real one:
+the dragging, parking, resizing, alignment, keyboard triage and undo all work against it.
+Only the data underneath is standing still.
 
 ## What it does
 
