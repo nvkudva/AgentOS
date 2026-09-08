@@ -153,7 +153,7 @@ p { margin:8px 0; }
    The shell is the orb. Opening grows that same box downward into a panel — same
    element, same origin, so nothing arrives from somewhere else. The orb sits at the
    top of the shell and never moves while it grows. */
-:root { --orbsz:38px; --sup-w:320px; --glow-bloom:#8ea6ff; }
+:root { --orbsz:38px; --sup-w:320px; --glow-bloom:#8ea6ff; --z-front:2147483000; }
 
 /* Out of the flow and pinned to the middle of the bar. Sitting between two spacers put
    it wherever the menus and the right-hand controls happened to balance, which moved
@@ -333,9 +333,13 @@ p { margin:8px 0; }
 /* Only the width moves: a scrubbed rail keeps the height it has on the rail, so the
    stack below it never shifts under the pointer. */
 /* A room under the pointer comes to the front without being clicked: you are looking
-   at it, so nothing should be lying on top of it. Below the menubar and dock at 80. */
-.win.plain:hover { z-index:75; }
-.win.parked:hover { width:340px; z-index:75; }
+   at it, so nothing should be lying on top of it.
+   The number has to beat every window, and window z is an ever-climbing counter that
+   persists across reloads — it was already past 150 here, so any "sensibly small"
+   value loses. It cannot escape the desk either way: .stage is its own stacking
+   context, so the menubar and dock still sit above all of this. */
+.win.plain:hover, .win.parked:hover { z-index:var(--z-front); }
+.win.parked:hover { width:340px; }
 .win.parked:hover .win-body { overflow:auto; }
 /* while something is being dragged, a rail must not swell under the pointer */
 body.dragging .win.parked:hover { width:var(--sliver); }
@@ -995,7 +999,7 @@ body.carrying .orb-btn { box-shadow:0 0 0 2px color-mix(in srgb, var(--working) 
 
 /* --- a parked rail, opened by dwelling on it while carrying ------------- */
 .win.parked { transition:width var(--t-near) var(--ease); }
-body.carrying .win.parked.dwell { width:340px; z-index:75; }
+body.carrying .win.parked.dwell { width:340px; z-index:var(--z-front); }
 body.carrying .win.parked.dwell .win-bar, body.carrying .win.parked.dwell .win-body { display:flex; }
 body.carrying .win.parked.dwell .win-body { display:block; overflow:auto; }
 body.carrying .win.parked.dwell .pk-hold { display:none; }
