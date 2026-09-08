@@ -153,7 +153,7 @@ p { margin:8px 0; }
    The shell is the orb. Opening grows that same box downward into a panel — same
    element, same origin, so nothing arrives from somewhere else. The orb sits at the
    top of the shell and never moves while it grows. */
-:root { --orbsz:38px; --sup-w:320px; --glow-bloom:#8ea6ff; --z-front:2147483000; }
+:root { --orbsz:38px; --sup-w:min(320px, 92vw); --glow-bloom:#8ea6ff; --z-front:2147483000; }
 
 /* Out of the flow and pinned to the middle of the bar. Sitting between two spacers put
    it wherever the menus and the right-hand controls happened to balance, which moved
@@ -1235,3 +1235,26 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 .room-crew { flex:none; display:flex; flex-wrap:wrap; gap:5px; margin:8px 0 auto; }
 .room-crew .face.attn { box-shadow:inset 0 0 0 .5px color-mix(in srgb, var(--c) 55%, transparent),
   0 0 0 1.5px color-mix(in srgb, var(--approval) 60%, transparent); }
+
+/* --- narrower desks ---------------------------------------------------------
+   The desktop metaphor needs width. It degrades in three steps rather than
+   pretending a phone is a workstation: the bar sheds what it can name elsewhere,
+   the queue takes the whole screen, and the rooms stop pretending to be a grid. */
+@media (max-width: 1024px) {
+  .menubar { gap:12px; padding:0 12px; }
+  .room-obj { display:none; }              /* the objective is in the console */
+}
+@media (max-width: 860px) {
+  .menubar .menu { display:none; }         /* Overview, Activity, Settings are in the dock */
+  .floor .grid { --cols:2; }
+}
+@media (max-width: 640px) {
+  .slideover { left:8px; width:auto; }     /* the queue is the screen, not a panel beside it */
+  .floor .grid { --cols:1; }
+  .floor { padding:10px; }
+  :root { --sliver:64px; }
+}
+
+/* The dock and the queue sit on the home indicator otherwise. */
+.dockwrap { padding-bottom:env(safe-area-inset-bottom, 0); }
+.slideover { bottom:calc(8px + env(safe-area-inset-bottom, 0)); }

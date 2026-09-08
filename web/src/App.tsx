@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLiveState, observe, post } from './lib/api';
 import { useTheme } from './lib/theme';
 import { usePerf } from './lib/perf';
@@ -12,15 +12,19 @@ import { Dock } from './desktop/Dock';
 import { Sidebar } from './desktop/Sidebar';
 import { SitDown } from './desktop/SitDown';
 import { RoomWindowBody, ParkedRail } from './desktop/RoomWindow';
-import { AgentApp } from './apps/AgentApp';
-import { RoomApp } from './apps/RoomApp';
-import { InboxApp } from './apps/InboxApp';
-import { SettingsApp } from './apps/SettingsApp';
-import { FloorApp } from './apps/FloorApp';
-import { ListView } from './components/ListView';
-import { MusicApp } from './apps/MusicApp';
-import { RideApp } from './apps/RideApp';
-import { MapsApp } from './apps/MapsApp';
+/**
+ * Nothing below is on the path to the first paint. The desk — menu bar, dock, wallpaper,
+ * room windows, the orb — is what has to arrive; a console, an agent's workspace or a
+ * prop app is fetched the moment it is actually opened, and cached from then on.
+ */
+const AgentApp = lazy(() => import('./apps/AgentApp').then((m) => ({ default: m.AgentApp })));
+const RoomApp = lazy(() => import('./apps/RoomApp').then((m) => ({ default: m.RoomApp })));
+const SettingsApp = lazy(() => import('./apps/SettingsApp').then((m) => ({ default: m.SettingsApp })));
+const FloorApp = lazy(() => import('./apps/FloorApp').then((m) => ({ default: m.FloorApp })));
+const ListView = lazy(() => import('./components/ListView').then((m) => ({ default: m.ListView })));
+const MusicApp = lazy(() => import('./apps/MusicApp').then((m) => ({ default: m.MusicApp })));
+const RideApp = lazy(() => import('./apps/RideApp').then((m) => ({ default: m.RideApp })));
+const MapsApp = lazy(() => import('./apps/MapsApp').then((m) => ({ default: m.MapsApp })));
 import type { Skin } from './desktop/Supervisor';
 import { CarryLayer } from './desktop/CarryLayer';
 import { CourierLayer } from './desktop/CourierLayer';
@@ -82,6 +86,13 @@ const roomHeight = (crew: number, st: { h: number }) => {
  */
 const tile = (r: Room, st: { w: number; h: number }, crew: number, tallest = crew) => {
   const usable = st.w - PAD * 2;
+  // Below tablet width the floor plan's four columns would give every room 110px. One
+  // column, full width, is the only honest thing to do with a desk that narrow.
+  if (st.w < 720) {
+    const h = roomHeight(crew, st);
+    const pitch = roomHeight(Math.max(crew, tallest), st) + GAP;
+    return { x: PAD, y: PAD + r.y * pitch, w: Math.max(240, usable), h };
+  }
   const w = Math.round(Math.min(ROOM_W, Math.max(240, usable)));
   const h = roomHeight(crew, st);
   const pitch = roomHeight(Math.max(crew, tallest), st) + GAP;
@@ -243,6 +254,30 @@ export default function App() {
 
   const rects = useMemo(() => layout(wins, stage, railHeight), [wins, stage, railHeight]);
   useEffect(() => { saveDesktop(wins); }, [wins]);
+
+  /**
+   * A desk that changed size keeps its arrangement, but not at the cost of losing a
+   * window off the edge of it. Saved geometry comes from whatever screen it was saved
+   * on — a phone opening a layout arranged on a 1280px desktop would otherwise find
+   * most of its windows past the right edge, unreachable and unfindable.
+   *
+   * Only on an actual change of stage size, so it never fights a drag.
+   */
+  const lastStage = useRef<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    const prev = lastStage.current;
+    lastStage.current = stage;
+    if (!prev || (prev.w === stage.w && prev.h === stage.h) || !stage.w) return;
+    for (const w of live.current.wins) {
+      if (w.park || w.min || w.max) continue;
+      const width = Math.min(w.w, Math.max(240, stage.w - 16));
+      const height = Math.min(w.h, Math.max(150, stage.h - 16));
+      const x = Math.max(-width + 130, Math.min(w.x, stage.w - 130));
+      const y = Math.max(0, Math.min(w.y, stage.h - 36));
+      if (width !== w.w || height !== w.h || x !== w.x || y !== w.y)
+        patch(w.id, { x, y, w: width, h: height });
+    }
+  }, [stage.w, stage.h, patch]);
 
   const activeId = wins.filter((w) => w.kind === 'agent' && !w.min).sort((a, b) => b.z - a.z)[0]?.ref;
 
@@ -623,17 +658,21 @@ export default function App() {
                           mandates={mandates} tasks={tasks} onOpenTask={openTask}
                           onRecall={(m) => recall(m.id)}
                           undo={undo && undo.room === room.id ? undo : null} />}
-        {w.id.startsWith('room:') && room &&
-          <RoomApp room={room} view={VIEW} mandates={snap.mandates ?? []}
-                   tasks={snap.tasks ?? []} agents={snap.agents} />}
-        {w.kind === 'agent' && <AgentApp agentId={w.ref!} />}
-        {w.kind === 'floor' && <FloorApp rooms={snap.rooms} agents={snap.agents} mandates={snap.mandates ?? []}
-                     tasks={snap.tasks ?? []} onOpen={openRoomConsole} />}
-        {w.kind === 'list' && <ListView rooms={snap.rooms} agents={snap.agents} />}
-        {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} config={snap.config} perf={perf} theme={theme} setTheme={setTheme} />}
-        {w.kind === 'music' && <MusicApp />}
-        {w.kind === 'ride' && <RideApp />}
-        {w.kind === 'maps' && <MapsApp />}
+        {/* One boundary per window, so a chunk still arriving never blanks the desk —
+            only the inside of the window that is waiting for it. */}
+        <Suspense fallback={<div className="pad muted">One moment…</div>}>
+          {w.id.startsWith('room:') && room &&
+            <RoomApp room={room} view={VIEW} mandates={snap.mandates ?? []}
+                     tasks={snap.tasks ?? []} agents={snap.agents} />}
+          {w.kind === 'agent' && <AgentApp agentId={w.ref!} />}
+          {w.kind === 'floor' && <FloorApp rooms={snap.rooms} agents={snap.agents} mandates={snap.mandates ?? []}
+                       tasks={snap.tasks ?? []} onOpen={openRoomConsole} />}
+          {w.kind === 'list' && <ListView rooms={snap.rooms} agents={snap.agents} />}
+          {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} config={snap.config} perf={perf} theme={theme} setTheme={setTheme} />}
+          {w.kind === 'music' && <MusicApp />}
+          {w.kind === 'ride' && <RideApp />}
+          {w.kind === 'maps' && <MapsApp />}
+        </Suspense>
       </Window>
     );
   };
