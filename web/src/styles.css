@@ -1172,3 +1172,47 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 .lab-foot { margin-top:auto; text-align:center; }
 .lab-foot b { font-size:12.5px; text-transform:capitalize; }
 .lab-foot p { margin:3px 0 8px; font-size:11.5px; color:var(--muted); line-height:1.35; }
+
+/* --- the sphere itself changes with the skin ---
+   The panel material is only half the treatment. An orb made of the app's glass and an
+   orb that is only a drawn ring are different objects, and the four should be compared
+   as objects, not as four panels with the same bead on top. */
+
+/* Glass — a bead of the same glass the windows are made of. No plasma: this one is
+   lit from outside, and its colour is a tint in the core rather than a churning field. */
+.skin-glass .plasma { display:none; }
+.skin-glass .orb-sphere {
+  background:radial-gradient(circle at 50% 62%, color-mix(in srgb, var(--glow) 62%, transparent), transparent 58%),
+             linear-gradient(158deg, rgb(255 255 255 / .92), rgb(255 255 255 / .28)),
+             color-mix(in srgb, var(--solid) 45%, transparent);
+  backdrop-filter:blur(6px) saturate(140%);
+  box-shadow:inset 0 0 0 .5px var(--rim), 0 2px 7px rgb(0 0 0 / .2); }
+.skin-glass .orb-shade {
+  background:radial-gradient(circle at 33% 25%, rgb(255 255 255 / .95), rgb(255 255 255 / 0) 46%),
+             radial-gradient(circle at 72% 82%, rgb(0 0 0 / .18), rgb(0 0 0 / 0) 62%); }
+.skin-glass .orb-sphere::after { box-shadow:inset 0 0 0 .5px var(--rim); }
+.skin-glass .orb-halo { box-shadow:none; }
+
+/* Well — the deep sphere it already was: a lit core turning inside dark glass. */
+
+/* Halo — not a sphere at all. An open ring with a small core, drawn in one weight,
+   so the object matches the panel it unrolls into. */
+.skin-halo .plasma, .skin-halo .orb-shade, .skin-halo .orb-dome { display:none; }
+.skin-halo .orb-sphere {
+  background:none; box-shadow:none;
+  border:1.5px solid color-mix(in srgb, var(--text) 50%, transparent); }
+.skin-halo .orb-sphere::after {
+  box-shadow:none; background:var(--glow);
+  inset:38%; border-radius:999px; }
+.skin-halo .orb-halo { box-shadow:none; }
+
+/* Bloom — no surface and no edge. A point of light with a falloff, which is why the
+   panel it becomes has no border either. */
+.skin-bloom .plasma, .skin-bloom .orb-shade, .skin-bloom .orb-dome { display:none; }
+.skin-bloom .orb-sphere {
+  overflow:visible; box-shadow:none;
+  background:radial-gradient(circle at 50% 44%,
+             #fff 6%, color-mix(in srgb, var(--glow-bloom) 92%, white) 30%,
+             color-mix(in srgb, var(--glow-bloom) 70%, transparent) 58%, transparent 76%); }
+.skin-bloom .orb-sphere::after { box-shadow:none; }
+.skin-bloom .orb-halo { box-shadow:0 0 26px -2px color-mix(in srgb, var(--glow-bloom) 80%, transparent); }
