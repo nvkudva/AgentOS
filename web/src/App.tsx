@@ -627,7 +627,8 @@ export default function App() {
           <RoomApp room={room} view={VIEW} mandates={snap.mandates ?? []}
                    tasks={snap.tasks ?? []} agents={snap.agents} />}
         {w.kind === 'agent' && <AgentApp agentId={w.ref!} />}
-        {w.kind === 'floor' && <FloorApp rooms={snap.rooms} agents={snap.agents} onOpen={openRoomConsole} />}
+        {w.kind === 'floor' && <FloorApp rooms={snap.rooms} agents={snap.agents} mandates={snap.mandates ?? []}
+                     tasks={snap.tasks ?? []} onOpen={openRoomConsole} />}
         {w.kind === 'list' && <ListView rooms={snap.rooms} agents={snap.agents} />}
         {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} config={snap.config} perf={perf} theme={theme} setTheme={setTheme} />}
         {w.kind === 'music' && <MusicApp />}
