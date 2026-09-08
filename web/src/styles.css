@@ -257,10 +257,6 @@ p { margin:8px 0; }
    panel widens for as long as there is a box to type in. */
 .sup.open:has(.sup-input) .sup-shell { width:min(430px, 88vw); }
 .sup-input:focus { outline:none; }
-.wave { display:flex; align-items:flex-end; gap:3px; height:18px; }
-.wave i { width:3px; height:3px; border-radius:999px; background:var(--faint); }
-.wave.on i { background:var(--working); animation:bars 1.1s ease-in-out infinite alternate; }
-@keyframes bars { from { height:4px } to { height:18px } }
 
 /* --- stage --- */
 .stage { position:relative; z-index:10; flex:1; min-height:0; overflow:hidden; }
@@ -1051,7 +1047,6 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 @media (prefers-reduced-motion:reduce) {
   /* removed: ambient texture and travel */
   .plasma, .orb-halo { animation:none !important; }
-  .wave.on i { animation:none; height:11px; }
   .undo-run, .chit-drain { animation:none; }
   .win, .win.closing { animation:none; }
   .tile { transform:none !important; }          /* the dock's magnification wave */
@@ -1110,17 +1105,17 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
   box-shadow:inset 0 1px 0 var(--spec), var(--e4); }
 [data-perf="lite"] .skin-glass.sup.open .sup-shell { backdrop-filter:none; background:var(--win-fill); }
 
-/* 2. Well — a graphite drawer the sphere is set into; the orb keeps its own light. */
+/* 2. Well — a drawer the sphere is set into. Solid rather than glass, and a shade
+      deeper than the desk it sits on, which means it is mixed from the theme's own ink
+      and surface: a pale drawer in the light, a graphite one in the dark. */
 .skin-well.sup.open .sup-shell {
-  background:linear-gradient(180deg, #1a2030, #12161f);
-  border-color:rgb(255 255 255 / .09);
-  box-shadow:inset 0 1px 0 rgb(255 255 255 / .07), 0 18px 40px -12px rgb(0 0 0 / .6); }
-.skin-well.sup.open .sup-turn.orb,
-.skin-well.sup.open .sup-empty { color:#e7ecf5; }
-.skin-well.sup.open .sup-turn.you { background:rgb(255 255 255 / .1); color:#fff; }
-.skin-well.sup.open .sup-composer-hint { background:rgb(255 255 255 / .06);
-  border-color:rgb(255 255 255 / .12); color:#93a0b5; }
-.skin-well.sup.open .sup-input { color:#fff; }
+  background:linear-gradient(180deg,
+              color-mix(in srgb, var(--text) 5%, var(--solid)),
+              color-mix(in srgb, var(--text) 11%, var(--solid)));
+  border-color:var(--rim);
+  box-shadow:inset 0 1px 0 var(--spec), var(--e4); }
+.skin-well.sup.open .sup-turn.you { background:var(--tint-2); }
+.skin-well.sup.open .sup-composer-hint { background:var(--tint); border-color:var(--line); }
 
 /* 3. Halo — a drawn line and nothing else. No fill, no shadow, no glass: the desk
       shows straight through and the only edge is the ring the orb unrolled. */
@@ -1217,24 +1212,12 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 .skin-bloom .orb-sphere::after { box-shadow:none; }
 .skin-bloom .orb-halo { box-shadow:0 0 26px -2px color-mix(in srgb, var(--glow-bloom) 80%, transparent); }
 
-/* The cards were drawn for a light panel. On graphite they have to be re-lit, or the
-   result you are being shown is dark text on a dark drawer. */
-.skin-well.sup.open .sup-result,
-.skin-well.sup.open .sup-clarify,
-.skin-well.sup.open .sup-prop { color:#e7ecf5; }
-.skin-well.sup.open .sup-result b,
-.skin-well.sup.open .sup-result p,
-.skin-well.sup.open .sup-clarify b,
-.skin-well.sup.open .sup-prop b { color:#f2f5fa; }
-.skin-well.sup.open .sup-result em,
-.skin-well.sup.open .sup-clarify em,
-.skin-well.sup.open .sup-prop em,
-.skin-well.sup.open .sup-aim u { color:#8c99ad; }
-.skin-well.sup.open .sup-label { color:#7d8a9e; }
-.skin-well.sup.open .sup-asked { color:#aab6c8; }
-.skin-well.sup.open button:not(.primary) {
-  background:rgb(255 255 255 / .08); border-color:rgb(255 255 255 / .15); color:#e7ecf5; }
-.skin-well.sup.open button:not(.primary):hover { background:rgb(255 255 255 / .14); }
-.skin-well.sup.open .sup-input { color:#f2f5fa; }
-.skin-well.sup.open .sup-input::placeholder { color:#7d8a9e; }
-.skin-well.sup.open .sup-empty { color:#8c99ad; }
+/* The answers are read, then said — not clicked. */
+.sup-answers { margin:6px 0 4px; padding-left:18px; display:flex; flex-direction:column; gap:2px; }
+.sup-answers li { font-size:12.5px; color:var(--text); }
+.sup-result { cursor:pointer; border-radius:var(--r-card); }
+.sup-result:hover { background:var(--tint); }
+.sup-result em, .sup-clarify em, .sup-prop em {
+  display:block; margin-top:6px; font-style:normal; font-size:11px; color:var(--faint); }
+.room-chip { display:inline-flex; align-items:center; gap:5px; font-size:12px;
+  color:var(--c); font-weight:500; }

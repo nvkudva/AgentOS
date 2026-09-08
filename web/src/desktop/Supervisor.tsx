@@ -114,7 +114,12 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     if (live.current.prop && YES.test(text.trim().toLowerCase().replace(/[.!?]+$/, ''))) return commit();
     const c = clarifies[0];
     if (c) {
-      const hit = c.answers.find((a) => a.toLowerCase() === text.trim().toLowerCase().replace(/[.!?]+$/, ''));
+      const said = text.trim().toLowerCase().replace(/[.!?]+$/, '');
+      // Saying "two" or typing "2" answers it: the card is numbered, so the number is
+      // the shortest true thing the operator can say.
+      const n = { '1': 0, one: 0, '2': 1, two: 1, '3': 2, three: 2 }[said];
+      const hit = c.answers.find((a) => a.toLowerCase() === said)
+        ?? (n !== undefined ? c.answers[n] : undefined);
       if (hit) { onClarify(c, hit); say('Told them.'); show(5000); return; }
     }
     setAsked(text);
@@ -266,12 +271,10 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
         {clar && (
           <div className="sup-clarify" style={{ ['--c' as any]: clar.colour }}>
             <b>{clar.question}</b>
-            <div className="sup-answers">
-              {clar.answers.slice(0, 3).map((a, i) => (
-                <button key={a} onClick={() => onClarify(clar, a)}><i>{i + 1}</i>{a}</button>
-              ))}
-            </div>
-            <em>esc to leave it — it will ask you properly in a minute</em>
+            <ol className="sup-answers">
+              {clar.answers.slice(0, 3).map((a) => <li key={a}>{a}</li>)}
+            </ol>
+            <em>say or type the number — esc leaves it, and it will ask you properly in a minute</em>
           </div>
         )}
 
@@ -286,27 +289,22 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
               <b>{prop.text}</b>
             </span>
             <div className="sup-aim">
-              <button className="room-chip" style={{ ['--c' as any]: room.color }}
-                      onClick={() => setPick((i) => (i + 1) % prop.rooms.length)}>
+              <span className="room-chip" style={{ ['--c' as any]: room.color }}>
                 {room.icon} {room.name}
-              </button>
+              </span>
               <u>~{quote}</u>
-              <span className="spacer" />
-              <button className="primary" onClick={commit}>Send ⏎</button>
             </div>
-            <em>← → another room · esc to forget it</em>
+            <em>⏎ sends it · ← → another room · esc to forget it</em>
           </div>
         )}
 
         {res && (
-          <div className="sup-result" style={{ ['--c' as any]: res.colour }}>
+          <div className="sup-result" style={{ ['--c' as any]: res.colour }} role="button" tabIndex={0}
+               onClick={() => onResult(res, 'open')}
+               onKeyDown={(e) => { if (e.key === 'Enter') onResult(res, 'open'); }}>
             <b>{res.mandate}</b>
             <p>{res.text}</p>
-            <div className="sup-aim">
-              <button onClick={() => onResult(res, 'open')}>Open</button>
-              <button className="primary" onClick={() => onResult(res, 'done')}>Done</button>
-              {results.length > 1 && <u>+{results.length - 1} more</u>}
-            </div>
+            <em>click to open it{results.length > 1 ? ` · ${results.length - 1} more behind it` : ''}</em>
           </div>
         )}
 
@@ -323,6 +321,12 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
                        if (live.current.prop) commit(); else submit(text);
                        return;
                      }
+                     if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && live.current.prop) {
+                       e.preventDefault();
+                       const n = live.current.prop.rooms.length;
+                       setPick((i) => (i + (e.key === 'ArrowRight' ? 1 : n - 1)) % n);
+                       return;
+                     }
                      if (e.key === 'Escape') {
                        e.preventDefault(); e.stopPropagation();
                        if (live.current.prop) { discard(); return; }
@@ -337,9 +341,6 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
         )}
 
 
-        <div className={`wave${listening ? ' on' : ''}`} aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((i) => <i key={i} style={{ animationDelay: `${i * 0.12}s` }} />)}
-        </div>
       </div>
       </div>
     </div>
