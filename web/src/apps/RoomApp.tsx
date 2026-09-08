@@ -1,13 +1,71 @@
 import { useEffect, useState } from 'react';
 import { get, post, observe } from '../lib/api';
-import type { Room } from '../lib/api';
+import type { Room, Mandate, Task, Agent } from '../lib/api';
 import { describe, hours, toolName, toolGlyph } from '../lib/humanize';
 
 const TABS = ['Activity', 'Files', 'Spending', 'History', 'Permissions'] as const;
 type Tab = typeof TABS[number];
 
+/**
+ * What this room is doing, in a sentence, before any of the detail below it.
+ *
+ * The tabs answer "what happened"; an operator opening a room first wants "what is
+ * happening" — the instruction it is working on, how far through it is, who is on it,
+ * and whether it is waiting on them. It says so in words, not state names.
+ */
+function Summary({ room, mandates, tasks, agents }: {
+  room: Room; mandates: Mandate[]; tasks: Task[]; agents: Agent[];
+}) {
+  const mine = mandates
+    .filter((m) => m.room_id === room.id && m.state !== 'recalled')
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  const m = mine[0];
+  const crew = agents.filter((a) => a.room_id === room.id);
+
+  if (!m) {
+    const idle = crew.filter((a) => a.state === 'idle').length;
+    return (
+      <div className="rm-sum quiet">
+        <b>Nothing on the go.</b>
+        <p>{room.objective}. {idle === crew.length
+          ? `All ${crew.length} here and free.`
+          : `${idle} of ${crew.length} free.`}</p>
+      </div>
+    );
+  }
+
+  const mt = tasks.filter((t) => t.mandate_id === m.id);
+  const done = mt.filter((t) => t.state === 'done').length;
+  const working = mt.filter((t) => t.state === 'working');
+  const failed = mt.filter((t) => t.state === 'failed').length;
+  const who = working
+    .map((t) => agents.find((a) => a.id === t.agent_id)?.name)
+    .filter(Boolean) as string[];
+  const waiting = crew.some((a) => ['awaiting_approval', 'blocked'].includes(a.state));
+
+  // One sentence, chosen by what is actually true — not a state name rendered as a chip.
+  const where =
+    m.state === 'done' ? 'Finished.'
+    : m.state === 'blocked' || waiting ? 'Stopped, waiting on you.'
+    : m.state === 'heard' || m.state === 'routed' ? 'Just arrived — the manager is breaking it down.'
+    : !mt.length ? 'Being broken into tasks.'
+    : working.length ? `${done} of ${mt.length} done, ${who.length ? who.join(' and ') + ' on the rest' : 'the rest queued'}.`
+    : `${done} of ${mt.length} done.`;
+
+  return (
+    <div className={`rm-sum${waiting || m.state === 'blocked' ? ' needs' : ''}`}
+         style={{ ['--c' as any]: m.color ?? room.color }}>
+      <b>“{m.text}”</b>
+      <p>{where}{failed ? ` ${failed} failed.` : ''}</p>
+      {m.report && <p className="rm-report">{m.report}</p>}
+    </div>
+  );
+}
+
 /** A room, as an ordinary app: what happened, what it made, what it cost, what it may touch. */
-export function RoomApp({ room, view }: { room: Room; view: string }) {
+export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: {
+  room: Room; view: string; mandates?: Mandate[]; tasks?: Task[]; agents?: Agent[];
+}) {
   const [d, setD] = useState<any>(null);
   const [tab, setTab] = useState<Tab>('Activity');
 
@@ -37,6 +95,9 @@ export function RoomApp({ room, view }: { room: Room; view: string }) {
           </button>
         ))}
       </header>
+
+      <Summary room={d.room} mandates={mandates} tasks={tasks}
+               agents={agents.length ? agents : d.agents} />
 
       <nav className="segmented">
         {TABS.map((t) => (

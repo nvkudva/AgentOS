@@ -62,18 +62,6 @@ export function stageArea(stage: { w: number; h: number }): Rect {
   return { left: 0, top: 0, width: stage.w, height: stage.h };
 }
 
-/** Where a newly opened app should sit: centred in the free desktop, gently cascaded. */
-export function centreIn(area: Rect, w: number, h: number, nth = 0): Rect {
-  const width = Math.min(w, area.width - 32);
-  const height = Math.min(h, area.height - 32);
-  const off = (nth % 5) * 22;
-  return {
-    left: Math.round(area.left + (area.width - width) / 2 + off - 44),
-    top: Math.round(area.top + (area.height - height) / 2 + off - 44),
-    width, height,
-  };
-}
-
 export const SLIVER = 72;   // how much of a parked window stays on screen
 const PARK_PAD = 8, PARK_GAP = 8;
 

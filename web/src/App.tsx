@@ -4,7 +4,7 @@ import { useTheme } from './lib/theme';
 import { usePerf } from './lib/perf';
 import { loadDesktop, saveDesktop, loadSeen, saveSeen } from './lib/desktop';
 import type { Room, Agent, Inbox, Task } from './lib/api';
-import { useWindows, layout, stageArea, centreIn, SLIVER, type Win, type Rect, type AppKind, type Park } from './desktop/wm';
+import { useWindows, layout, SLIVER, type Win, type Rect, type AppKind, type Park } from './desktop/wm';
 import { Window } from './desktop/Window';
 import { Wallpaper } from './desktop/Wallpaper';
 import { MenuBar } from './desktop/MenuBar';
@@ -51,6 +51,7 @@ const VIEW = 'desktop';
  * four-column grid, so a room added today lands somewhere sensible too — and nothing
  * ever re-stacks the ones already on the desktop.
  */
+const CENTRE_W = 900, CENTRE_H = 600;
 const COLS = 4, PAD = 10, GAP = 12, ROOM_W = 320;
 /** The room window's own furniture, in the sizes styles.css actually gives it. */
 const BAR_H = 39, BODY_PAD = 18, MGR_ROW = 60, CREW_ROW = 48, ROW_GAP = 2;
@@ -144,21 +145,25 @@ export default function App() {
   }, [snap !== null]);
   useEffect(() => { observe(VIEW, 'view.enter'); }, []);
 
-  // Apps open in the middle of the desktop, cascading so the last one is never buried.
+  /**
+   * Every app and every room opened to full size gets the same window, dead centre.
+   * One canonical size means the operator's eye learns exactly one place to look, and a
+   * second app does not arrive 22px down and to the right of the first.
+   */
   const live = useRef<{ wins: Win[]; stage: { w: number; h: number }; agents: Agent[] }>(
     { wins: [], stage, agents: [] });
   live.current = { wins, stage, agents: snap?.agents ?? [] };
-  const place = useCallback((w: number, h: number) => {
-    const { wins: ws, stage: st } = live.current;
-    const nth = ws.filter((x) => !x.plain).length;
-    const r = centreIn(stageArea(st), w, h, nth);
-    return { x: r.left, y: r.top, w: r.width, h: r.height };
+  const place = useCallback(() => {
+    const { stage: st } = live.current;
+    const w = Math.min(CENTRE_W, st.w - 32);
+    const h = Math.min(CENTRE_H, st.h - 32);
+    return { x: Math.round((st.w - w) / 2), y: Math.round((st.h - h) / 2), w, h };
   }, []);
 
   const openAgent = useCallback((a: Agent) => {
     observe(VIEW, 'agent.open', { agent: a.name });
     open({ id: `agent:${a.id}`, kind: 'agent', ref: a.id, title: `${a.name} — ${a.role}`,
-           icon: a.avatar, color: a.color, ...place(880, 560) });
+           icon: a.avatar, color: a.color, ...place() });
   }, [open, place]);
 
   const openRoomWindow = useCallback((r: Room) => {
@@ -173,21 +178,21 @@ export default function App() {
   const openRoomConsole = useCallback((r: Room) => {
     observe(VIEW, 'room.open', { room: r.key });
     open({ id: `room:${r.id}`, kind: 'room', ref: r.id, title: r.name,
-           icon: r.icon, color: r.color, ...place(800, 560) });
+           icon: r.icon, color: r.color, ...place() });
   }, [open, place]);
 
   const launch = useCallback((k: AppKind) => {
     if (k === 'inbox') { setSidebar(true); return; }
-    const meta: Record<string, [string, string, string, number, number]> = {
-      floor:    ['🗺️', 'Overview', '#7f93b5', 900, 580],
-      list:     ['📜', 'Activity', '#7f93b5', 740, 520],
-      settings: ['⚙️', 'Settings', '#7f93b5', 740, 520],
-      music:    ['🎵', 'Music',    '#fb5c74', 380, 520],
-      ride:     ['🚗', 'Ride',     '#15181c', 380, 560],
-      maps:     ['📍', 'Maps',     '#2f9d63', 460, 560],
+    const meta: Record<string, [string, string, string]> = {
+      floor:    ['🗺️', 'Overview', '#7f93b5'],
+      list:     ['📜', 'Activity', '#7f93b5'],
+      settings: ['⚙️', 'Settings', '#7f93b5'],
+      music:    ['🎵', 'Music',    '#fb5c74'],
+      ride:     ['🚗', 'Ride',     '#15181c'],
+      maps:     ['📍', 'Maps',     '#2f9d63'],
     };
-    const [icon, title, color, w, h] = meta[k];
-    open({ id: k, kind: k, title, icon, color, ...place(w, h) });
+    const [icon, title, color] = meta[k];
+    open({ id: k, kind: k, title, icon, color, ...place() });
   }, [open, place]);
 
   /**
@@ -612,7 +617,9 @@ export default function App() {
                           mandates={mandates} tasks={tasks} onOpenTask={openTask}
                           onRecall={(m) => recall(m.id)}
                           undo={undo && undo.room === room.id ? undo : null} />}
-        {w.id.startsWith('room:') && room && <RoomApp room={room} view={VIEW} />}
+        {w.id.startsWith('room:') && room &&
+          <RoomApp room={room} view={VIEW} mandates={snap.mandates ?? []}
+                   tasks={snap.tasks ?? []} agents={snap.agents} />}
         {w.kind === 'agent' && <AgentApp agentId={w.ref!} />}
         {w.kind === 'floor' && <FloorApp rooms={snap.rooms} agents={snap.agents} onOpen={openRoomConsole} />}
         {w.kind === 'list' && <ListView rooms={snap.rooms} agents={snap.agents} />}

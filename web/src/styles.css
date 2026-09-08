@@ -6,6 +6,8 @@
    ============================================================ */
 :root {
   --sliver:72px;
+  --tile:48px;
+  --dock-gap:10px;
   color-scheme: light;
   --text:#0d1319; --muted:#59646f; --faint:#8b95a1;
   --solid:#f6f8fb; --win-fill:#fbfdfef7;
@@ -391,8 +393,12 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 /* --- dock --- */
 .dockwrap { position:relative; z-index:80; flex:none; height:var(--dock); display:flex;
   flex-direction:column; align-items:center; justify-content:center; gap:4px; pointer-events:none; }
-.dock { pointer-events:auto; display:flex; align-items:flex-end; gap:10px; padding:8px 12px;
-  max-width:calc(100vw - 24px); overflow-x:auto; overflow-y:visible; scrollbar-width:none;
+/* No containment and no overflow on the slab: a magnified tile has to rise out of the
+   dock, and its label above that. contain:paint alone would clip both, and an overflow-x
+   of auto silently forces overflow-y to auto too, which clips them again. The dock keeps
+   its tiles on one line and shrinks them on a narrow desk instead of scrolling. */
+.dock { pointer-events:auto; display:flex; align-items:flex-end; gap:var(--dock-gap); padding:8px 12px;
+  max-width:calc(100vw - 24px); overflow:visible; flex-wrap:nowrap;
   border-radius:var(--r-shell);
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
   backdrop-filter:blur(28px) saturate(180%); border:.5px solid var(--rim);
@@ -401,12 +407,13 @@ body.dragging .win.parked:hover { width:var(--sliver); }
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb,var(--solid) 96%, transparent); }
 .dock::-webkit-scrollbar { display:none; }
 .dock > * { flex:none; }
-.tile { position:relative; width:48px; height:48px; padding:0; border-radius:var(--r-card);
+.tile { position:relative; width:var(--tile); height:var(--tile); padding:0; border-radius:var(--r-card);
   border:0; background:none; box-shadow:none;
   display:grid; place-items:center;
   transition:transform var(--t-tint) var(--ease); }
 .tile .glyph { font-size:24px; line-height:1; }
-.appicon { width:44px; height:44px; display:block; border-radius:999px;
+.tile .face.big { width:calc(var(--tile) - 4px); height:calc(var(--tile) - 4px); }
+.appicon { width:calc(var(--tile) - 4px); height:calc(var(--tile) - 4px); display:block; border-radius:999px;
   box-shadow:0 1px 2px rgba(0,0,0,.28), 0 4px 10px rgba(0,0,0,.18); }
 .tile { transform-origin:50% 100%; will-change:transform; }
 .tile:hover { z-index:2; }
@@ -1050,3 +1057,19 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
   .cap-in { animation:cap-in 90ms linear both; }
   .cap-out { animation:cap-out 90ms linear forwards; }
 }
+
+/* A crowded desk shrinks the dock rather than hiding the far end behind a scrollbar. */
+@media (max-width: 1180px) { :root { --tile:42px; --dock-gap:7px; } }
+@media (max-width: 940px)  { :root { --tile:36px; --dock-gap:5px; } }
+
+/* --- a room says what it is doing before it says what it did --- */
+.rm-sum { margin:0 14px 10px; padding:11px 13px; border-radius:var(--r-card);
+  background:var(--tint); border:.5px solid var(--line-soft);
+  border-left:3px solid var(--c, var(--line)); }
+.rm-sum.quiet { border-left-color:var(--line); }
+.rm-sum.needs { border-left-color:var(--approval);
+  background:color-mix(in srgb, var(--approval) 7%, var(--tint)); }
+.rm-sum > b { display:block; font-size:13.5px; line-height:1.35; }
+.rm-sum > p { margin:4px 0 0; font-size:12px; color:var(--muted); }
+.rm-sum .rm-report { margin-top:6px; padding-top:6px; border-top:.5px solid var(--line-soft);
+  color:var(--text); }
