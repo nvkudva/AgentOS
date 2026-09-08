@@ -116,7 +116,7 @@ export default function App() {
   }, [close]);
   const [sidebar, setSidebar] = useState(false);
   const [skin, setSkin] = useState<Skin>(() => {
-    try { return (localStorage.getItem('atrium.orbSkin') as Skin) || 'glass'; } catch { return 'glass'; }
+    try { return (localStorage.getItem('atrium.orbSkin') as Skin) || 'well'; } catch { return 'well'; }
   });
   const [focusApproval, setFocusApproval] = useState<string | undefined>();
   /**

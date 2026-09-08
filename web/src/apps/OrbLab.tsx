@@ -48,7 +48,7 @@ export function OrbLab({ onPick, current }: { onPick?: (s: Skin) => void; curren
               <div className="sup-shell">
                 <button className="orb-btn" onClick={() => setOpen((o) => ({ ...o, [skin]: !o[skin] }))}
                         title={`${skin} — click to open`}>
-                  <Orb mode={open[skin] ? 'thinking' : 'idle'} />
+                  <Orb mode={open[skin] ? 'thinking' : 'idle'} ring={skin !== 'well'} />
                 </button>
                 <div className="sup-body">
                   <div className="sup-feed">

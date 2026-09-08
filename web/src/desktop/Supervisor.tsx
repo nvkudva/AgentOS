@@ -247,7 +247,8 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
                 data-orb="" data-drop="" data-accepts="mandate task"
                 onContextMenu={(e) => { e.preventDefault(); setTyping(true); show(20000); setTimeout(() => box.current?.focus(), 30); }}
                 title={supported ? 'Click to talk · ⌘K to type' : 'Click to type a command'}>
-          <Orb mode={listening ? 'listening' : thinking ? 'thinking' : alert ? 'alert' : 'idle'} stream={stream} />
+          <Orb mode={listening ? 'listening' : thinking ? 'thinking' : alert ? 'alert' : 'idle'}
+               stream={stream} ring={skin !== 'well'} />
         </button>
 
         <div className="sup-body" role="status" aria-live="polite">

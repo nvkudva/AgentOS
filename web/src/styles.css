@@ -1216,3 +1216,25 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
              color-mix(in srgb, var(--glow-bloom) 70%, transparent) 58%, transparent 76%); }
 .skin-bloom .orb-sphere::after { box-shadow:none; }
 .skin-bloom .orb-halo { box-shadow:0 0 26px -2px color-mix(in srgb, var(--glow-bloom) 80%, transparent); }
+
+/* The cards were drawn for a light panel. On graphite they have to be re-lit, or the
+   result you are being shown is dark text on a dark drawer. */
+.skin-well.sup.open .sup-result,
+.skin-well.sup.open .sup-clarify,
+.skin-well.sup.open .sup-prop { color:#e7ecf5; }
+.skin-well.sup.open .sup-result b,
+.skin-well.sup.open .sup-result p,
+.skin-well.sup.open .sup-clarify b,
+.skin-well.sup.open .sup-prop b { color:#f2f5fa; }
+.skin-well.sup.open .sup-result em,
+.skin-well.sup.open .sup-clarify em,
+.skin-well.sup.open .sup-prop em,
+.skin-well.sup.open .sup-aim u { color:#8c99ad; }
+.skin-well.sup.open .sup-label { color:#7d8a9e; }
+.skin-well.sup.open .sup-asked { color:#aab6c8; }
+.skin-well.sup.open button:not(.primary) {
+  background:rgb(255 255 255 / .08); border-color:rgb(255 255 255 / .15); color:#e7ecf5; }
+.skin-well.sup.open button:not(.primary):hover { background:rgb(255 255 255 / .14); }
+.skin-well.sup.open .sup-input { color:#f2f5fa; }
+.skin-well.sup.open .sup-input::placeholder { color:#7d8a9e; }
+.skin-well.sup.open .sup-empty { color:#8c99ad; }

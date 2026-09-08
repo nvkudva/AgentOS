@@ -24,7 +24,10 @@ export function bloomOrb(colour: string) {
   kick?.();
 }
 
-export function Orb({ mode, size = 38, stream }: { mode: Mode; size?: number; stream?: MediaStream | null }) {
+export function Orb({ mode, size = 38, stream, ring = true }:
+  { mode: Mode; size?: number; stream?: MediaStream | null;
+    /** the bar ring around the sphere — off for treatments that want a bare orb */
+    ring?: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const analyser = useRef<AnalyserNode | null>(null);
   const audioCtx = useRef<AudioContext | null>(null);
@@ -45,7 +48,7 @@ export function Orb({ mode, size = 38, stream }: { mode: Mode; size?: number; st
 
   useEffect(() => {
     const el = canvas.current;
-    if (!el) return;
+    if (!el || !ring) return;                  // no canvas, no paint loop
     const R = size + 22;                       // ring canvas is larger than the sphere
     const dpr = Math.min(2, devicePixelRatio || 1);
     el.width = R * dpr; el.height = R * dpr;
@@ -111,11 +114,11 @@ export function Orb({ mode, size = 38, stream }: { mode: Mode; size?: number; st
     kick = () => { if (!running) paint(); };
     paint();                                   // idle draws exactly one frame, then stops
     return () => { kick = null; cancelAnimationFrame(raf); };
-  }, [mode, size]);
+  }, [mode, size, ring]);
 
   return (
     <span className={`orb ${mode}`} style={{ ['--size' as any]: `${size}px` }}>
-      <canvas className="orb-ring" ref={canvas} />
+      {ring && <canvas className="orb-ring" ref={canvas} />}
       <span className="orb-sphere">
         <span className="plasma a" />
         <span className="plasma b" />
