@@ -1,17 +1,18 @@
 import { post } from '../lib/api';
 import type { Inbox } from '../lib/api';
 import { GlanceTest } from './GlanceTest';
-import { Supervisor } from './Supervisor';
+import { Supervisor, type Skin } from './Supervisor';
 import type { CmdCtx } from './commands';
 import type { Result, Clarify } from './intent';
 import type { Theme } from '../lib/theme';
 
-export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen,
+export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen, skin,
                           bell, results, clarifies, onResult, onClarify }: {
   config: any; inbox: Inbox[]; needsMe: boolean; view: string;
   theme: Theme; setTheme: (t: Theme) => void; ctx: CmdCtx;
   sidebar: boolean; onSidebar: (b: boolean) => void;
   onOpen: (k: 'floor' | 'list' | 'inbox' | 'settings') => void;
+  skin: Skin;
   /** what the badge is allowed to say — it lags the queue until the flight lands */
   bell: number;
   results: Result[]; clarifies: Clarify[];
@@ -30,7 +31,7 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
       <GlanceTest view={view} truth={needsMe} />
 
       <span className="spacer" />
-      <Supervisor ctx={ctx} alert={needsMe} speak={true}
+      <Supervisor ctx={ctx} alert={needsMe} speak={true} skin={skin}
                   results={results} clarifies={clarifies} onResult={onResult} onClarify={onClarify} />
       <span className="spacer" />
 

@@ -15,6 +15,7 @@ const EXTRAS: { kind: AppKind; icon: IconName; label: string }[] = [
   { kind: 'music', icon: 'music', label: 'Music' },
   { kind: 'ride',  icon: 'ride',  label: 'Ride' },
   { kind: 'maps',  icon: 'maps',  label: 'Maps' },
+  { kind: 'orblab', icon: 'settings', label: 'Orb lab' },
 ];
 
 /** A dock, in the Apple sense: a floating slab, magnified on hover, dots for what runs. */

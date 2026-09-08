@@ -19,8 +19,15 @@ const YES = /^(yes|yep|yeah|do it|go ahead|confirm|please do|ok|okay)$/;
  * Nothing here can approve, and nothing here starts work without the operator's hand
  * or their word.
  */
-export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onResult, onClarify }: {
-  ctx: CmdCtx; alert: boolean; speak: boolean;
+export type Skin = 'glass' | 'well' | 'halo' | 'bloom';
+export const SKINS: Skin[] = ['glass', 'well', 'halo', 'bloom'];
+
+/** One exchange in the conversation. The panel is a chat, not a tray of notices. */
+export type Turn = { id: number; who: 'you' | 'orb'; text: string };
+
+export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onResult, onClarify,
+                             skin = 'glass' }: {
+  ctx: CmdCtx; alert: boolean; speak: boolean; skin?: Skin;
   results: Result[];
   clarifies: Clarify[];
   onResult: (r: Result, what: 'open' | 'done') => void;
@@ -40,6 +47,11 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const [leaving, setLeaving] = useState(false);
   /** The sentence being typed. Owned here so closing the box actually discards it. */
   const [text, setText] = useState('');
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const seq = useRef(0);
+  const feed = useRef<HTMLDivElement>(null);
+  const push = (who: 'you' | 'orb', t: string) =>
+    setTurns((ts) => [...ts, { id: ++seq.current, who, text: t }].slice(-8));
   const rec = useRef<any>(null);
   const box = useRef<HTMLInputElement>(null);
   const hide = useRef<any>(null);
@@ -50,6 +62,10 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   live.current = { prop, pick };
 
   useLayoutEffect(() => { if (typing) box.current?.focus(); }, [typing]);
+  useLayoutEffect(() => {
+    const f = feed.current;
+    if (f && open) f.scrollTop = f.scrollHeight;
+  }, [turns, open, prop, clarifies.length, results.length]);
 
   const show = (ms = 6000) => {
     setOpen(true);
@@ -59,6 +75,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
 
   const say = (text: string) => {
     setReply(text);
+    push('orb', text);
     if (speakOn && 'speechSynthesis' in window) {
       const u = new SpeechSynthesisUtterance(text); u.rate = 1.05;
       speechSynthesis.speak(u);
@@ -101,6 +118,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
       if (hit) { onClarify(c, hit); say('Told them.'); show(5000); return; }
     }
     setAsked(text);
+    push('you', text);
     setText('');
     setThinking(true);
     setTimeout(() => setThinking(false), 700);
@@ -220,44 +238,27 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const line = typing ? '' : listening ? (heard || 'Listening…') : (reply || 'Ask me anything.');
 
   return (
-    <div className={`sup${open ? ' open' : ''}`}>
-      <button className="orb-btn" ref={orb} onClick={toggleListen}
-              data-orb="" data-drop="" data-accepts="mandate task"
-              onContextMenu={(e) => { e.preventDefault(); setTyping(true); show(20000); setTimeout(() => box.current?.focus(), 30); }}
-              title={supported ? 'Click to talk · ⌘K to type' : 'Click to type a command'}>
-        <Orb mode={listening ? 'listening' : thinking ? 'thinking' : alert ? 'alert' : 'idle'} stream={stream} />
-      </button>
+    <div className={`sup skin-${skin}${open ? ' open' : ''}`}>
+      {/* One box. Collapsed it is exactly the orb; opening grows that same box downward
+          into the panel, so the panel is the orb expanding rather than a second surface
+          arriving underneath it. The orb sits at the top of the shell and never moves. */}
+      <div className="sup-shell">
+        <button className="orb-btn" ref={orb} onClick={toggleListen}
+                data-orb="" data-drop="" data-accepts="mandate task"
+                onContextMenu={(e) => { e.preventDefault(); setTyping(true); show(20000); setTimeout(() => box.current?.focus(), 30); }}
+                title={supported ? 'Click to talk · ⌘K to type' : 'Click to type a command'}>
+          <Orb mode={listening ? 'listening' : thinking ? 'thinking' : alert ? 'alert' : 'idle'} stream={stream} />
+        </button>
 
-      <div className="sup-panel" role="status" aria-live="polite">
-        {asked && (
-          <div className="sup-last">
-            <span className="sup-label">Last instruction</span>
-            <span className="sup-asked">{asked}</span>
-          </div>
-        )}
-
-        {typing ? (
-          <form onSubmit={(e) => { e.preventDefault(); if (live.current.prop) commit(); else submit(text); }}>
-            <input ref={box} className="sup-input" placeholder="Type a command…" autoComplete="off"
-                   value={text} onChange={(e) => setText(e.target.value)}
-                   onKeyDown={(e) => {
-                     if (e.key === 'Enter') {
-                       e.preventDefault();
-                       // A proposal is standing: Return sends it, exactly as the button says.
-                       if (live.current.prop) commit(); else submit(text);
-                       return;
-                     }
-                     if (e.key === 'Escape') {
-                       e.preventDefault(); e.stopPropagation();
-                       if (live.current.prop) { discard(); return; }
-                       setText(''); setTyping(false); setOpen(false);
-                     }
-                   }} />
-          </form>
-        ) : (
-          <p className={`sup-line${listening && !heard ? ' waiting' : ''}`}>{line}</p>
-        )}
-
+        <div className="sup-body" role="status" aria-live="polite">
+        <div className="sup-feed" ref={feed}>
+          {!turns.length && !clar && !prop && !res && (
+            <p className="sup-empty">{alert ? 'Something needs you.' : 'Ask me anything.'}</p>
+          )}
+          {turns.map((t) => (
+            <p key={t.id} className={`sup-turn ${t.who}`}>{t.text}</p>
+          ))}
+          {listening && <p className="sup-turn you live">{heard || 'Listening…'}</p>}
         {/* A manager's question. It never joins the approvals queue: it is cheap,
             reversible and answerable in one keystroke — and if it is left for a minute
             it escalates itself rather than going quiet. */}
@@ -308,9 +309,37 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
           </div>
         )}
 
+        </div>
+
+        {typing ? (
+          <form className="sup-compose" onSubmit={(e) => { e.preventDefault(); if (live.current.prop) commit(); else submit(text); }}>
+            <input ref={box} className="sup-input" placeholder="Type a command…" autoComplete="off"
+                   value={text} onChange={(e) => setText(e.target.value)}
+                   onKeyDown={(e) => {
+                     if (e.key === 'Enter') {
+                       e.preventDefault();
+                       // A proposal is standing: Return sends it, exactly as the button says.
+                       if (live.current.prop) commit(); else submit(text);
+                       return;
+                     }
+                     if (e.key === 'Escape') {
+                       e.preventDefault(); e.stopPropagation();
+                       if (live.current.prop) { discard(); return; }
+                       setText(''); setTyping(false); setOpen(false);
+                     }
+                   }} />
+          </form>
+        ) : (
+          <button className="sup-composer-hint" onClick={() => { setTyping(true); show(20000); }}>
+            Say something, or type…
+          </button>
+        )}
+
+
         <div className={`wave${listening ? ' on' : ''}`} aria-hidden="true">
           {[0, 1, 2, 3, 4].map((i) => <i key={i} style={{ animationDelay: `${i * 0.12}s` }} />)}
         </div>
+      </div>
       </div>
     </div>
   );

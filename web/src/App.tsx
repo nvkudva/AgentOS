@@ -21,6 +21,8 @@ import { ListView } from './components/ListView';
 import { MusicApp } from './apps/MusicApp';
 import { RideApp } from './apps/RideApp';
 import { MapsApp } from './apps/MapsApp';
+import { OrbLab } from './apps/OrbLab';
+import type { Skin } from './desktop/Supervisor';
 import { CarryLayer } from './desktop/CarryLayer';
 import { CourierLayer } from './desktop/CourierLayer';
 import { wireCarry } from './desktop/carry';
@@ -113,6 +115,9 @@ export default function App() {
     setTimeout(() => { close(id); setClosing((c) => c.filter((x) => x !== id)); }, 150);
   }, [close]);
   const [sidebar, setSidebar] = useState(false);
+  const [skin, setSkin] = useState<Skin>(() => {
+    try { return (localStorage.getItem('atrium.orbSkin') as Skin) || 'glass'; } catch { return 'glass'; }
+  });
   const [focusApproval, setFocusApproval] = useState<string | undefined>();
   /**
    * What the operator has not read yet. Results are not approvals and never become
@@ -190,6 +195,7 @@ export default function App() {
       music:    ['🎵', 'Music',    '#fb5c74'],
       ride:     ['🚗', 'Ride',     '#15181c'],
       maps:     ['📍', 'Maps',     '#2f9d63'],
+      orblab:   ['🔮', 'Orb lab',  '#7a9bff'],
     };
     const [icon, title, color] = meta[k];
     open({ id: k, kind: k, title, icon, color, ...place() });
@@ -627,6 +633,10 @@ export default function App() {
         {w.kind === 'music' && <MusicApp />}
         {w.kind === 'ride' && <RideApp />}
         {w.kind === 'maps' && <MapsApp />}
+        {w.kind === 'orblab' && <OrbLab current={skin} onPick={(s) => {
+          setSkin(s);
+          try { localStorage.setItem('atrium.orbSkin', s); } catch { /* ignore */ }
+        }} />}
       </Window>
     );
   };
@@ -635,7 +645,7 @@ export default function App() {
     <div className="os">
       <Wallpaper dark={resolved === 'dark'} />
 
-      <MenuBar config={snap.config} inbox={queue} needsMe={needsMe} view={VIEW}
+      <MenuBar config={snap.config} inbox={queue} needsMe={needsMe} view={VIEW} skin={skin}
                theme={theme} setTheme={setTheme} ctx={ctx}
                sidebar={sidebar} onSidebar={setSidebar} onOpen={launch}
                bell={bell} results={results} clarifies={clarifies}
