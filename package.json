@@ -22,7 +22,7 @@
     "report:thesis": "npm -w server run report:thesis",
     "setup:workspace": "npm -w server exec -- tsx scripts/setup-workspace.ts",
     "evidence:restore": "git clone docs/evidence/workspace-remote.bundle /tmp/atrium-evidence && git -C /tmp/atrium-evidence branch -a",
-    "deploy:web": "npm -w web run build && npx wrangler pages deploy web/dist --project-name agentos --branch main"
+    "deploy:web": "npm -w web run build && npx wrangler deploy"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

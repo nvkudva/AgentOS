@@ -1,0 +1,12 @@
+# The desktop, served from a Worker as static assets. There is no Worker script: the
+# build is the whole thing, and `not_found_handling` sends unknown paths to the shell so
+# the SPA — and its service worker — behave the same here as they did on Pages.
+name = "agentos"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./web/dist"
+not_found_handling = "single-page-application"
+
+[observability]
+enabled = true

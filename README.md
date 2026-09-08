@@ -6,7 +6,7 @@ A single-operator workspace for running scripted software agents against real sy
 
 It exists to test one question: whether a desktop of permission-scoped "rooms" beats a chat list for supervising many agents at once.
 
-[Try the desktop](https://main.agentos-cx9.pages.dev) - [Product spec and kill criteria](prd.md) - [Code review](REVIEW.md)
+[Try the desktop](https://agentos.nvkudva.workers.dev) - [Product spec and kill criteria](prd.md) - [Code review](REVIEW.md)
 
 ![The Atrium desktop](docs/desktop-dark.png)
 
