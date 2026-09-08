@@ -24,9 +24,26 @@ import { MapsApp } from './apps/MapsApp';
 import { CarryLayer } from './desktop/CarryLayer';
 import { CourierLayer } from './desktop/CourierLayer';
 import { wireCarry } from './desktop/carry';
-import { send as courier } from './desktop/courier';
-import { requiredTools, tripsApproval, hours, toolName } from './lib/humanize';
+import { send as courier, raise, decided, type Box } from './desktop/courier';
+import { PeekLayer } from './desktop/Peek';
+import { bloomOrb } from './desktop/Orb';
+import { pitch, clearPitch, loadResults, saveResults, seenMandates, markSeen, type Result, type Clarify } from './desktop/intent';
+import { routeRooms } from './desktop/commands';
+import { requiredTools, tripsApproval, hours, toolName, askTitle } from './lib/humanize';
 import type { CmdCtx } from './desktop/commands';
+
+/** Where a thing is on screen right now, or null if it is not. */
+const rectOf = (sel: string): Box | null => {
+  const el = document.querySelector<HTMLElement>(sel);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return r.width && r.height && r.bottom > 0 && r.top < innerHeight ? r : null;
+};
+/** A worker's face — or, if its room is parked or shut, the rail standing in for it. */
+const seatOf = (agentId: string, roomId: string) =>
+  rectOf(`[data-agent="${CSS.escape(agentId)}"]`) ??
+  rectOf(`.win.parked[data-win="roomwin:${CSS.escape(roomId)}"] .pk-rail`) ??
+  rectOf(`[data-dock-room="${CSS.escape(roomId)}"]`);
 
 const VIEW = 'desktop';
 /**
@@ -34,14 +51,45 @@ const VIEW = 'desktop';
  * four-column grid, so a room added today lands somewhere sensible too — and nothing
  * ever re-stacks the ones already on the desktop.
  */
-const COLS = 4, PAD = 10, GAP = 12, ROW = 222;
-const tile = (r: Room, st: { w: number; h: number }) => {
+const COLS = 4, PAD = 10, GAP = 12, ROOM_W = 320;
+/** The room window's own furniture, in the sizes styles.css actually gives it. */
+const BAR_H = 39, BODY_PAD = 18, MGR_ROW = 60, CREW_ROW = 48, ROW_GAP = 2;
+/**
+ * A room is as tall as its crew — a bar, a manager, a line per worker and room for the
+ * strip of queued work. The floor plan gives the column; the desk decides how many rows
+ * it can hold, and the rows that do not fit wrap into the next column instead of
+ * falling off the bottom. Nothing ever lands where it cannot be reached.
+ */
+/**
+ * How tall a room has to be to show its whole crew: measured against the stylesheet
+ * rather than guessed — title bar, the body's own padding, the 60px manager row and a
+ * 48px row per worker with a 2px gap between them. A room that opens one row short
+ * slices its last worker in half at the window edge.
+ */
+const roomHeight = (crew: number, st: { h: number }) => {
+  const need = BAR_H + BODY_PAD + MGR_ROW + Math.max(0, crew - 1) * CREW_ROW
+             + Math.max(1, crew) * ROW_GAP;
+  return Math.min(Math.max(190, need), Math.max(180, st.h - PAD * 2));
+};
+
+/**
+ * `tallest` is the crew of the biggest room on the floor, and it — not this room —
+ * sets the row pitch. Letting each room derive its own pitch from its own height puts
+ * a three-person room and a two-person room on different grids, and they land on top
+ * of each other.
+ */
+const tile = (r: Room, st: { w: number; h: number }, crew: number, tallest = crew) => {
   const usable = st.w - PAD * 2;
+  const w = Math.round(Math.min(ROOM_W, Math.max(240, usable)));
+  const h = roomHeight(crew, st);
+  const pitch = roomHeight(Math.max(crew, tallest), st) + GAP;
+  const perCol = Math.max(1, Math.floor((st.h - PAD) / pitch));
+  const x = Math.round(PAD + (r.x / COLS) * usable) + Math.floor(r.y / perCol) * (w + GAP);
+  const y = PAD + (r.y % perCol) * pitch;
   return {
-    x: Math.round(PAD + (r.x / COLS) * usable),
-    y: PAD + r.y * ROW,
-    w: Math.round(Math.min(320, (r.w / COLS) * usable - GAP)),
-    h: 210,
+    x: Math.max(PAD, Math.min(x, Math.max(PAD, st.w - w - PAD))),
+    y: Math.max(0, Math.min(y, Math.max(0, st.h - h - PAD))),
+    w, h,
   };
 };
 
@@ -49,7 +97,7 @@ const restored = loadDesktop();
 
 export default function App() {
   const snap = useLiveState();
-  const { wins, open, close, focus, patch } = useWindows(restored);
+  const { wins, open, close, focus, patch, patchAll } = useWindows(restored);
   const { theme, setTheme, resolved } = useTheme();
   const perf = usePerf();
   const stageRef = useRef<HTMLElement>(null);
@@ -65,6 +113,16 @@ export default function App() {
   }, [close]);
   const [sidebar, setSidebar] = useState(false);
   const [focusApproval, setFocusApproval] = useState<string | undefined>();
+  /**
+   * What the operator has not read yet. Results are not approvals and never become
+   * them — they outlive a refresh, sit on the orb, and are counted in a second,
+   * quieter badge that nothing on this desk treats as a decision.
+   */
+  const [results, setResults] = useState<Result[]>(loadResults);
+  /** The badge lags the queue: it may only say what has already landed. */
+  const [bell, setBell] = useState(0);
+  /** Clarifies the operator pushed away, or let go quiet for a minute. */
+  const [defer, setDefer] = useState<Set<string>>(() => new Set());
   /**
    * Who holds what, once the operator has aimed a task at a worker with their own hand.
    * The server has no reassign route, so the seat lives here — the gesture, the walk
@@ -87,8 +145,9 @@ export default function App() {
   useEffect(() => { observe(VIEW, 'view.enter'); }, []);
 
   // Apps open in the middle of the desktop, cascading so the last one is never buried.
-  const live = useRef<{ wins: Win[]; stage: { w: number; h: number } }>({ wins: [], stage });
-  live.current = { wins, stage };
+  const live = useRef<{ wins: Win[]; stage: { w: number; h: number }; agents: Agent[] }>(
+    { wins: [], stage, agents: [] });
+  live.current = { wins, stage, agents: snap?.agents ?? [] };
   const place = useCallback((w: number, h: number) => {
     const { wins: ws, stage: st } = live.current;
     const nth = ws.filter((x) => !x.plain).length;
@@ -103,8 +162,12 @@ export default function App() {
   }, [open, place]);
 
   const openRoomWindow = useCallback((r: Room) => {
+    const by = new Map<string, number>();
+    for (const a of live.current.agents) by.set(a.room_id, (by.get(a.room_id) ?? 0) + 1);
+    const crew = by.get(r.id) ?? 0;
+    const tallest = Math.max(1, ...by.values());
     open({ id: `roomwin:${r.id}`, kind: 'room', ref: r.id, title: r.name, icon: r.icon, color: r.color,
-           plain: true, ...tile(r, live.current.stage) });
+           plain: true, ...tile(r, live.current.stage, crew, tallest) });
   }, [open]);
 
   const openRoomConsole = useCallback((r: Room) => {
@@ -151,6 +214,24 @@ export default function App() {
     const n = agentsOf.filter((a) => a.room_id === w.ref).length;
     return 54 + Math.max(1, n) * 44;
   }, [agentsOf]);
+  /**
+   * The desk is the boundary, at every size. A window restored from last week, or left
+   * where a wider viewport used to be, is nudged back inside rather than stranded with
+   * its title bar off the screen — the same rule a live drag already obeys.
+   */
+  useEffect(() => {
+    if (stage.w < 200 || stage.h < 120) return;
+    patchAll((w) => {
+      if (w.park || w.max || w.min) return null;
+      const width = Math.max(160, Math.min(w.w, stage.w - PAD * 2));
+      const height = Math.max(120, Math.min(w.h, stage.h - PAD * 2));
+      const x = Math.min(Math.max(0, w.x), Math.max(0, stage.w - width));
+      const y = Math.min(Math.max(0, w.y), Math.max(0, stage.h - height));
+      return x === w.x && y === w.y && width === w.w && height === w.h
+        ? null : { x, y, w: width, h: height };
+    });
+  }, [stage.w, stage.h, patchAll]);
+
   const rects = useMemo(() => layout(wins, stage, railHeight), [wins, stage, railHeight]);
   useEffect(() => { saveDesktop(wins); }, [wins]);
 
@@ -168,6 +249,160 @@ export default function App() {
   const recall = useCallback((id: string) => post(`/api/mandates/${id}/recall`), []);
 
   /**
+   * A manager's question is not an approval and does not join the queue for one. It
+   * lands in the orb's panel where one keystroke answers it — and if it is left to go
+   * quiet for a minute it escalates itself into Needs-you, so it can be ignored but
+   * never lost.
+   */
+  const inboxAll = snap?.inbox ?? [];
+  const queue = useMemo(() => inboxAll.filter((i) => i.kind !== 'clarify' || defer.has(i.id)),
+                        [inboxAll, defer]);
+  const clarifies = useMemo<Clarify[]>(() => inboxAll
+    .filter((i) => i.kind === 'clarify' && !defer.has(i.id))
+    .map((i) => ({ id: i.id, question: i.action,
+                   answers: (i.args?.answers ?? ['Yes', 'No']).map(String),
+                   colour: rooms.find((r) => r.key === i.room_key)?.color ?? 'var(--blocked)',
+                   at: new Date(i.created_at).getTime() })),
+    [inboxAll, defer, rooms]);
+
+  useEffect(() => {
+    const live = clarifies.map((c) => c.id);
+    if (!live.length) return;
+    const ts = live.map((id) => setTimeout(() => setDefer((d) => new Set(d).add(id)), 60_000));
+    return () => ts.forEach(clearTimeout);
+  }, [clarifies.map((c) => c.id).join()]);
+
+  const answerClarify = useCallback((c: Clarify, answer: string | null) => {
+    if (answer === null) { setDefer((d) => new Set(d).add(c.id)); return; }
+    post(`/api/approvals/${c.id}/decide`, { decision: 'approve', note: answer });
+  }, []);
+
+  /**
+   * The sentence becoming a row. The capsule leaves the orb before the fetch resolves —
+   * the operator committed, so the motion is already true; the route follows it.
+   */
+  const dispatch = useCallback(async (text: string, room: Room, from: DOMRect, mandate?: string) => {
+    // The destination becomes visible before the work arrives: routing into a room the
+    // operator cannot see is the same as losing it.
+    const w = live.current.wins.find((x) => x.id === `roomwin:${room.id}`);
+    if (!w) openRoomWindow(room);
+    else if (w.min) patch(w.id, { min: false });
+    courier({ from, room: room.id, colour: room.color, label: text, kind: 'instruction' });
+    if (mandate) { post(`/api/mandates/${mandate}/route`, { room_key: room.key }); return; }
+    const made = await post('/api/mandates', { text });
+    const id = made?.mandate?.id;
+    if (id) post(`/api/mandates/${id}/route`, { room_key: room.key });
+  }, [openRoomWindow, patch]);
+
+  /**
+   * A raised approval is one flight, not two hops: the worker's chit goes up through
+   * the manager's face — held there for a moment, because that is where accountability
+   * changes hands — and lands on the bell. The badge counts it on impact.
+   */
+  const raisedIds = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!snap) return;
+    const ids = new Set(queue.map((i) => i.id));
+    if (raisedIds.current === null) { raisedIds.current = ids; setBell(ids.size); return; }
+    const gone = [...raisedIds.current].filter((x) => !ids.has(x));
+    const fresh = queue.filter((i) => !raisedIds.current!.has(i.id));
+    raisedIds.current = ids;
+    if (gone.length) setBell((b) => Math.max(0, b - gone.length));
+    const to = rectOf('[data-bell]');
+    for (const it of fresh) {
+      const room = rooms.find((r) => r.key === it.room_key);
+      const worker = agentsOf.find((a) => a.name === it.agent_name && a.room_id === room?.id);
+      const mgr = agentsOf.find((a) => a.room_id === room?.id && a.tier === 'manager');
+      const from = worker && room ? seatOf(worker.id, room.id) : null;
+      if (!to || !from) { setBell((b) => b + 1); continue; }
+      raise({ from, to, colour: room?.color ?? 'var(--blocked)', label: askTitle(it),
+              via: mgr && room && mgr.id !== worker?.id ? seatOf(mgr.id, room.id) : null,
+              onLand: () => setBell((b) => b + 1) });
+    }
+  }, [queue, rooms, agentsOf, snap !== null]);
+
+  /**
+   * A report landing. One capsule comes back up from the room, the orb's own ring
+   * blooms once in the mandate's colour, and the sentence the operator spoke finally
+   * has an answer attached to it.
+   */
+  const read = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    const done = mandates.filter((m) => m.state === 'done' && m.report);
+    if (read.current === null) {
+      // First paint of a fresh browser: everything already finished is history, not news.
+      read.current = new Set([...seenMandates(), ...done.map((m) => m.id)]);
+      markSeen(read.current);
+      return;
+    }
+    const fresh = done.filter((m) => !read.current!.has(m.id));
+    if (!fresh.length) return;
+    fresh.forEach((m) => read.current!.add(m.id));
+    markSeen(read.current);
+    setResults((rs) => {
+      const n = [...fresh.map((m) => ({ id: m.id, mandate: m.text, text: m.report,
+        colour: m.color ?? 'var(--working)', roomId: m.room_id, artifact: m.artifact_id, at: Date.now() })),
+        ...rs].slice(0, 12);
+      saveResults(n); return n;
+    });
+    const orb = rectOf('[data-orb]');
+    fresh.forEach((m) => {
+      const colour = m.color ?? 'var(--working)';
+      const from = m.room_id
+        ? rectOf(`[data-drop][data-room="${CSS.escape(m.room_id)}"]`)
+          ?? rectOf(`.win.parked[data-win="roomwin:${CSS.escape(m.room_id)}"] .pk-rail`)
+        : null;
+      if (from && orb) courier({ from, to: orb, colour, kind: 'result' });
+      setTimeout(() => bloomOrb(colour), from && orb ? 320 : 0);
+    });
+  }, [mandates]);
+
+  /**
+   * The chain, on hover. Every element that belongs to one mandate rings itself and
+   * the rest of the desk steps back — one generated rule, no React render, and the
+   * only place in this product where anything is dimmed.
+   */
+  useEffect(() => {
+    const sheet = document.createElement('style');
+    document.head.appendChild(sheet);
+    let t = 0, pinned = false, at: string | null = null;
+    const set = (id: string | null) => {
+      const stg = stageRef.current;
+      if (!stg || id === at) return;
+      at = id;
+      if (!id) { delete stg.dataset.trace; sheet.textContent = ''; return; }
+      stg.dataset.trace = id;
+      const q = `[data-mandate="${CSS.escape(id)}"]`;
+      sheet.textContent =
+        `.stage[data-trace] .win:has(${q}), .stage[data-trace] ${q} { opacity:1; }`
+        + `.stage[data-trace] ${q} { box-shadow:0 0 0 1.5px var(--c, var(--working)); border-radius:8px; }`;
+    };
+    const over = (e: PointerEvent) => {
+      if (pinned) return;
+      const el = (e.target as HTMLElement)?.closest?.('[data-mandate]') as HTMLElement | null;
+      clearTimeout(t);
+      const id = el?.dataset.mandate;
+      if (!id) { set(null); return; }
+      t = window.setTimeout(() => set(id), 180);
+    };
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'Alt' && at) pinned = true;
+      if (e.key === 'Escape' && at) { pinned = false; set(null); }
+    };
+    const up = (e: KeyboardEvent) => { if (e.key === 'Alt') { pinned = false; } };
+    addEventListener('pointermove', over, { passive: true });
+    addEventListener('keydown', down);
+    addEventListener('keyup', up);
+    return () => {
+      clearTimeout(t);
+      removeEventListener('pointermove', over);
+      removeEventListener('keydown', down);
+      removeEventListener('keyup', up);
+      sheet.remove();
+    };
+  }, []);
+
+  /**
    * What the desk will and will not take, and what happens when it does.
    *
    * Legality is the room's tool grants against the work's required tools — the same
@@ -178,6 +413,15 @@ export default function App() {
     const openOf = (t: Task) => t.state === 'queued' || t.state === 'working';
     wireCarry({
       verdict: (c, el) => {
+        // The orb takes work and finds it a room. It refuses an approval out loud,
+        // because the one thing the supervisor may never do is decide for you.
+        if (el.dataset.orb !== undefined) {
+          if (c.kind === 'approval') return { ok: false };
+          const to = routeRooms(c.label, rooms)[0];
+          return to ? { ok: true, slab: { cost: c.cost ?? '—', queue: `${to.name}, probably`,
+                                          tools: (c.tools ?? []).map(toolName), approval: false } }
+                    : { ok: false };
+        }
         const room = rooms.find((r) => r.id === el.dataset.room);
         const agent = agentsOf.find((a) => a.id === el.dataset.agent);
         const onTask = tasks.find((t) => t.id === el.dataset.task);
@@ -213,6 +457,13 @@ export default function App() {
 
       commit: (c, el) => {
         const box = el.getBoundingClientRect();
+        if (el.dataset.orb !== undefined) {
+          const ranked = routeRooms(c.label, rooms);
+          if (!ranked.length) return;
+          pitch({ room: ranked[0], rooms: ranked, text: c.label, auto: 3000,
+                  mandate: c.kind === 'mandate' ? c.id : tasks.find((t) => t.id === c.id)?.mandate_id });
+          return;
+        }
         const room = rooms.find((r) => r.id === el.dataset.room);
         const agent = agentsOf.find((a) => a.id === el.dataset.agent);
         const onTask = tasks.find((t) => t.id === el.dataset.task);
@@ -238,7 +489,14 @@ export default function App() {
         if (!room) return;
         const mid = c.kind === 'mandate' ? c.id : tasks.find((t) => t.id === c.id)?.mandate_id;
         const m = mandates.find((x) => x.id === mid);
-        if (!m) return;
+        // The orb's uncommitted proposal, taken out of its mouth by hand: there is no
+        // row yet, so the drop is what creates it.
+        if (!m) {
+          if (c.kind !== 'mandate') return;
+          clearPitch();
+          dispatch(c.label, room, box);
+          return;
+        }
         const from = m.room_id;
         courier({ from: box, room: room.id, colour: m.color || room.color, label: c.label, kind: 'instruction' });
         post(`/api/mandates/${m.id}/route`, { room_key: room.key });
@@ -249,7 +507,7 @@ export default function App() {
         });
       },
     });
-  }, [rooms, agentsOf, tasks, mandates, offer, recall]);
+  }, [rooms, agentsOf, tasks, mandates, offer, recall, dispatch]);
 
   /**
    * The shortcuts an operator's hands expect. Everything here is reachable by mouse
@@ -263,7 +521,7 @@ export default function App() {
       if (cmd && e.key === '\\') { e.preventDefault(); setSidebar((v) => !v); return; }
       // ⌥ and not ⌘: the browser owns ⌘1-9 for its tabs and will not give them up.
       // Read the physical key, because Option rewrites e.key into a symbol on macOS.
-      const digit = /^Digit([1-9])$/.exec(e.code)?.[1];
+      const digit = /^Digit([1-9])$/.exec(e.code)?.[1] ?? /^[1-9]$/.exec(e.key)?.[0];
       if (digit && e.altKey && !cmd) {
         const r = (snap?.rooms ?? [])[Number(digit) - 1];
         if (!r) return;
@@ -274,6 +532,9 @@ export default function App() {
         return;
       }
       if (e.key === 'Escape' && !typing) {
+        // The orb's panel is the topmost surface and dismisses itself; the desk must not
+        // also throw away the window the operator was watching underneath it.
+        if (document.querySelector('.sup.open')) return;
         if (sidebar) { setSidebar(false); return; }
         const top = wins.filter((w) => !w.min && !w.park).sort((x, y) => y.z - x.z)[0];
         if (top) shut(top.id);
@@ -295,11 +556,35 @@ export default function App() {
     setTheme,
     setSidebar,
     focusApproval: setFocusApproval,
-  }), [snap, openAgent, openRoomConsole, launch, setTheme]);
+    dispatch,
+  }), [snap, openAgent, openRoomConsole, launch, setTheme, dispatch]);
+
+  /**
+   * A decision going back down. The worker learns it from a dot that arrives, not from
+   * a row that changes underneath it — and a parked room flashes its own colour so a
+   * rail you cannot read still tells you something happened inside it.
+   */
+  const onDecide = useCallback((it: Inbox, decision: 'approve' | 'reject') => {
+    const room = rooms.find((r) => r.key === it.room_key);
+    const worker = agentsOf.find((a) => a.name === it.agent_name && a.room_id === room?.id);
+    const from = rectOf('[data-bell]');
+    const to = worker && room ? seatOf(worker.id, room.id) : null;
+    if (!from || !to || !room) return;
+    const el = document.querySelector<HTMLElement>(`[data-agent="${CSS.escape(worker!.id)}"]`)
+      ?? document.querySelector<HTMLElement>(`.win.parked[data-win="roomwin:${CSS.escape(room.id)}"] .pk-rail`);
+    decided(from, to, decision === 'approve', el);
+  }, [rooms, agentsOf]);
+
+  const onResult = useCallback((r: Result, what: 'open' | 'done') => {
+    setResults((rs) => { const n = rs.filter((x) => x.id !== r.id); saveResults(n); return n; });
+    if (what !== 'open') return;
+    const room = rooms.find((x) => x.id === r.roomId);
+    if (room) openRoomConsole(room);
+  }, [rooms, openRoomConsole]);
 
   if (!snap) return <div className="boot">connecting…</div>;
 
-  const needsMe = snap.inbox.length > 0 ||
+  const needsMe = queue.length > 0 ||
     snap.agents.some((a) => ['awaiting_approval', 'blocked', 'failed'].includes(a.state));
   const roomOf = (w: Win) => snap.rooms.find((r) => r.id === w.ref)!;
 
@@ -315,7 +600,12 @@ export default function App() {
     return (
       <Window key={w.id} win={w} rect={rect} stage={stage} flag={`${attn ? 'needs ' : ''}${w.z === topZ ? '' : 'back'}${closing.includes(w.id) ? ' closing' : ''}`}
               onHint={setHint} peers={peers} onGuide={setGuide}
-              rail={room && <ParkedRail room={room} agents={crew} mandates={mandates} tasks={tasks} />}
+              rail={room
+                ? <ParkedRail room={room} agents={crew} mandates={mandates} tasks={tasks} />
+                : <div className="pk-rail plain" style={{ ['--room' as any]: w.color }} title={w.title}>
+                    <span className="pk-icon">{w.icon}</span>
+                    <span className="pk-name">{w.title}</span>
+                  </div>}
               onFocus={() => focus(w.id)} onClose={() => shut(w.id)} onPatch={(p) => patch(w.id, p)}>
         {w.id.startsWith('roomwin:') && room &&
           <RoomWindowBody room={room} agents={crew} activeId={activeId} onAgent={openAgent}
@@ -338,12 +628,14 @@ export default function App() {
     <div className="os">
       <Wallpaper dark={resolved === 'dark'} />
 
-      <MenuBar config={snap.config} inbox={snap.inbox} needsMe={needsMe} view={VIEW}
+      <MenuBar config={snap.config} inbox={queue} needsMe={needsMe} view={VIEW}
                theme={theme} setTheme={setTheme} ctx={ctx}
-               sidebar={sidebar} onSidebar={setSidebar} onOpen={launch} />
+               sidebar={sidebar} onSidebar={setSidebar} onOpen={launch}
+               bell={bell} results={results} clarifies={clarifies}
+               onResult={onResult} onClarify={answerClarify} />
 
       <main className="stage" ref={stageRef}>
-        <SitDown inbox={snap.inbox} agents={snap.agents} />
+        <SitDown inbox={queue} agents={snap.agents} />
         {hint && <div className={`park-shelf ${hint}`} style={{ width: SLIVER }} />}
         {guide.x.map((x) => <i key={`gx${x}`} className="guide v" style={{ left: x }} />)}
         {guide.y.map((y) => <i key={`gy${y}`} className="guide h" style={{ top: y }} />)}
@@ -360,14 +652,16 @@ export default function App() {
         )}
       </main>
 
-      <Sidebar open={sidebar} inbox={snap.inbox} agents={snap.agents} rooms={snap.rooms} view={VIEW}
+      <Sidebar open={sidebar} inbox={queue} agents={snap.agents} rooms={snap.rooms} view={VIEW}
+               mandates={mandates} onDecide={onDecide}
                onOpenRoom={(key) => { const r = snap.rooms.find((x) => x.key === key); if (r) openRoomConsole(r); }}
                focusId={focusApproval} onClose={() => setSidebar(false)} onPick={openAgent} />
 
       <CourierLayer />
       <CarryLayer />
+      <PeekLayer />
 
-      <Dock wins={wins} agents={snap.agents} inbox={snap.inbox}
+      <Dock wins={wins} agents={snap.agents} inbox={queue} unread={results.length}
             rooms={snap.rooms.map((r) => ({ id: r.id, icon: r.icon, name: r.name, color: r.color }))}
             onLaunch={launch} onFocus={focus}
             onRoom={(id) => {

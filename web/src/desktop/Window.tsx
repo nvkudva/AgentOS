@@ -55,19 +55,32 @@ function align(r: Rect, peers: Rect[], stage: { w: number; h: number }) {
   return { rect: r, lines };
 }
 
+/**
+ * Geometry is written to the node and nowhere else.
+ *
+ * It cannot live in React's style prop as well: a gesture mutates the node behind
+ * React's back, and React's style diff only re-writes the properties whose value
+ * changed — so an axis that did not move (or a width that never changes) would be
+ * removed by the drag and never put back. One writer, every render.
+ */
+function place(n: HTMLElement, r: Rect | null, parked: boolean) {
+  // A parked window is sized by the stylesheet; only its place in the stack is ours.
+  if (parked) {
+    for (const k of ['left', 'width', 'height']) n.style.removeProperty(k);
+    if (r) n.style.top = `${r.top}px`; else n.style.removeProperty('top');
+    return;
+  }
+  if (!r) { for (const k of ['left', 'top', 'width', 'height']) n.style.removeProperty(k); return; }
+  n.style.left = `${r.left}px`; n.style.top = `${r.top}px`;
+  n.style.width = `${r.width}px`; n.style.height = `${r.height}px`;
+}
+
 function paint(id: string, r: Rect | null) {
   const n = document.querySelector<HTMLElement>(`[data-win="${CSS.escape(id)}"]`);
   if (!n) return;
   n.classList.toggle('dragging', !!r);
   document.body.classList.toggle('dragging', !!r);
-  if (!r) {
-    // Hand the node back to React and to CSS. A parked window is sized by the stylesheet,
-    // so leftover inline geometry from the drag would pin it at its full width.
-    for (const k of ['left', 'top', 'width', 'height']) n.style.removeProperty(k);
-    return;
-  }
-  n.style.left = `${r.left}px`; n.style.top = `${r.top}px`;
-  n.style.width = `${r.width}px`; n.style.height = `${r.height}px`;
+  if (r) place(n, r, false);
 }
 
 export function Window({ win, rect, children, stage, rail, flag, peers = [], onHint, onGuide, onFocus, onClose, onPatch }: P) {
@@ -82,17 +95,23 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
   // a scheduler tick, say — would paint the old rect back, so the in-flight geometry is
   // re-applied after every render.
   useLayoutEffect(() => {
-    if (flight.id === win.id) paint(win.id, flight.rect);
+    const n = el.current;
+    if (!n) return;
+    if (flight.id === win.id && flight.rect) { place(n, flight.rect, false); return; }
+    place(n, rect, !!win.park);
   });
 
   const down = (e: React.PointerEvent, mode: Mode) => {
     if ((e.target as HTMLElement).closest('.lights')) return;
     onFocus();
     // Measured, not taken from props: the drag starts from the box that is on screen.
-    const box = el.current!.getBoundingClientRect();
-    const host = el.current!.closest('.stage')!.getBoundingClientRect();
+    // offset* and not getBoundingClientRect — the latter is the *painted* box, so a
+    // window still mid win-in (scale .94) or mid arrive would hand the gesture a
+    // shrunken rect and then commit it as the window's real size.
+    const n = el.current!;
+    const host = n.closest('.stage')!.getBoundingClientRect();
     const s = { mode, px: e.clientX, py: e.clientY, moved: false,
-      x: box.left - host.left, y: box.top - host.top, w: box.width, h: box.height };
+      x: n.offsetLeft, y: n.offsetTop, w: n.offsetWidth, h: n.offsetHeight };
     drag.current = s;
 
     // The park gutter is armed by dwell, not by touch: brushing an edge on the way
@@ -151,7 +170,8 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
       flight.id = null; flight.rect = null;
       paint(win.id, null);
       onHint(null);
-      if (!s.moved || !r) return;
+      // Nothing moved: the node never took drag geometry, so hand it back to the model.
+      if (!s.moved || !r) { if (el.current) place(el.current, rect, !!win.park); return; }
       dropped.current = Date.now();
       onGuide?.({ x: [], y: [] });
       if (s.mode !== 'move')
@@ -172,6 +192,7 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
       stop();
       flight.id = null; flight.rect = null;
       paint(win.id, null);
+      if (el.current) place(el.current, rect, !!win.park);
       onHint(null); onGuide?.({ x: [], y: [] });
     };
 
@@ -193,9 +214,8 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
       data-win={win.id}
       className={`win${win.min ? ' hidden' : ''}${plain ? ' plain' : ''}${flag ? ` ${flag}` : ''}${
         win.park ? ` parked ${win.park}` : ''}`}
-      style={win.park
-        ? { top: rect?.top, zIndex: win.z, ['--c' as any]: win.color, ['--ph' as any]: `${rect?.height ?? 96}px` }
-        : { ...(rect ?? {}), zIndex: win.z, ['--c' as any]: win.color }}
+      style={{ zIndex: win.z, ['--c' as any]: win.color,
+               ...(win.park ? { ['--ph' as any]: `${rect?.height ?? 96}px` } : {}) }}
       onPointerDown={onFocus}
       onClick={() => {
         if (!win.park || Date.now() - dropped.current < 350) return;

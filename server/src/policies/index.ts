@@ -325,7 +325,7 @@ export function decompose(roomKey: string, text: string): string[] {
 const roomManager: Policy = {
   key: 'room.manager',
   goal: 'Take what the operator asked for, break it up, and see it done',
-  uses: ['assign', 'report'],
+  uses: ['assign', 'report', 'clarify'],
   steps: [
     { activity: 'reading what you asked for', async run(ctx, s) {
         const m = await one<any>(`SELECT * FROM mandate WHERE id=$1`, [ctx.run.mandate_id]);
@@ -335,6 +335,27 @@ const roomManager: Policy = {
         s.context = m?.context ?? [];
         if (s.context.length) await ctx.say(`carrying ${s.context.length} artifact(s) from the last room`);
         if (m) await q(`UPDATE mandate SET state='planned' WHERE id=$1`, [m.id]);
+      } },
+    { activity: 'asking you one question', async run(ctx, s) {
+        // Only when the sentence left out the one thing that changes the plan. A manager
+        // that asks about everything is worse than one that guesses.
+        // Only work that is actually measured over time has a period to ask about.
+        // Asking a launch post which quarter it covers is worse than not asking at all.
+        const timed = /\b(analy[sz]|report|churn|revenue|numbers|metrics?|trend|forecast|growth|retention|pipeline|conversion|traffic|spend|cohort|sales figures)\w*/i;
+        if (s.answer || !timed.test(s.text)) return;
+        if (/\b(last|this|next|q[1-4]|week|month|quarter|year|today|yesterday)\b/i.test(s.text)) return;
+        if (!s.clarify_id) {
+          const r = await T(ctx, 'clarify', {
+            question: `Which period should I take "${String(s.text).slice(0, 48)}" over?`,
+            answers: ['last quarter', 'last month', 'all time'],
+          });
+          s.clarify_id = r.clarify_id;
+        }
+        const row = await one<any>(`SELECT state, decided_note FROM approval WHERE id=$1`, [s.clarify_id]);
+        if (!row || row.state === 'pending') { s.__repeat = true; s.__sameStep = 0; return; }
+        s.answer = row.decided_note ?? 'all time';
+        s.text = `${s.text} (${s.answer})`;
+        await ctx.say(`you said ${s.answer}`);
       } },
     { activity: 'breaking it into tasks', async run(ctx, s) {
         s.titles = decompose(ctx.room.key, s.text);

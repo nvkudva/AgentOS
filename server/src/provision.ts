@@ -132,6 +132,10 @@ async function seedManager(roomId: string, key: string, roomName: string, color:
 
 /** Idempotent, and called at boot: rooms provisioned before the tier existed get theirs. */
 export async function ensureManagers() {
+  // A manager asks before it guesses, so a room provisioned before the clarify tool
+  // existed still gets it — the same idempotent backfill the tier itself gets.
+  await q(`UPDATE room SET tool_grants = tool_grants || '["clarify"]'::jsonb
+            WHERE NOT (tool_grants @> '["clarify"]'::jsonb)`);
   for (const r of await q<any>('SELECT id, key, name, color FROM room')) {
     await seedManager(r.id, r.key, r.name, r.color ?? '#8b95a1');
   }
@@ -146,7 +150,7 @@ export async function provisionRoom(spec: RoomSpec) {
 
   // Every room gets the manager tier and the two tools that tier needs. Neither is
   // offered on the form: a room without a manager has nobody to receive a mandate.
-  const tools = Array.from(new Set([...(spec.tools ?? []), 'assign', 'report']));
+  const tools = Array.from(new Set([...(spec.tools ?? []), 'assign', 'report', 'clarify']));
 
   const role = `atrium_${spec.key}`;              // key is validated against KEY, so this is safe to inline
   await pool.query(

@@ -228,6 +228,9 @@ p { margin:8px 0; }
   display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; }
 .sup-line.waiting { color:var(--faint); font-weight:400; }
 .sup-input { width:100%; margin:10px 0 12px; font-size:15px; background:transparent; border:0; padding:0; }
+/* A sentence you are about to route has to be readable before you commit it, so the
+   panel widens for as long as there is a box to type in. */
+.sup-panel:has(.sup-input) { width:min(430px, 88vw); }
 .sup-input:focus { outline:none; }
 .wave { display:flex; align-items:flex-end; gap:3px; height:18px; }
 .wave i { width:3px; height:3px; border-radius:999px; background:var(--faint); }
@@ -237,7 +240,10 @@ p { margin:8px 0; }
 /* --- stage --- */
 .stage { position:relative; z-index:10; flex:1; min-height:0; overflow:hidden; }
 .empty { position:absolute; inset:0; display:grid; place-content:center; text-align:center; gap:4px;
-  color:var(--faint); text-shadow:0 1px 3px rgb(0 0 0 / .25); }
+  color:var(--faint); text-shadow:0 1px 3px rgb(0 0 0 / .25);
+  /* a hint painted on the desk, never a surface: it must not take a click that was
+     aimed at the orb's panel standing over it */
+  pointer-events:none; }
 [data-theme="light"] .empty { text-shadow:none; color:var(--muted); }
 .roomwin { padding:8px 10px 10px; }
 .roomwin ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
@@ -279,7 +285,10 @@ p { margin:8px 0; }
 
 /* --- windows --- */
 .win { position:absolute; display:flex; flex-direction:column; border-radius:var(--r-win); overflow:hidden;
-  background:var(--win-fill); border:.5px solid var(--rim); box-shadow:var(--e3); }
+  background:var(--win-fill); border:.5px solid var(--rim); box-shadow:var(--e3);
+  user-select:none; -webkit-user-select:none; }
+/* Prose is still prose: only the chrome refuses the selection. */
+.win p, .win .sel-ok, .win pre, .win code, .win input, .win textarea { user-select:text; -webkit-user-select:text; }
 .win.hidden { display:none; }
 .win-bar { cursor:grab; }
 .win.dragging .win-bar { cursor:grabbing; }
@@ -316,6 +325,10 @@ body.dragging .win.parked:hover { width:var(--sliver); }
   border-radius:7px; color:#fff; background:var(--room);
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.2); }
 .pk-faces { display:flex; flex-direction:column; align-items:center; gap:6px; flex:none; }
+/* An app has no crew to show, so its rail says what it is instead of nothing at all. */
+.pk-rail.plain { justify-content:flex-start; padding-top:14px; gap:10px; }
+.pk-name { writing-mode:vertical-rl; font-size:11px; color:var(--muted); letter-spacing:.02em;
+  max-height:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .pk-faces em { font-style:normal; font-size:10px; color:var(--faint); }
 .pk-bar { width:26px; height:3px; border-radius:999px; background:var(--tint-2);
   overflow:hidden; flex:none; }
@@ -343,6 +356,15 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .win-title.plain { color:var(--text); font-weight:600; }
 .wt-icon { color:var(--c); }
 .win-body { flex:1; min-height:0; overflow:auto; }
+/* A window body that has more in it than it can show says so: the classic local/scroll
+   background pair, so the shadow is only painted while there is actually something
+   past the edge. A clipped crew row must never read as the end of the list. */
+.win-body {
+  background:
+    linear-gradient(var(--win-fill), transparent) top    / 100% 12px no-repeat local,
+    linear-gradient(transparent, var(--win-fill)) bottom / 100% 12px no-repeat local,
+    radial-gradient(farthest-side at 50% 0,    rgb(0 0 0 / .14), transparent) top    / 100% 7px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgb(0 0 0 / .14), transparent) bottom / 100% 7px no-repeat scroll; }
 .grip { position:absolute; right:0; bottom:0; width:18px; height:18px; cursor:nwse-resize; touch-action:none; }
 
 /* --- slide-over --- */
@@ -370,12 +392,15 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .dockwrap { position:relative; z-index:80; flex:none; height:var(--dock); display:flex;
   flex-direction:column; align-items:center; justify-content:center; gap:4px; pointer-events:none; }
 .dock { pointer-events:auto; display:flex; align-items:flex-end; gap:10px; padding:8px 12px;
+  max-width:calc(100vw - 24px); overflow-x:auto; overflow-y:visible; scrollbar-width:none;
   border-radius:var(--r-shell);
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
   backdrop-filter:blur(28px) saturate(180%); border:.5px solid var(--rim);
   box-shadow:inset 0 1px 0 var(--spec), var(--e2); contain:paint; }
 [data-perf="lite"] .dock { backdrop-filter:none;
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb,var(--solid) 96%, transparent); }
+.dock::-webkit-scrollbar { display:none; }
+.dock > * { flex:none; }
 .tile { position:relative; width:48px; height:48px; padding:0; border-radius:var(--r-card);
   border:0; background:none; box-shadow:none;
   display:grid; place-items:center;
@@ -453,6 +478,10 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .cards { display:flex; flex-direction:column; gap:8px; }
 .card { border:.5px solid var(--line); border-radius:var(--r-card); background:var(--tint);
   padding:12px 16px; display:grid; gap:8px; }
+/* A grid item is min-content wide by default, so one nowrap line inside a card pushes
+   the whole column past the card's edge and the card clips it mid-word. */
+.card > *, .card > * > * { min-width:0; }
+.card .meta, .card .touches, .card .what, .card .detail { overflow-wrap:anywhere; }
 .card.high { border-color:color-mix(in srgb, var(--approval) 55%, transparent); }
 .card.focus { box-shadow:0 0 0 2px color-mix(in srgb, var(--approval) 45%, transparent); }
 .card .what { font-weight:600; letter-spacing:-.01em; font-size:13.5px; }
@@ -781,6 +810,9 @@ body.carrying .crew:hover { background:none; }
 /* The face is 32px and the hand is not: the target it answers to is 40px. */
 .roomwin .crew .face::after { content:''; position:absolute; inset:-4px; border-radius:999px; }
 .crew.mgr { min-height:52px; }
+/* Eight managers share one glyph, so the glyph must carry the room's colour or every
+   room's manager is the same near-black diamond. */
+.crew.mgr .face, .pk-faces .face.mgr { color:var(--c); }
 .crew.mgr .face { width:44px; height:44px; font-size:20px;
   box-shadow:inset 0 0 0 .5px color-mix(in srgb, var(--c) 55%, transparent), 0 0 0 2px var(--room); }
 .crew.mgr .st { animation:none; }
@@ -860,15 +892,150 @@ body.carrying .crew.full:hover .qbadge { opacity:1; }
 .tile.dock-bounce { animation:dock-bounce 420ms var(--ease); }
 @keyframes dock-bounce { 40% { transform:translateY(-14px) scale(1.12) } }
 
+
+/* Recall: nothing is killed while the hairline drains. The chit greys, keeps the words
+   the operator said, and only when the eight seconds run out does the work stand down. */
+.chit.recalling { opacity:.5; filter:grayscale(1); cursor:default; }
+.chit.recalling::before { background:var(--killed); }
+.chit-undo { flex:none; border:0; background:none; font:inherit; font-size:10.5px;
+  color:var(--working); padding:0 2px; cursor:pointer; }
+.chit-drain { position:absolute; left:0; bottom:0; height:2px; width:100%; background:var(--killed);
+  transform-origin:left; animation:undo-run 8s linear forwards; }
+
+/* ============================================================
+   WS3 — the loop closes: the orb's mouth, the escalation, the queue's gestures
+   ============================================================ */
+
+/* --- the orb's mouth: a proposal nothing has committed ------------------- */
+.sup-prop { margin:2px 0 0; display:flex; flex-direction:column; gap:8px;
+  animation:prop-in var(--t-ui) var(--ease) both; transform-origin:50% 0; }
+@keyframes prop-in { from { opacity:0; transform:translateY(12px) scale(.6) } to { opacity:1; transform:none } }
+.sup-prop.out { animation:prop-out var(--t-tint) var(--ease-out) forwards; }
+@keyframes prop-out { to { opacity:0; transform:scale(.9) } }
+.sup-prop .chit.prop { width:100%; cursor:grab; }
+.sup-aim { display:flex; align-items:center; gap:8px; }
+.sup-aim u { text-decoration:none; font-size:11px; color:var(--faint); }
+.sup-prop em, .sup-clarify em { font-size:10.5px; color:var(--faint); font-style:normal; }
+.room-chip { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px;
+  font-size:11.5px; font-weight:500; border:0; cursor:pointer; color:var(--solid); background:var(--c);
+  transition:background var(--t-tint) var(--ease); }
+
+/* A manager's question, answered with one key. Never a card, never a queue. */
+.sup-clarify { display:flex; flex-direction:column; gap:8px; padding:9px 10px; border-radius:var(--r-card);
+  background:var(--tint); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--c) 45%, transparent);
+  animation:prop-in var(--t-ui) var(--ease) both; }
+.sup-clarify b { font-weight:500; font-size:13px; line-height:1.3; }
+.sup-answers { display:flex; flex-wrap:wrap; gap:6px; }
+.sup-answers button { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:3px 9px; }
+.sup-answers i { font-style:normal; font-size:9.5px; color:var(--faint);
+  border:.5px solid var(--line); border-radius:4px; padding:0 3px; }
+
+.sup-result { display:flex; flex-direction:column; gap:6px; padding:9px 10px; border-radius:var(--r-card);
+  background:var(--tint); border-left:3px solid var(--c); animation:prop-in var(--t-ui) var(--ease) both; }
+.sup-result b { font-weight:500; font-size:12.5px; color:var(--muted); }
+.sup-result p { margin:0; font-size:13px; line-height:1.35; }
+
+/* The orb takes a drop: the hit area grows past the sphere the moment a carry starts,
+   because a thing in the hand is aimed at from further away than a thing is clicked. */
+.orb-btn::after { content:''; position:absolute; left:50%; top:50%; width:96px; height:96px;
+  transform:translate(-50%,-50%) scale(0); border-radius:999px; pointer-events:none; }
+body.carrying .orb-btn::after { transform:translate(-50%,-50%) scale(1); pointer-events:auto; }
+body.carrying .orb-btn { box-shadow:0 0 0 2px color-mix(in srgb, var(--working) 40%, transparent); border-radius:999px; }
+.orb-btn.drop-no { box-shadow:0 0 0 2px color-mix(in srgb, var(--failed) 55%, transparent) !important; }
+
+/* --- the escalation: the one capsule that lands and stays --------------- */
+.courier.cap.escalating { box-shadow:var(--e2), 0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); }
+.bell.hit { animation:bell-hit 140ms var(--ease-settle); }
+@keyframes bell-hit { 50% { transform:scale(1.08) } }
+.bell i { transition:transform var(--t-tint) var(--ease-settle); }
+
+/* --- the decision going back down -------------------------------------- */
+.decided-yes { animation:dec-yes var(--t-near) var(--ease) ; }
+.decided-no  { animation:dec-no  var(--t-tint) var(--ease-out); }
+@keyframes dec-yes { 0%,100% { box-shadow:none } 45% { box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 55%, transparent) } }
+@keyframes dec-no  { 0%,100% { box-shadow:none } 45% { box-shadow:0 0 0 3px color-mix(in srgb, var(--failed) 55%, transparent) } }
+.pk-rail.decided-yes, .pk-rail.decided-no { animation:pk-arrive var(--t-near) var(--ease); }
+
+/* A raised task, at its own position on the manager's arc — in the window and on the
+   rail alike, so a parked room still shows you that something in it stopped for you. */
+.arc circle.notch { stroke:var(--blocked); stroke-width:3.5; }
+
+/* --- a parked rail, opened by dwelling on it while carrying ------------- */
+.win.parked { transition:width var(--t-near) var(--ease); }
+body.carrying .win.parked.dwell { width:340px; z-index:70; }
+body.carrying .win.parked.dwell .win-bar, body.carrying .win.parked.dwell .win-body { display:flex; }
+body.carrying .win.parked.dwell .win-body { display:block; overflow:auto; }
+body.carrying .win.parked.dwell .pk-hold { display:none; }
+
+/* --- the chain, on hover. The only dimming in this product. ------------- */
+.stage[data-trace] .win, .stage[data-trace] > .sit-down {
+  opacity:.45; transition:opacity var(--t-tint) var(--ease); }
+.stage .win { transition:opacity var(--t-tint) var(--ease); }
+
+/* --- the approvals queue, decided with the hand ------------------------- */
+.card { position:relative; overflow:hidden; touch-action:pan-y; }
+.card.swiping { cursor:grabbing; user-select:none; }
+.card.springing { transition:transform 180ms var(--ease-settle); }
+.card.leaving { transition:transform var(--t-ui) var(--ease-out), opacity var(--t-ui) linear; opacity:0; }
+.card.leaving[data-arm="approve"] { transform:translate3d(120%,0,0); }
+.card.leaving[data-arm="reject"]  { transform:translate3d(-120%,0,0); }
+.swipe-verb { position:absolute; top:0; bottom:0; width:50%; display:flex; align-items:center;
+  font-style:normal; font-size:12px; font-weight:600; letter-spacing:.02em; color:var(--solid);
+  opacity:0; pointer-events:none; }
+.swipe-verb.yes { left:0; justify-content:flex-start; padding-left:14px; background:var(--ok); }
+.swipe-verb.no  { right:0; justify-content:flex-end;  padding-right:14px; background:var(--failed); }
+.card[data-arm="approve"] .swipe-verb.yes { opacity:var(--reveal, 0); }
+.card[data-arm="reject"]  .swipe-verb.no  { opacity:var(--reveal, 0); }
+.card .chain { font-size:11px; color:var(--faint); margin-bottom:3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Unread results are counted, never queued: a second badge, deliberately quieter. */
+.tile .badge.quiet { background:var(--muted); right:auto; left:-4px; }
+
+/* --- peek: what a face is doing, without opening it --------------------- */
+.face.peeking::after { content:''; position:absolute; inset:-3px; border-radius:999px;
+  border:1.5px solid var(--c); clip-path:inset(0 0 0 50%); animation:peek-wipe 350ms linear forwards; }
+@keyframes peek-wipe { 0% { clip-path:inset(0 0 0 50%) } 50% { clip-path:inset(0 50% 0 0) } 100% { clip-path:inset(0) } }
+.peek { position:fixed; z-index:930; pointer-events:none; padding:10px 11px; border-radius:var(--r-card);
+  background:var(--win-fill); backdrop-filter:blur(18px) saturate(160%); box-shadow:var(--e3);
+  border-left:3px solid var(--c); display:flex; flex-direction:column; gap:7px;
+  animation:peek-in var(--t-tint) var(--ease) both; }
+@keyframes peek-in { from { opacity:0; transform:translateY(4px) } to { opacity:1; transform:none } }
+.peek.out { animation:peek-out 100ms linear forwards; }
+@keyframes peek-out { to { opacity:0 } }
+.peek.mirror { border-left:0; border-right:3px solid var(--c); }
+.peek header { display:flex; align-items:center; gap:8px; }
+.peek header b { display:block; font-size:13px; font-weight:600; }
+.peek header em { display:block; font-style:normal; font-size:11px; color:var(--faint); }
+.peek-now { margin:0; font-size:12.5px; line-height:1.35; }
+.peek-steps { margin:0; padding:0 0 0 12px; list-style:none; display:flex; flex-direction:column; gap:3px; }
+.peek-steps li { position:relative; font-size:11.5px; color:var(--muted); }
+.peek-steps li::before { content:''; position:absolute; left:-10px; top:6px; width:4px; height:4px;
+  border-radius:999px; background:var(--line); }
+.peek footer { display:flex; align-items:center; justify-content:space-between;
+  font-size:11px; color:var(--faint); }
+.peek footer u { text-decoration:none; }
+.peek-chits { margin:0; font-size:11px; color:var(--muted);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
 @media (prefers-reduced-motion:reduce) {
   /* removed: ambient texture and travel */
   .plasma, .orb-halo { animation:none !important; }
   .wave.on i { animation:none; height:11px; }
-  .undo-run { animation:none; }
+  .undo-run, .chit-drain { animation:none; }
   .win, .win.closing { animation:none; }
   .tile { transform:none !important; }          /* the dock's magnification wave */
   .courier, .bloom, .spine-walk, .walker, .refuse { animation:none !important; }
   .ghost-in, .chit.waiting, .dock-bounce, .pk-arrive { animation:none !important; }
+  .sup-prop, .sup-clarify, .sup-result, .peek { animation:none !important; }
+  .face.peeking::after { animation:none !important; clip-path:none; }
+  .bell.hit { animation:none !important; }
+  .mu-art i.spin { animation:none !important; }
+  .win.arrive, .sitdown, .park-shelf { animation:none !important; }
+  .crew.mgr.arrive .arc, .crew.mgr .arc.pop { animation:none !important; }
+  .decided-yes, .decided-no { animation:none !important; }
+  .slab.swap b, .slab.swap i, .slab.swap u { animation:none !important; }
+  .card.leaving { transition:opacity var(--t-tint) linear; transform:none !important; }
 
   /* substituted: arrive at the destination, and tint its rim so it is attributable.
      Every travel this file removes must land its object under .arrived, and tint the

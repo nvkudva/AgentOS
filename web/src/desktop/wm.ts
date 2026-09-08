@@ -45,8 +45,14 @@ export function useWindows(initial: Win[] = []) {
   const close = useCallback((id: string) => setWins((ws) => ws.filter((w) => w.id !== id)), []);
   const patch = useCallback((id: string, p: Partial<Win>) =>
     setWins((ws) => ws.map((w) => (w.id === id ? { ...w, ...p } : w))), []);
+  // A no-op stays a no-op: an unchanged window keeps its identity, so nothing downstream
+  // re-renders or re-persists because something was merely inspected.
   const patchAll = useCallback((fn: (w: Win) => Partial<Win> | null) =>
-    setWins((ws) => ws.map((w) => ({ ...w, ...(fn(w) ?? {}) }))), []);
+    setWins((ws) => {
+      let hit = false;
+      const next = ws.map((w) => { const p = fn(w); if (!p) return w; hit = true; return { ...w, ...p }; });
+      return hit ? next : ws;
+    }), []);
 
   return { wins, open, close, focus, patch, patchAll, setWins };
 }

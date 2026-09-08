@@ -1,15 +1,18 @@
 import { InboxApp } from '../apps/InboxApp';
-import type { Inbox, Agent, Room } from '../lib/api';
+import type { Inbox, Agent, Room, Mandate } from '../lib/api';
 import { friendlyActivity, hours } from '../lib/humanize';
 
 /**
  * A slide-over, not a column. It floats above the desktop like Notification Center,
  * and closes to nothing — the desktop underneath is never permanently narrowed.
  */
-export function Sidebar({ open, inbox, agents, rooms, view, focusId, onClose, onPick, onOpenRoom }: {
+export function Sidebar({ open, inbox, agents, rooms, view, focusId, mandates = [],
+                          onClose, onPick, onOpenRoom, onDecide }: {
   open: boolean; inbox: Inbox[]; agents: Agent[]; rooms: Room[];
-  view: string; focusId?: string; onClose: () => void; onPick: (a: Agent) => void;
+  view: string; focusId?: string; mandates?: Mandate[];
+  onClose: () => void; onPick: (a: Agent) => void;
   onOpenRoom: (roomKey: string) => void;
+  onDecide?: (it: Inbox, decision: 'approve' | 'reject') => void;
 }) {
   const busy = agents.filter((a) => a.state === 'working');
   const stuck = agents.filter((a) => ['blocked', 'failed', 'killed'].includes(a.state));
@@ -25,7 +28,8 @@ export function Sidebar({ open, inbox, agents, rooms, view, focusId, onClose, on
         </header>
 
         <div className="so-body">
-          <InboxApp items={inbox} view={view} focusId={focusId} active={open} onOpenRoom={onOpenRoom} />
+          <InboxApp items={inbox} view={view} focusId={focusId} active={open} mandates={mandates}
+                    onOpenRoom={onOpenRoom} onDecide={onDecide} />
 
           <h4>Running</h4>
           {!busy.length && <p className="muted pad-x">Nobody is working.</p>}

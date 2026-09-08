@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { run, stripWake, hasWake, type CmdCtx } from './commands';
 import { Orb } from './Orb';
 import { startCarry } from './carry';
@@ -38,6 +38,8 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const [prop, setProp] = useState<Pitch | null>(null);
   const [pick, setPick] = useState(0);
   const [leaving, setLeaving] = useState(false);
+  /** The sentence being typed. Owned here so closing the box actually discards it. */
+  const [text, setText] = useState('');
   const rec = useRef<any>(null);
   const box = useRef<HTMLInputElement>(null);
   const hide = useRef<any>(null);
@@ -46,6 +48,8 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const auto = useRef<any>(null);
   const live = useRef({ prop, pick });
   live.current = { prop, pick };
+
+  useLayoutEffect(() => { if (typing) box.current?.focus(); }, [typing]);
 
   const show = (ms = 6000) => {
     setOpen(true);
@@ -74,8 +78,8 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     const rect = (el ?? orb.current)!.getBoundingClientRect();
     if (el) el.style.visibility = 'hidden';
     clearTimeout(auto.current);
-    setProp(null); setPick(0);
-    ctx.dispatch(p.text, room, rect);
+    setProp(null); setPick(0); setTyping(false); setText('');
+    ctx.dispatch(p.text, room, rect, p.mandate);
     say(`${room.name} has it.`);
     show(6000);
   };
@@ -97,6 +101,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
       if (hit) { onClarify(c, hit); say('Told them.'); show(5000); return; }
     }
     setAsked(text);
+    setText('');
     setThinking(true);
     setTimeout(() => setThinking(false), 700);
     const r = run(text, ctx);
@@ -224,15 +229,30 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
       </button>
 
       <div className="sup-panel" role="status" aria-live="polite">
-        <div className="sup-last">
-          <span className="sup-label">Last instruction</span>
-          <span className="sup-asked">{asked || '—'}</span>
-        </div>
+        {asked && (
+          <div className="sup-last">
+            <span className="sup-label">Last instruction</span>
+            <span className="sup-asked">{asked}</span>
+          </div>
+        )}
 
         {typing ? (
-          <form onSubmit={(e) => { e.preventDefault(); const v = box.current!.value; box.current!.value = ''; setTyping(false); submit(v); }}>
+          <form onSubmit={(e) => { e.preventDefault(); if (live.current.prop) commit(); else submit(text); }}>
             <input ref={box} className="sup-input" placeholder="Type a command…" autoComplete="off"
-                   onBlur={() => setTyping(false)} />
+                   value={text} onChange={(e) => setText(e.target.value)}
+                   onKeyDown={(e) => {
+                     if (e.key === 'Enter') {
+                       e.preventDefault();
+                       // A proposal is standing: Return sends it, exactly as the button says.
+                       if (live.current.prop) commit(); else submit(text);
+                       return;
+                     }
+                     if (e.key === 'Escape') {
+                       e.preventDefault(); e.stopPropagation();
+                       if (live.current.prop) { discard(); return; }
+                       setText(''); setTyping(false); setOpen(false);
+                     }
+                   }} />
           </form>
         ) : (
           <p className={`sup-line${listening && !heard ? ' waiting' : ''}`}>{line}</p>
@@ -258,8 +278,8 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
         {prop && room && (
           <div className={`sup-prop${leaving ? ' out' : ''}`}>
             <span ref={chit} className="chit prop" style={{ ['--c' as any]: room.color }}
-                  data-carry="mandate"
-                  onPointerDown={(e) => startCarry(e, { kind: 'mandate', id: 'pitch', label: prop.text,
+                  data-carry="mandate" data-mandate={prop.mandate}
+                  onPointerDown={(e) => startCarry(e, { kind: 'mandate', id: prop.mandate ?? 'pitch', label: prop.text,
                                                         colour: room.color, cost: quote, roomId: null })}>
               <b>{prop.text}</b>
             </span>

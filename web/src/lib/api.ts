@@ -14,9 +14,11 @@ export type Agent = {
   persona: string; color: string; avatar: string;
 };
 export type Inbox = {
-  id: string; room_key: string; room_name: string; agent_name: string; kind: 'approval' | 'escalation';
+  id: string; room_key: string; room_name: string; agent_name: string; kind: 'approval' | 'escalation' | 'clarify';
   action: string; blast_radius: string; est_cost_cents: number; run_spent_cents: number;
   touches: string[]; created_at: string; args: any;
+  /** the sentence this descends from, when it descends from one */
+  mandate_id: string | null;
 };
 /** One sentence of human intent. Its colour is frozen server-side at route time. */
 export type Mandate = {

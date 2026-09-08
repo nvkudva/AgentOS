@@ -12,6 +12,8 @@ export type Pitch = {
   room: Room;
   rooms: Room[];
   text: string;
+  /** the row this already is, if it is one — a redirect rather than a new mandate */
+  mandate?: string;
   /** ms left to take it back before it dispatches on its own; absent = waits forever */
   auto?: number;
 };

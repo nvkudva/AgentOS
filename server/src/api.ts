@@ -24,8 +24,9 @@ export async function snapshot() {
 /** Oldest and most expensive first — cheap-and-new must never bury expensive-and-old. */
 export async function inboxRows() {
   return q(
-    `SELECT ap.*, r.key AS room_key, r.name AS room_name, a.name AS agent_name
+    `SELECT ap.*, r.key AS room_key, r.name AS room_name, a.name AS agent_name, rn.mandate_id
        FROM approval ap JOIN room r ON r.id=ap.room_id JOIN agent a ON a.id=ap.agent_id
+       LEFT JOIN run rn ON rn.id=ap.run_id
       WHERE ap.state='pending'
       ORDER BY ap.est_cost_cents DESC, ap.created_at ASC`);
 }
@@ -186,6 +187,12 @@ async function route(mandateId: string, roomKey: string) {
   const room = await one<any>(`SELECT * FROM room WHERE key=$1 OR id=$1`, [roomKey]);
   if (!room) return { error: 'no such room', status: 404 };
 
+  // Handing work to the room that already holds it is not a hand-over. Standing its
+  // crew down and re-planning would kill the very manager driving the tasks and leave
+  // the mandate headless, so the room simply keeps it.
+  if (md.room_id === room.id && !['recalled', 'done'].includes(md.state))
+    return { mandate: md, unchanged: true };
+
   const carried = md.room_id ? await standDown(mandateId, 'handed_over') : [];
 
   const manager = await one<any>(
@@ -273,7 +280,7 @@ async function decide(approvalId: string, body: any) {
     scratch.__approval_granted = approvalId;
     await q(`UPDATE run SET status='running', scratch=$2 WHERE id=$1`, [ap.run_id, scratch]);
     await q(`UPDATE agent SET state='working', activity='resuming' WHERE id=$1`, [ap.agent_id]);
-  } else if (ap.kind === 'escalation') {
+  } else if (ap.kind === 'escalation' || ap.kind === 'clarify') {
     await q(`UPDATE agent SET state='working', activity='answered, continuing' WHERE id=$1`, [ap.agent_id]);
     await q(`UPDATE run SET status='running' WHERE id=$1`, [ap.run_id]);
   } else {

@@ -11,7 +11,7 @@
  * drop target on screen has already declared whether it will take it.
  */
 
-export type CarryKind = 'mandate' | 'task' | 'agent';
+export type CarryKind = 'mandate' | 'task' | 'agent' | 'approval';
 
 export type Carried = {
   kind: CarryKind;

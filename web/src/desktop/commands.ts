@@ -16,7 +16,7 @@ export type CmdCtx = {
   setSidebar: (open: boolean) => void;
   focusApproval: (id: string) => void;
   /** commit a proposal: create the mandate, route it, and fly it there from `from` */
-  dispatch: (text: string, room: Room, from: DOMRect) => void;
+  dispatch: (text: string, room: Room, from: DOMRect, mandate?: string) => void;
 };
 export type CmdResult = { say: string; ok: boolean; propose?: Proposal };
 
@@ -116,9 +116,12 @@ export function run(raw: string, c: CmdCtx): CmdResult {
     return { say: `Started ${idle.length} agents.`, ok: true };
   }
   if ((m = t.match(/^(?:run|start|wake)\s+(.+)$/))) {
-    const a = find(c.agents, m[1].trim());
-    if (!a) return { say: `I do not know anyone called ${m[1]}.`, ok: false };
-    c.startAgent(a); c.openAgent(a); return { say: `${a.name} is on it.`, ok: true };
+    const who = m[1].trim();
+    const a = find(c.agents, who);
+    if (a) { c.startAgent(a); c.openAgent(a); return { say: `${a.name} is on it.`, ok: true }; }
+    // "run analytics on last quarter's churn" is not a name that failed to match — it is
+    // a sentence. Only something short enough to be a name is reported as an unknown one.
+    if (who.split(/\s+/).length <= 3) return { say: `I do not know anyone called ${who}.`, ok: false };
   }
 
   // --- open -----------------------------------------------------------------

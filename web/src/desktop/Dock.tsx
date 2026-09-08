@@ -18,8 +18,10 @@ const EXTRAS: { kind: AppKind; icon: IconName; label: string }[] = [
 ];
 
 /** A dock, in the Apple sense: a floating slab, magnified on hover, dots for what runs. */
-export function Dock({ wins, agents, inbox, rooms, onLaunch, onFocus, onRoom }: {
-  wins: Win[]; agents: Agent[]; inbox: Inbox[]; rooms: { id: string; icon: string; name: string; color: string }[];
+export function Dock({ wins, agents, inbox, unread = 0, rooms, onLaunch, onFocus, onRoom }: {
+  wins: Win[]; agents: Agent[]; inbox: Inbox[];
+  /** results nobody has read — never approvals, and counted separately so they cannot be mistaken for them */
+  unread?: number; rooms: { id: string; icon: string; name: string; color: string }[];
   onLaunch: (k: AppKind) => void;
   onFocus: (id: string) => void;
   onRoom: (id: string) => void;
@@ -37,7 +39,7 @@ export function Dock({ wins, agents, inbox, rooms, onLaunch, onFocus, onRoom }: 
     if (!tiles) return;
     for (const t of Array.from(tiles)) {
       if (px === null) { t.style.transform = ''; continue; }
-      const c = t.offsetLeft + t.offsetWidth / 2;
+      const c = t.offsetLeft - bar.current!.scrollLeft + t.offsetWidth / 2;
       const f = Math.exp(-(((c - px) / 78) ** 2));
       t.style.transform = `translateY(${(-16 * f).toFixed(2)}px) scale(${(1 + 0.55 * f).toFixed(3)})`;
     }
@@ -51,9 +53,11 @@ export function Dock({ wins, agents, inbox, rooms, onLaunch, onFocus, onRoom }: 
         {[...APPS, ...EXTRAS].map((a) => {
           const live = wins.some((w) => w.id === a.kind);
           return (
-            <button key={a.kind} className="tile" onClick={() => onLaunch(a.kind)} data-label={a.label}>
+            <button key={a.kind} className="tile" onClick={() => onLaunch(a.kind)} data-label={a.label}
+                    aria-label={a.label} title={a.label}>
               <AppIcon name={a.icon} />
               {a.kind === 'inbox' && inbox.length > 0 && <i className="badge">{inbox.length}</i>}
+              {a.kind === 'inbox' && unread > 0 && <i className="badge quiet">{unread}</i>}
               {live && <i className="run" />}
             </button>
           );
@@ -63,6 +67,7 @@ export function Dock({ wins, agents, inbox, rooms, onLaunch, onFocus, onRoom }: 
           const w = wins.find((x) => x.id === `room:${r.id}`);
           return (
             <button key={r.id} className="tile" onClick={() => onRoom(r.id)} data-label={r.name}
+                    aria-label={r.name} title={r.name}
                     data-dock-room={r.id} style={{ ['--c' as any]: r.color }}>
               <span className="face big" style={{ ['--c' as any]: r.color }}>{r.icon}</span>
               {w && !w.min && <i className="run" />}
@@ -72,6 +77,7 @@ export function Dock({ wins, agents, inbox, rooms, onLaunch, onFocus, onRoom }: 
         {openApps.length > 0 && <span className="dock-sep" />}
         {openApps.map((w) => (
           <button key={w.id} className="tile" onClick={() => onFocus(w.id)} data-label={w.title}
+                  aria-label={w.title} title={w.title}
                   style={{ ['--c' as any]: w.color }}>
             <span className="glyph">{w.icon}</span>
             <i className="run" />

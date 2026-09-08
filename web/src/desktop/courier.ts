@@ -165,7 +165,8 @@ export function raise(h: Raise) {
 }
 function rpump() { while (raising < RMAX && rwait.length) rfly(rwait.shift()!); }
 
-function land(el: HTMLElement | null, cb?: () => void) {
+/** Impact. The badge increments here and nowhere earlier. */
+function thud(el: HTMLElement | null, cb?: () => void) {
   if (el) { el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 140); }
   cb?.();
 }
@@ -187,7 +188,7 @@ function rfly(h: Raise) {
 
   if (calm()) {
     node.remove();
-    land(bell, h.onLand);
+    thud(bell, h.onLand);
     if (bell) { bell.classList.add('arrived'); setTimeout(() => bell.classList.remove('arrived'), 90); }
     done();
     return;
@@ -236,7 +237,7 @@ function rfly(h: Raise) {
     if (over) return;
     over = true;
     node.remove();
-    land(bell, h.onLand);
+    thud(bell, h.onLand);
     done();
   };
   anim.onfinish = finish;
