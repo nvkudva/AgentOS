@@ -25,7 +25,7 @@ it. Only the data underneath is standing still. Run it locally for the working s
 A desktop OS whose applications are your company's functions.
 
 - **Rooms are the unit.** Analytics, engineering, marketing, sales, support, finance,
-  research, strategy — and whatever you add next. A room owns an objective, a budget, a set
+  research — and whatever you add next. A room owns an objective, a budget, a set
   of tools, a memory, a **database identity** and an escalation policy. It is a scope before
   it is a screen.
 - **Every room is staffed by several agents**, each with a name, a role, a persona and its
@@ -37,6 +37,47 @@ A desktop OS whose applications are your company's functions.
 The only thing inherited from games is the face: each agent is a **circular persona avatar**
 — an emoji on its own colour with a state ring that breathes while it works. No board, no
 map, no isometric art. Everything else is application UI.
+
+---
+
+## Features
+
+**The delegation chain is the product.** You speak or type one sentence. The supervisor
+routes it to a room; that room's **manager agent** decomposes it into tasks, assigns them
+to its workers, waits, and reports back up. Recalling it stands the work down without
+killing anyone — a recall is not the worker's fault — and redirecting it carries the
+artefacts already produced to the room that takes over.
+
+**Direct manipulation, actually implemented.** Geometry is written to the node during a
+gesture and committed on release, so a window tracks the pointer at refresh rate rather
+than a render behind it.
+
+| | |
+|---|---|
+| **Drag** | The window lands exactly where you let go. Nothing re-arranges itself around you, because where you put a room is how you rank it. |
+| **Park** | Push a room into either side gutter and it tucks to a 72px rail carrying its colour, its icon and its crew as live faces. Hover scrubs it open at the same height; click or drag restores the desk you had. |
+| **Resize** | Eight handles, each pulling its own side with the opposite pinned, clamped to the desk. |
+| **Align** | Neighbouring edges and the desk's centre lines pull with a 6px magnet and show a hairline while they hold. |
+| **Carry** | Work can be picked up: a chit carries a mandate from the orb to a room, an approval can be lifted off the queue — and the orb refuses it, because a supervisor may carry an approval and may never make one. |
+
+**A queue you can clear with one hand.** `j`/`k` to move, `a` to approve, `A` to approve
+and stop asking, `r` to reject, `⏎` to open the room. Or swipe the card — it follows your
+hand, the uncovered edge fills with the colour of the verb, and only past 88px does
+releasing mean it. Every decision waits eight seconds behind an Undo before it commits.
+
+**It remembers your desk.** Positions, sizes, stacking, what is parked and what you closed
+all survive a reload — and are pulled back onto the screen if you return on a smaller one.
+
+**Cost reads as agent hours**, not currency: a staffing meter rather than a bill. Budgets
+are real, and work halts at the cap instead of overrunning it.
+
+**Installable and offline-tolerant.** A manifest, orb icons, and a service worker that
+precaches the shell and treats live state as live — `/api` is never served from disk.
+The apps that are not needed to paint the desk are fetched when you open them.
+
+**Keyboard throughout.** `⌘K` to talk to the supervisor, `⌘\` for the queue, `⌥1–9` to
+focus a room (un-parking it if it is on a rail), `Escape` to close — or to cancel a drag
+without closing anything.
 
 ---
 
