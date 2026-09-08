@@ -1,6 +1,38 @@
 <!doctype html>
 <html lang="en">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Atrium — operations floor</title></head>
-  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>Atrium — operations floor</title>
+    <meta name="description" content="An operating system for a company staffed by AI agents. One operator, many rooms, several agents in each." />
+
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+    <!-- The bar the OS paints around the app, in both themes. -->
+    <meta name="theme-color" content="#f6f8fb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)" />
+
+    <!-- The one face the desktop is set in. Preloaded because it is on the critical
+         path: every label on the first screen waits for it otherwise. The extended
+         range is not preloaded — almost nothing here needs it. -->
+    <link rel="preload" href="/fonts/google-sans-latin.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!-- Painted before the bundle parses, so a cold load is the desk's own colour
+         rather than a white flash. Matches --solid in both themes. -->
+    <style>
+      html { background: #f6f8fb; }
+      @media (prefers-color-scheme: dark) { html { background: #0e1116; } }
+      html[data-theme="dark"] { background: #0e1116; }
+      html[data-theme="light"] { background: #f6f8fb; }
+      body { margin: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
