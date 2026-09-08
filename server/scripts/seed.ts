@@ -69,13 +69,6 @@ const ROOMS: RoomSpec[] = [
       { name: 'Val', role: 'researcher', policy: 'research.brief', avatar: '🔎', color: '#7f8cd6',
         persona: 'Digs for the thing nobody asked about. Slow, occasionally right.' },
     ] },
-  { key: 'strategy', name: 'Strategy', objective: 'Synthesise across rooms',
-    color: '#a472e0', icon: '◇', budget_cents: 150, access: 'none',
-    tools: ['artifact.read', 'artifact.write', 'escalate'],
-    agents: [
-      { name: 'Iris', role: 'strategist', policy: 'strategy.synth', avatar: '🧭', color: '#a472e0',
-        persona: 'Reads every room, commits to nothing without asking you first.' },
-    ] },
 ];
 
 async function bizdata() {

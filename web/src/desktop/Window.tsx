@@ -214,7 +214,7 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
       data-win={win.id}
       className={`win${win.min ? ' hidden' : ''}${plain ? ' plain' : ''}${flag ? ` ${flag}` : ''}${
         win.park ? ` parked ${win.park}` : ''}`}
-      style={{ zIndex: win.z, ['--c' as any]: win.color,
+      style={{ ['--z' as any]: win.z, ['--c' as any]: win.color,
                ...(win.park ? { ['--ph' as any]: `${rect?.height ?? 96}px` } : {}) }}
       onPointerDown={onFocus}
       onClick={() => {

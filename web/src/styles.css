@@ -309,7 +309,8 @@ p { margin:8px 0; }
 @keyframes rest    { 0%,100%{opacity:.68} 50%{opacity:1} }
 
 /* --- windows --- */
-.win { position:absolute; display:flex; flex-direction:column; border-radius:var(--r-win); overflow:hidden;
+.win { position:absolute; z-index:var(--z, 10);
+  display:flex; flex-direction:column; border-radius:var(--r-win); overflow:hidden;
   background:var(--win-fill); border:.5px solid var(--rim); box-shadow:var(--e3);
   user-select:none; -webkit-user-select:none; }
 /* Prose is still prose: only the chrome refuses the selection. */
@@ -331,7 +332,10 @@ p { margin:8px 0; }
 .win.parked.right { right:8px; left:auto; }
 /* Only the width moves: a scrubbed rail keeps the height it has on the rail, so the
    stack below it never shifts under the pointer. */
-.win.parked:hover { width:340px; z-index:70; }
+/* A room under the pointer comes to the front without being clicked: you are looking
+   at it, so nothing should be lying on top of it. Below the menubar and dock at 80. */
+.win.plain:hover { z-index:75; }
+.win.parked:hover { width:340px; z-index:75; }
 .win.parked:hover .win-body { overflow:auto; }
 /* while something is being dragged, a rail must not swell under the pointer */
 body.dragging .win.parked:hover { width:var(--sliver); }
@@ -425,10 +429,9 @@ body.dragging .win.parked:hover { width:var(--sliver); }
   border-radius:var(--r-shell);
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
   backdrop-filter:blur(28px) saturate(180%); border:.5px solid var(--rim);
-  box-shadow:inset 0 1px 0 var(--spec), var(--e2); contain:paint; }
+  box-shadow:inset 0 1px 0 var(--spec), var(--e2); }
 [data-perf="lite"] .dock { backdrop-filter:none;
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb,var(--solid) 96%, transparent); }
-.dock::-webkit-scrollbar { display:none; }
 .dock > * { flex:none; }
 .tile { position:relative; width:var(--tile); height:var(--tile); padding:0; border-radius:var(--r-card);
   border:0; background:none; box-shadow:none;
@@ -992,7 +995,7 @@ body.carrying .orb-btn { box-shadow:0 0 0 2px color-mix(in srgb, var(--working) 
 
 /* --- a parked rail, opened by dwelling on it while carrying ------------- */
 .win.parked { transition:width var(--t-near) var(--ease); }
-body.carrying .win.parked.dwell { width:340px; z-index:70; }
+body.carrying .win.parked.dwell { width:340px; z-index:75; }
 body.carrying .win.parked.dwell .win-bar, body.carrying .win.parked.dwell .win-body { display:flex; }
 body.carrying .win.parked.dwell .win-body { display:block; overflow:auto; }
 body.carrying .win.parked.dwell .pk-hold { display:none; }

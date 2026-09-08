@@ -18,10 +18,9 @@ const ROLES: Record<string, string[]> = {
     `GRANT SELECT ON ALL TABLES IN SCHEMA bizdata TO atrium_sales`,
     `GRANT UPDATE (note) ON bizdata.pipeline TO atrium_sales`,
   ],
-  // engineering, marketing and strategy get CONNECT and nothing else.
+  // engineering and marketing get CONNECT and nothing else.
   atrium_engineering: [],
   atrium_marketing: [],
-  atrium_strategy: [],
 };
 
 const main = async () => {
