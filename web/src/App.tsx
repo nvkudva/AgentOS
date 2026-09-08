@@ -57,7 +57,7 @@ const VIEW = 'desktop';
  * ever re-stacks the ones already on the desktop.
  */
 const CENTRE_W = 900, CENTRE_H = 600;
-const COLS = 4, PAD = 10, GAP = 12, ROOM_W = 320;
+const COLS = 4, PAD = 10, ROOM_W = 320;
 /** The room window's own furniture, in the sizes styles.css actually gives it. */
 const BAR_H = 39, BODY_PAD = 18, MGR_ROW = 60, CREW_ROW = 48, ROW_GAP = 2;
 /**
@@ -76,34 +76,6 @@ const roomHeight = (crew: number, st: { h: number }) => {
   const need = BAR_H + BODY_PAD + MGR_ROW + Math.max(0, crew - 1) * CREW_ROW
              + Math.max(1, crew) * ROW_GAP;
   return Math.min(Math.max(190, need), Math.max(180, st.h - PAD * 2));
-};
-
-/**
- * `tallest` is the crew of the biggest room on the floor, and it — not this room —
- * sets the row pitch. Letting each room derive its own pitch from its own height puts
- * a three-person room and a two-person room on different grids, and they land on top
- * of each other.
- */
-const tile = (r: Room, st: { w: number; h: number }, crew: number, tallest = crew) => {
-  const usable = st.w - PAD * 2;
-  // Below tablet width the floor plan's four columns would give every room 110px. One
-  // column, full width, is the only honest thing to do with a desk that narrow.
-  if (st.w < 720) {
-    const h = roomHeight(crew, st);
-    const pitch = roomHeight(Math.max(crew, tallest), st) + GAP;
-    return { x: PAD, y: PAD + r.y * pitch, w: Math.max(240, usable), h };
-  }
-  const w = Math.round(Math.min(ROOM_W, Math.max(240, usable)));
-  const h = roomHeight(crew, st);
-  const pitch = roomHeight(Math.max(crew, tallest), st) + GAP;
-  const perCol = Math.max(1, Math.floor((st.h - PAD) / pitch));
-  const x = Math.round(PAD + (r.x / COLS) * usable) + Math.floor(r.y / perCol) * (w + GAP);
-  const y = PAD + (r.y % perCol) * pitch;
-  return {
-    x: Math.max(PAD, Math.min(x, Math.max(PAD, st.w - w - PAD))),
-    y: Math.max(0, Math.min(y, Math.max(0, st.h - h - PAD))),
-    w, h,
-  };
 };
 
 const restored = loadDesktop();
@@ -197,8 +169,12 @@ export default function App() {
     const by = new Map<string, number>();
     for (const a of live.current.agents) by.set(a.room_id, (by.get(a.room_id) ?? 0) + 1);
     const crew = by.get(r.id) ?? 0;
-    const tallest = Math.max(1, ...by.values());
-    const at = tile(r, live.current.stage, crew, tallest);
+    // Centred like everything else. A room only sits somewhere other than the middle
+    // because it is parked on a rail or because you dragged it there.
+    const st = live.current.stage;
+    const w = Math.min(ROOM_W, Math.max(240, st.w - 32));
+    const h = roomHeight(crew, st);
+    const at = { x: Math.round((st.w - w) / 2), y: Math.round((st.h - h) / 2), w, h };
     open({ id: `roomwin:${r.id}`, kind: 'room', ref: r.id, title: r.name, icon: r.icon, color: r.color,
            plain: true, ...at,
            // the floor plan's own left and right columns, so seven rooms fit two rails
