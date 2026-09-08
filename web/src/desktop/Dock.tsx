@@ -64,7 +64,8 @@ export function Dock({ wins, agents, inbox, unread = 0, rooms, onLaunch, onFocus
         })}
         <span className="dock-sep" />
         {rooms.map((r) => {
-          const w = wins.find((x) => x.id === `room:${r.id}`);
+          // Either surface counts as the room being open: its console, or its window.
+          const w = wins.find((x) => x.id === `roomwin:${r.id}` || x.id === `room:${r.id}`);
           return (
             <button key={r.id} className="tile" onClick={() => onRoom(r.id)} data-label={r.name}
                     aria-label={r.name} title={r.name}

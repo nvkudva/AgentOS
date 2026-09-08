@@ -19,7 +19,7 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
   onResult: (r: Result, what: 'open' | 'done') => void;
   onClarify: (c: Clarify, answer: string | null) => void;
 }) {
-  const cycle = () => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'auto' : 'dark');
+  const cycle = () => setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'auto' : 'light');
 
   return (
     <div className="menubar">

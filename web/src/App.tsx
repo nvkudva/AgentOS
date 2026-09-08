@@ -5,7 +5,7 @@ import { usePerf } from './lib/perf';
 import { loadDesktop, saveDesktop, loadSeen, saveSeen } from './lib/desktop';
 import type { Room, Agent, Inbox, Task } from './lib/api';
 import { useWindows, layout, SLIVER, type Win, type Rect, type AppKind, type Park } from './desktop/wm';
-import { Window } from './desktop/Window';
+import { Window, dragging } from './desktop/Window';
 import { Wallpaper } from './desktop/Wallpaper';
 import { MenuBar } from './desktop/MenuBar';
 import { Dock } from './desktop/Dock';
@@ -541,6 +541,8 @@ export default function App() {
         return;
       }
       if (e.key === 'Escape' && !typing) {
+        // Escape during a drag belongs to the drag — it cancels the gesture and nothing else.
+        if (dragging()) return;
         // The orb's panel is the topmost surface and dismisses itself; the desk must not
         // also throw away the window the operator was watching underneath it.
         if (document.querySelector('.sup.open')) return;
@@ -679,7 +681,10 @@ export default function App() {
             onRoom={(id) => {
               const r = snap.rooms.find((x) => x.id === id)!;
               const w = wins.find((x) => x.id === `roomwin:${id}`);
-              if (w) { patch(w.id, { min: false }); focus(w.id); } else openRoomWindow(r);
+              // Same as ⌥N: a tile click un-parks and gives the room back its own desk,
+              // rather than raising a 72px sliver that still reads as nothing happening.
+              if (w) { patch(w.id, { park: null, min: false, ...(w.home && { x: w.home.left, y: w.home.top, w: w.home.width, h: w.home.height }) }); focus(w.id); }
+              else openRoomWindow(r);
             }} />
     </div>
   );

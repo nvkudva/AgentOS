@@ -50,8 +50,11 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const [turns, setTurns] = useState<Turn[]>([]);
   const seq = useRef(0);
   const feed = useRef<HTMLDivElement>(null);
-  const push = (who: 'you' | 'orb', t: string) =>
-    setTurns((ts) => [...ts, { id: ++seq.current, who, text: t }].slice(-8));
+  const push = (who: 'you' | 'orb', t: string) => {
+    const id = ++seq.current;
+    setTurns((ts) => [...ts, { id, who, text: t }].slice(-8));
+    return id;
+  };
   const rec = useRef<any>(null);
   const box = useRef<HTMLInputElement>(null);
   const hide = useRef<any>(null);
@@ -60,6 +63,8 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const auto = useRef<any>(null);
   const live = useRef({ prop, pick });
   live.current = { prop, pick };
+  /** the turn that asked "<room>?" — it follows the aim until the proposal is gone */
+  const aimed = useRef(0);
 
   useLayoutEffect(() => { if (typing) box.current?.focus(); }, [typing]);
   useLayoutEffect(() => {
@@ -97,11 +102,12 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
 
   const say = (text: string) => {
     setReply(text);
-    push('orb', text);
+    const id = push('orb', text);
     if (speakOn && 'speechSynthesis' in window) {
       const u = new SpeechSynthesisUtterance(text); u.rate = 1.05;
       speechSynthesis.speak(u);
     }
+    return id;
   };
 
   /**
@@ -152,7 +158,10 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     const r = run(text, ctx);
     if (r.propose) { setProp({ room: r.propose.room, rooms: r.propose.rooms, text: r.propose.text }); setPick(0); }
     else setProp(null);
-    say(r.say);
+    const id = say(r.say);
+    // The question the orb asked names a room, so cycling the aim has to rewrite it —
+    // otherwise the sentence and the chip below it point at two different rooms.
+    aimed.current = r.propose ? id : 0;
     show(r.propose ? 20000 : 7000);
   };
 
@@ -163,6 +172,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
       pitch: (p) => {
         clearTimeout(auto.current);
         setProp(p); setPick(0); setOpen(true); show(20000);
+        aimed.current = 0;
         setReply(`${p.room.name}. Three seconds to take it back.`);
         if (p.auto) auto.current = setTimeout(commit, p.auto);
       },
@@ -263,6 +273,15 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const clar = clarifies[0];
   const res = !prop && !clar ? results[0] : undefined;
   const line = typing ? '' : listening ? (heard || 'Listening…') : (reply || 'Ask me anything.');
+
+  // ← / → re-aim the proposal, and the sentence that named a room is part of the aim.
+  useEffect(() => {
+    const id = aimed.current;
+    if (!prop || !room || !id) return;
+    const t = `${room.name}?`;
+    setReply(t);
+    setTurns((ts) => ts.map((x) => (x.id === id ? { ...x, text: t } : x)));
+  }, [prop, room]);
 
   return (
     <div className={`sup skin-${skin}${open ? ' open' : ''}`} ref={shell}>

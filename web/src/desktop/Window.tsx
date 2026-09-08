@@ -22,6 +22,14 @@ type P = {
  */
 const flight: { id: string | null; rect: Rect | null } = { id: null, rect: null };
 
+/**
+ * A gesture is desk-wide state, not window state: the global Escape handler that closes
+ * the front window has to know one is running, and it listens on the same target this
+ * does — registered first, so no amount of stopPropagation would hide the key from it.
+ */
+let gesture = false;
+export const dragging = () => gesture;
+
 export const EDGES = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as const;
 type Mode = 'move' | (typeof EDGES)[number];
 const MIN_W = 240, MIN_H = 150;
@@ -113,6 +121,7 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
     const s = { mode, px: e.clientX, py: e.clientY, moved: false,
       x: n.offsetLeft, y: n.offsetTop, w: n.offsetWidth, h: n.offsetHeight };
     drag.current = s;
+    gesture = true;
 
     // The park gutter is armed by dwell, not by touch: brushing an edge on the way
     // somewhere else must not offer to swallow the window.
@@ -189,6 +198,7 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
     // Escape abandons the gesture: no park, and the window falls back to its own rect.
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key !== 'Escape') return;
+      ev.preventDefault(); ev.stopPropagation();
       stop();
       flight.id = null; flight.rect = null;
       paint(win.id, null);
@@ -199,7 +209,7 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
     function stop() {
       removeEventListener('pointermove', onMove); removeEventListener('pointerup', onUp);
       removeEventListener('pointercancel', onUp); removeEventListener('keydown', onKey);
-      drag.current = null;
+      drag.current = null; gesture = false;
     }
 
     addEventListener('pointermove', onMove); addEventListener('pointerup', onUp);

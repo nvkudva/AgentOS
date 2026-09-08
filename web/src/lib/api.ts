@@ -73,11 +73,22 @@ export function useLiveState() {
       ref.current = DEMO; dirty.current = true;
     }, 2500);
 
+    // The coalescing is the point — one render a frame, not one per delta — but a tab
+    // that is not being painted never gets a frame, so the loop falls back to a timer
+    // whenever the document is hidden. Same single writer either way.
+    let raf = 0, timer: any = 0;
     const flush = () => {
       if (dirty.current && ref.current) { dirty.current = false; setSnap({ ...ref.current }); }
-      raf = requestAnimationFrame(flush);
+      tick();
     };
-    let raf = requestAnimationFrame(flush);
+    const tick = () => {
+      if (document.hidden) timer = setTimeout(flush, 200);
+      else raf = requestAnimationFrame(flush);
+    };
+    // Whichever clock was running is wrong the instant visibility flips; restart on the other.
+    const wake = () => { cancelAnimationFrame(raf); clearTimeout(timer); flush(); };
+    document.addEventListener('visibilitychange', wake);
+    tick();
 
     const es = new EventSource('/api/stream');
     const refetch = async () => {
@@ -103,7 +114,8 @@ export function useLiveState() {
     const poll = setInterval(refetch, 3000);   // cheap safety net; SSE does the real work
     return () => {
       es.close(); clearInterval(poll); clearTimeout(fallback);
-      cancelAnimationFrame(raf); force(0);
+      document.removeEventListener('visibilitychange', wake);
+      cancelAnimationFrame(raf); clearTimeout(timer); force(0);
     };
   }, []);
 
