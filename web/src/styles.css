@@ -155,7 +155,11 @@ p { margin:8px 0; }
    top of the shell and never moves while it grows. */
 :root { --orbsz:38px; --sup-w:320px; --glow-bloom:#8ea6ff; }
 
-.sup { position:relative; width:var(--orbsz); height:var(--orbsz); }
+/* Out of the flow and pinned to the middle of the bar. Sitting between two spacers put
+   it wherever the menus and the right-hand controls happened to balance, which moved
+   every time one of them changed. */
+.sup { position:absolute; left:50%; top:50%; translate:-50% -50%;
+  width:var(--orbsz); height:var(--orbsz); }
 .sup-shell { position:absolute; top:0; left:50%; translate:-50% 0; z-index:2;
   width:var(--orbsz); display:grid; grid-template-rows:auto 0fr;
   border-radius:999px; padding:0;
@@ -229,7 +233,7 @@ p { margin:8px 0; }
 .orb-shade { position:absolute; inset:0; border-radius:999px;
   background:radial-gradient(circle at 30% 24%, rgb(255 255 255 / .5), rgb(255 255 255 / 0) 40%),
              radial-gradient(circle at 74% 82%, rgb(0 0 0 / .62), rgb(0 0 0 / 0) 58%),
-             radial-gradient(circle at 50% 50%, transparent 52%, rgb(0 0 0 / .45)); }
+             radial-gradient(circle at 50% 50%, transparent 78%, rgb(0 0 0 / .3)); }
 /* a thin bright arc along the shadowed edge: the one cue that sells a sphere */
 .orb-sphere::after { content:''; position:absolute; inset:0; border-radius:999px; pointer-events:none;
   box-shadow:inset -1px -1.5px 4px -1px color-mix(in srgb, var(--glow) 80%, transparent),
