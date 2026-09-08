@@ -65,16 +65,22 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Everything else, the shell included, is a navigation: answer from cache instantly and
-  // refresh behind it, so a cold start paints at once and a reload is already current.
+  // The shell is network-first, and that is not a preference.
+  //
+  // It names this build's hashed assets. Answering a navigation from cache would hand a
+  // returning visitor the *previous* build's HTML, whose asset URLs no longer exist on
+  // the deploy they just landed on — a blank page, with no way out but a hard reload
+  // they do not know to do. So: try the network, fall back to cache only when offline.
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    const hit = await cache.match(req.mode === 'navigate' ? '/index.html' : req);
-    const live = fetch(req).then((res) => {
-      if (res.ok) cache.put(req.mode === 'navigate' ? '/index.html' : req, res.clone());
+    const key = req.mode === 'navigate' ? '/index.html' : req;
+    try {
+      const res = await fetch(req);
+      if (res.ok) cache.put(key, res.clone());
       return res;
-    }).catch(() => hit);
-    return hit ?? live;
+    } catch {
+      return (await cache.match(key)) ?? Response.error();
+    }
   })());
 });
 `);
