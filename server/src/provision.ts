@@ -126,7 +126,7 @@ async function seedManager(roomId: string, key: string, roomName: string, color:
   await q(
     `INSERT INTO agent (id, room_id, name, role, policy_key, tier, step_budget, cost_budget_cents,
                         persona, color, avatar)
-     VALUES ($1,$2,$3,'manager','room.manager','manager',300,60,$4,$5,'◆')`,
+     VALUES ($1,$2,$3,'manager','room.manager','manager',300,60,$4,$5,'🧑‍💼')`,
     [id('agt'), roomId, managerName(key), `Runs ${roomName}. Breaks what you ask for into tasks, hands them out, and reports back.`, color]);
 }
 
@@ -175,7 +175,7 @@ export async function provisionRoom(spec: RoomSpec) {
       `INSERT INTO agent (id, room_id, name, role, policy_key, step_budget, cost_budget_cents, persona, color, avatar)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [id('agt'), rid, a.name, a.role, a.policy, a.step_budget ?? 40, a.cost_budget_cents ?? 120,
-       a.persona ?? '', a.color ?? spec.color, a.avatar ?? '🙂']);
+       a.persona ?? '', a.color ?? spec.color, a.avatar ?? '🧑']);
   }
 
   await append({ type: 'room.created', room_id: rid,

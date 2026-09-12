@@ -9,41 +9,11 @@ import type { Snapshot } from './api';
 export const DEMO: Snapshot = {
   "rooms": [
     {
-      "id": "room_1a7f30408fbc",
-      "key": "analytics",
-      "name": "Analytics",
-      "objective": "Answer questions from company data",
-      "x": 0,
-      "y": 0,
-      "w": 2,
-      "h": 1,
-      "budget_cents": 300,
-      "spent_cents": 114,
-      "tool_grants": [
-        "sql.query",
-        "artifact.write",
-        "artifact.read",
-        "escalate",
-        "assign",
-        "report",
-        "clarify"
-      ],
-      "approval_policy": {
-        "low": "auto",
-        "high": "approve",
-        "medium": "auto"
-      },
-      "db_role": "atrium_analytics",
-      "status": "open",
-      "color": "#4bb3d4",
-      "icon": "\u25c8"
-    },
-    {
       "id": "room_366519d8b1ca",
       "key": "engineering",
       "name": "Engineering",
       "objective": "Ship small, tested changes",
-      "x": 2,
+      "x": 0,
       "y": 0,
       "w": 2,
       "h": 1,
@@ -69,6 +39,36 @@ export const DEMO: Snapshot = {
       "status": "open",
       "color": "#6f8ef5",
       "icon": "\u2318"
+    },
+    {
+      "id": "room_1a7f30408fbc",
+      "key": "analytics",
+      "name": "Analytics",
+      "objective": "Answer questions from company data",
+      "x": 2,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "budget_cents": 300,
+      "spent_cents": 114,
+      "tool_grants": [
+        "sql.query",
+        "artifact.write",
+        "artifact.read",
+        "escalate",
+        "assign",
+        "report",
+        "clarify"
+      ],
+      "approval_policy": {
+        "low": "auto",
+        "high": "approve",
+        "medium": "auto"
+      },
+      "db_role": "atrium_analytics",
+      "status": "open",
+      "color": "#4bb3d4",
+      "icon": "\u25c8"
     },
     {
       "id": "room_45dc31b85bfd",
@@ -258,7 +258,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.097Z",
       "persona": "Cautious. Will not state a number she has not queried twice.",
       "color": "#4bb3d4",
-      "avatar": "\ud83d\udd2d",
+      "avatar": "👩‍🔬",
       "tier": "worker"
     },
     {
@@ -277,7 +277,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.097Z",
       "persona": "Fast and rough. Good for a first read, never the final one.",
       "color": "#63c9c0",
-      "avatar": "\ud83d\udcd0",
+      "avatar": "🧑‍🔬",
       "tier": "worker"
     },
     {
@@ -296,7 +296,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T16:13:23.388Z",
       "persona": "Runs Engineering. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#6f8ef5",
-      "avatar": "\u25c6",
+      "avatar": "🧑‍💼",
       "tier": "manager"
     },
     {
@@ -315,7 +315,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.101Z",
       "persona": "Small diffs, real tests, no heroics. Refuses to ship red.",
       "color": "#6f8ef5",
-      "avatar": "\ud83d\udd27",
+      "avatar": "👨‍💻",
       "tier": "worker"
     },
     {
@@ -334,7 +334,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.101Z",
       "persona": "Gets stuck in loops on purpose. He exists to prove the kill switch works.",
       "color": "#8a93a5",
-      "avatar": "\ud83c\udf00",
+      "avatar": "🧑‍💻",
       "tier": "worker"
     },
     {
@@ -353,7 +353,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T16:13:23.392Z",
       "persona": "Runs Finance. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#c9a227",
-      "avatar": "\u25c6",
+      "avatar": "🧑‍💼",
       "tier": "manager"
     },
     {
@@ -372,7 +372,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.120Z",
       "persona": "Ties every number to a row. Will not round in your favour.",
       "color": "#c9a227",
-      "avatar": "\ud83e\uddfe",
+      "avatar": "👩‍⚖️",
       "tier": "worker"
     },
     {
@@ -391,7 +391,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.120Z",
       "persona": "Looks for the line that moved and asks why.",
       "color": "#d9b64a",
-      "avatar": "\ud83d\udcb1",
+      "avatar": "👨‍🏫",
       "tier": "worker"
     },
     {
@@ -410,7 +410,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T16:13:23.389Z",
       "persona": "Runs Marketing. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#e0794b",
-      "avatar": "\u25c6",
+      "avatar": "🧑‍💼",
       "tier": "manager"
     },
     {
@@ -429,7 +429,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.104Z",
       "persona": "Writes plainly, cites the analytics room, never publishes without asking.",
       "color": "#e0794b",
-      "avatar": "\u2712\ufe0f",
+      "avatar": "👩‍🎨",
       "tier": "worker"
     },
     {
@@ -448,7 +448,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.105Z",
       "persona": "Second pair of eyes. Cuts a draft by a third before it goes anywhere.",
       "color": "#d9a441",
-      "avatar": "\ud83d\uddde\ufe0f",
+      "avatar": "🧑‍🏫",
       "tier": "worker"
     },
     {
@@ -467,7 +467,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T16:13:23.390Z",
       "persona": "Runs Support. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#e05b8f",
-      "avatar": "\u25c6",
+      "avatar": "🧑‍💼",
       "tier": "manager"
     },
     {
@@ -486,7 +486,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.115Z",
       "persona": "Reads the whole thread before replying. Slower, fewer follow-ups.",
       "color": "#d67aa8",
-      "avatar": "\ud83d\udedf",
+      "avatar": "💁‍♂️",
       "tier": "worker"
     },
     {
@@ -505,7 +505,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.114Z",
       "persona": "Answers the oldest urgent thing first. Never promises a date.",
       "color": "#e05b8f",
-      "avatar": "\ud83c\udfa7",
+      "avatar": "💁",
       "tier": "worker"
     },
     {
@@ -524,7 +524,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T16:13:23.391Z",
       "persona": "Runs Research. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#7f8cd6",
-      "avatar": "\u25c6",
+      "avatar": "🧑‍💼",
       "tier": "manager"
     },
     {
@@ -543,7 +543,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.126Z",
       "persona": "Digs for the thing nobody asked about. Slow, occasionally right.",
       "color": "#7f8cd6",
-      "avatar": "\ud83d\udd0e",
+      "avatar": "🕵️",
       "tier": "worker"
     },
     {
@@ -562,7 +562,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T16:13:23.392Z",
       "persona": "Runs Sales. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#3fb27f",
-      "avatar": "\u25c6",
+      "avatar": "🧑‍💼",
       "tier": "manager"
     },
     {
@@ -581,7 +581,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.108Z",
       "persona": "Pipeline janitor. Flags stale deals before they rot.",
       "color": "#3fb27f",
-      "avatar": "\ud83d\udcc7",
+      "avatar": "🤵",
       "tier": "worker"
     },
     {
@@ -600,7 +600,7 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T03:51:20.108Z",
       "persona": "Reads the pipeline as numbers, not stories. Blunt about what is dead.",
       "color": "#57b6a0",
-      "avatar": "\ud83d\udcca",
+      "avatar": "👨‍🔬",
       "tier": "worker"
     }
   ],

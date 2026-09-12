@@ -549,7 +549,7 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .capedit { display:flex; gap:4px; } .capedit input { width:76px; }
 
 .floor { padding:16px; }
-.grid { display:grid; grid-auto-rows:150px; gap:12px; grid-template-columns:repeat(var(--cols,4), minmax(160px,1fr)); }
+.grid { display:grid; grid-auto-rows:196px; gap:12px; grid-template-columns:repeat(var(--cols,4), minmax(160px,1fr)); }
 .room { background:var(--tint); border:.5px solid var(--line-soft); border-radius:var(--r-card);
   padding:12px; display:flex; flex-direction:column; gap:8px; cursor:pointer; contain:content; }
 .room.needs { border-color:color-mix(in srgb, var(--approval) 55%, transparent); }
@@ -1232,6 +1232,13 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
   display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
 .room-now > p { margin:3px 0 0; font-size:11.5px; color:var(--muted); line-height:1.35; }
 .room-now > p { overflow:hidden; text-overflow:ellipsis; }
+.room-more { flex:none; display:flex; flex-direction:column; gap:2px; margin:6px 0 0;
+  font-size:11px; line-height:1.35; color:var(--muted); }
+.room-more > q { color:var(--text); quotes:'“' '”'; overflow:hidden;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; }
+.room-more > p { margin:0; overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical;
+  -webkit-line-clamp:2; }
+.room-more > p.quiet { color:var(--faint); }
 .room-crew { flex:none; display:flex; flex-wrap:wrap; gap:5px; margin:8px 0 auto; }
 .room-crew .face.attn { box-shadow:inset 0 0 0 .5px color-mix(in srgb, var(--c) 55%, transparent),
   0 0 0 1.5px color-mix(in srgb, var(--approval) 60%, transparent); }
@@ -1243,6 +1250,7 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 @media (max-width: 1024px) {
   .menubar { gap:12px; padding:0 12px; }
   .room-obj { display:none; }              /* the objective is in the console */
+  .room-more > p.quiet { display:none; }   /* so is what it may do unattended */
 }
 @media (max-width: 860px) {
   .menubar .menu { display:none; }         /* Overview, Activity, Settings are in the dock */

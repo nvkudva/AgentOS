@@ -3,7 +3,7 @@ import { get, post } from '../lib/api';
 
 const ICONS = ['◈', '⌘', '✎', '◎', '◇', '☎', '⛁', '◍', '✦', '❖', '⌬', '⏣'];
 const COLORS = ['#4bb3d4', '#6f8ef5', '#e0794b', '#3fb27f', '#a472e0', '#e05b8f', '#c9a227', '#7f8cd6'];
-const FACES = ['🙂', '🔭', '🔧', '✒️', '📇', '🧭', '🎧', '🧾', '🔎', '📊', '🗂️', '🛠️'];
+const FACES = ['🧑‍💼', '👩‍🔬', '👨‍💻', '👩‍🎨', '🤵', '🧑‍🏫', '💁', '👩‍⚖️', '🕵️', '🧑‍🔬', '🧑‍⚕️', '🧑'];
 
 /**
  * Adding a function to the company is a form.

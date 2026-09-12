@@ -26,7 +26,7 @@ const DRIFT = 12;   // beyond this once it is open, you have moved on
  * wall and becomes a thing in your hand. The operator never chooses between them in
  * advance — the same press resolves into whichever they meant, at 4px.
  */
-export function peekPress(e: React.PointerEvent, info: PeekInfo, load: Carried) {
+export function peekPress(e: React.PointerEvent, info: PeekInfo, load?: Carried) {
   if (e.button !== 0) return;
   const el = e.currentTarget as HTMLElement;
   const p0 = { x: e.clientX, y: e.clientY };
@@ -56,6 +56,9 @@ export function peekPress(e: React.PointerEvent, info: PeekInfo, load: Carried) 
     // It was a carry. Hand the original press to the carry protocol so the ghost lifts
     // from where the finger actually went down, not from where it has drifted to.
     end();
+    // Nothing to carry — a room is where work lands, not a thing you pick up — so the
+    // move just cancels the peek.
+    if (!load) return;
     startCarry({ button: 0, currentTarget: el, clientX: p0.x, clientY: p0.y, pointerId: pid } as unknown as React.PointerEvent,
                load);
   }

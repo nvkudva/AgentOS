@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import type { Room, Agent, Mandate, Task } from '../lib/api';
 import { hours } from '../lib/humanize';
-import { roomProgress } from '../lib/progress';
+import { roomDetail, roomProgress } from '../lib/progress';
 
 const ATTN = new Set(['awaiting_approval', 'blocked', 'failed']);
 
@@ -12,13 +12,14 @@ const ATTN = new Set(['awaiting_approval', 'blocked', 'failed']);
  * lines of chatter that change constantly and never add up to the state of the room —
  * one sentence of progress and a row of faces answers "does this need me?" faster.
  *
- * The manager's own report is deliberately not here: the card is one grid row tall and
- * the report is the one line whose length nothing bounds. The console shows all of it.
+ * The manager's report is here but clamped to two lines: it is the one line whose length
+ * nothing bounds, and a card that grows with it stops being a grid. The console has all of it.
  */
 function Widget({ room, agents, mandates = [], tasks = [], onOpen }: {
   room: Room; agents: Agent[]; mandates?: Mandate[]; tasks?: Task[]; onOpen: (r: Room) => void;
 }) {
   const p = roomProgress(room, mandates, tasks, agents);
+  const d = roomDetail(room, mandates, tasks, agents);
   const pct = Math.min(100, (room.spent_cents / Math.max(1, room.budget_cents)) * 100);
   const warn = agents.some((a) => a.state === 'failed');
   const cls = `room${room.status === 'capped' ? ' capped' : p.needs ? ' needs' : warn ? ' blocked' : ''}`;
@@ -37,6 +38,12 @@ function Widget({ room, agents, mandates = [], tasks = [], onOpen }: {
       <div className="room-now">
         {p.mandate && <b>“{p.mandate.text}”</b>}
         <p>{p.where}</p>
+      </div>
+
+      <div className="room-more">
+        {p.report && <q>{p.report}</q>}
+        <p>{d.crew}. {d.load}</p>
+        <p className="quiet">{d.scope}</p>
       </div>
 
       <div className="room-crew">

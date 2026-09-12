@@ -60,3 +60,51 @@ export function roomProgress(room: Room, mandates: Mandate[], tasks: Task[], cre
     report: m.report ?? '',
   };
 }
+
+export type Detail = {
+  /** who is in the room, named while the list is short enough to name */
+  crew: string;
+  /** the work it is holding, in counts */
+  load: string;
+  /** how far it may go before it has to ask */
+  scope: string;
+};
+
+/** What it may do unattended, per the highest blast radius its policy waves through. */
+const ALONE: Record<string, string> = {
+  low: 'Reads on its own; writing waits for you.',
+  medium: 'Acts alone inside the company; the rest waits for you.',
+  high: 'Acts alone, outward-facing work included.',
+};
+
+/**
+ * The three lines under the sentence: who is in the room, what it is holding, and how
+ * far it may go alone. Same source as `roomProgress`, for the same reason — the card on
+ * the Overview, the parked rail and the console must not describe one room differently.
+ */
+export function roomDetail(room: Room, mandates: Mandate[], tasks: Task[], crew: Agent[]): Detail {
+  const mgr = crew.find((a) => a.tier === 'manager');
+  const workers = crew.filter((a) => a.tier !== 'manager').map((a) => a.name);
+  const listed = workers.length > 3
+    ? `${workers.length} specialists`
+    : workers.slice(0, -1).join(', ') + (workers.length > 1 ? ' and ' : '') + (workers.at(-1) ?? '');
+
+  const live = mandates.filter((m) => m.room_id === room.id && !['recalled', 'done'].includes(m.state));
+  const mine = tasks.filter((t) => live.some((m) => m.id === t.mandate_id));
+  const count = (s: string) => mine.filter((t) => t.state === s).length;
+  const parts = [
+    count('working') && `${count('working')} running`,
+    count('queued') && `${count('queued')} waiting to be picked up`,
+    count('done') && `${count('done')} finished`,
+    count('failed') && `${count('failed')} stopped`,
+  ].filter(Boolean) as string[];
+
+  return {
+    crew: !mgr ? `${crew.length} here, nobody running it`
+      : !workers.length ? `${mgr.name} runs it single-handed`
+      : `${mgr.name} runs ${listed}`,
+    load: parts.length ? `${parts.join(', ')}.` : 'Nothing in hand.',
+    scope: ALONE[Object.keys(ALONE).reverse().find((b) => room.approval_policy?.[b] === 'auto') ?? '']
+      ?? 'Asks you before it does anything.',
+  };
+}

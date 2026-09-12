@@ -12,6 +12,9 @@ export function useTheme() {
       const real = theme === 'auto' ? (mq.matches ? 'dark' : 'light') : theme;
       document.documentElement.dataset.theme = real;
       document.documentElement.dataset.themeMode = theme;
+      // The OS bar is one colour now that light is the default, so it follows the choice.
+      document.querySelector('meta[name=theme-color]')
+        ?.setAttribute('content', real === 'dark' ? '#0e1116' : '#f6f8fb');
     };
     apply();
     localStorage.setItem('atrium.theme', theme);

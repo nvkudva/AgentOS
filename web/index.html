@@ -12,9 +12,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
-    <!-- The bar the OS paints around the app, in both themes. -->
-    <meta name="theme-color" content="#f6f8fb" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)" />
+    <!-- The bar the OS paints around the app. Light is the desk's default, whatever the
+         machine prefers; the script below repaints this for anyone who chose dark. -->
+    <meta name="theme-color" content="#f6f8fb" />
 
     <!-- The one face the desktop is set in. Preloaded because it is on the critical
          path: every label on the first screen waits for it otherwise. The extended
@@ -25,11 +25,23 @@
          rather than a white flash. Matches --solid in both themes. -->
     <style>
       html { background: #f6f8fb; }
-      @media (prefers-color-scheme: dark) { html { background: #0e1116; } }
       html[data-theme="dark"] { background: #0e1116; }
-      html[data-theme="light"] { background: #f6f8fb; }
       body { margin: 0; }
     </style>
+
+    <!-- Light is the default: a first visit is a lit desk even on a machine set to dark.
+         Only a stored choice moves it, and it is stamped here rather than on mount so a
+         returning dark operator never gets a light flash first. -->
+    <script>
+      try {
+        var t = localStorage.getItem('atrium.theme') || 'light';
+        var real = t === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
+        document.documentElement.dataset.theme = real;
+        document.documentElement.dataset.themeMode = t;
+        if (real === 'dark')
+          document.querySelector('meta[name=theme-color]').setAttribute('content', '#0e1116');
+      } catch (e) { document.documentElement.dataset.theme = 'light'; }
+    </script>
   </head>
   <body>
     <div id="root"></div>

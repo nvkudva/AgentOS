@@ -1,6 +1,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Room, Agent, Mandate, Task } from '../lib/api';
 import { friendlyActivity, hours, requiredTools } from '../lib/humanize';
+import { roomDetail, roomProgress } from '../lib/progress';
 import { calm, tok } from './carry';
 import { peekPress } from './Peek';
 import { send } from './courier';
@@ -274,7 +275,9 @@ export const RoomWindowBody = memo(Body, (p, n) =>
  * The 72px a parked room keeps on screen: its own icon in its own colour, the manager
  * on top wearing the same arc, and the crew as live faces with their status dots.
  * Enough to know whether it needs you without unparking it — which is the whole reason
- * parking is not a minimise.
+ * parking is not a minimise. Hold its icon and the same popover a face uses reads out the
+ * fuller summary: the sentence it is on, who is in it, what it is holding, and how far it
+ * may go without asking. 72px of rail cannot carry prose; a peek can.
  */
 export function ParkedRail({ room, agents, mandates, tasks }: {
   room: Room; agents: Agent[]; mandates: Mandate[]; tasks: Task[];
@@ -290,10 +293,21 @@ export function ParkedRail({ room, agents, mandates, tasks }: {
     return !!who && ATTN.has(who.state);
   });
   const notch = stuck < 0 || !mine.length ? null : (stuck + 0.5) / mine.length;
+  const p = roomProgress(room, mandates, tasks, agents);
+  const d = roomDetail(room, mandates, tasks, agents);
+  const summary = {
+    name: room.name, role: room.objective, avatar: room.icon, colour: room.color,
+    activity: p.mandate ? `“${p.mandate.text}” — ${p.where}` : p.where,
+    state: p.needs ? 'blocked' : agents.some((a) => a.state === 'working') ? 'working' : 'idle',
+    steps: [...(p.report ? [p.report] : []), d.crew, d.load, d.scope],
+    spend: `${hours(room.spent_cents)} of ${hours(room.budget_cents)}`,
+    chits: mine.filter((t) => OPEN.has(t.state)).map((t) => t.title),
+  };
   return (
     <div className="pk-rail" style={{ ['--room' as any]: room.color }}
          data-room={room.id} data-drop="" data-accepts="mandate task">
-      <span className="pk-icon" title={room.name}>{room.icon}</span>
+      <span className="pk-icon" title={`${room.name} — ${room.objective}`}
+            onPointerDown={(e) => peekPress(e, summary)}>{room.icon}</span>
       <span className="pk-faces">
         {shown.map((a) => (
           <span key={a.id} className={`face${a.tier === 'manager' ? ' mgr' : ''}`}
