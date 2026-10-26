@@ -6,7 +6,16 @@ import { charge, haltRoom } from './budget.js';
 import type { Ctx, ToolSpec, Blast } from './types.js';
 import { TOOLS } from '../tools/index.js';
 
-const stable = (o: any) => JSON.stringify(o, Object.keys(o ?? {}).sort());
+/**
+ * Canonical form of approval args. The old replacer-array version sorted only the
+ * top level, so `{a:1, b:{y:1, x:2}}` and `{b:{x:2, y:1}, a:1}` compared unequal
+ * and an approval bound to nested args would never match its own call.
+ */
+export const stable = (o: any): string => {
+  if (o === null || typeof o !== 'object') return JSON.stringify(o) ?? 'null';
+  if (Array.isArray(o)) return `[${o.map(stable).join(',')}]`;
+  return `{${Object.keys(o).sort().map((k) => `${JSON.stringify(k)}:${stable(o[k])}`).join(',')}}`;
+};
 
 /**
  * The one gate every agent action passes through.
@@ -55,8 +64,12 @@ export async function callTool(ctx: Ctx, name: string, args: any): Promise<any> 
       : null;
     const matches = granted && granted.tool === name && stable(granted.args) === stable(args);
     if (!matches) {
+      // Pending approvals are keyed on run + tool + ARGS, not run + tool: two
+      // different calls to the same tool must surface two different cards, or the
+      // operator approves words A while the agent runs words B.
       const existing = await one<any>(
-        `SELECT * FROM approval WHERE run_id=$1 AND tool=$2 AND state='pending'`, [ctx.run.id, name]
+        `SELECT * FROM approval WHERE run_id=$1 AND tool=$2 AND state='pending' AND args=$3::jsonb`,
+        [ctx.run.id, name, stable(args)]
       );
       const aid = existing?.id ?? id('apr');
       if (!existing) {
