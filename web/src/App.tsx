@@ -58,6 +58,12 @@ const VIEW = 'desktop';
  * ever re-stacks the ones already on the desktop.
  */
 const CENTRE_W = 900, CENTRE_H = 600;
+/**
+ * Arrivals counted outside render: three opens in one tick share one render and
+ * would otherwise read the same window count and land on the identical rect.
+ * Aligned to the live desk on first use; modulo keeps it bounded forever.
+ */
+let arrivals = -1;
 const COLS = 4, PAD = 10, ROOM_W = 320;
 /** The room window's own furniture, in the sizes styles.css actually gives it. */
 const BAR_H = 39, BODY_PAD = 18, MGR_ROW = 60, CREW_ROW = 48, ROW_GAP = 2;
@@ -140,18 +146,28 @@ export default function App() {
   useEffect(() => { observe(VIEW, 'view.enter'); }, []);
 
   /**
-   * Every app and every room opened to full size gets the same window, dead centre.
-   * One canonical size means the operator's eye learns exactly one place to look, and a
-   * second app does not arrive 22px down and to the right of the first.
+   * Every app and every room opened to full size gets one canonical size, but never
+   * the same rect twice in a row: each arrival cascades +28px from centre (wrapping
+   * every 6), so a new window never reads as a repaint of the one underneath it.
+   * Re-opening what is already open focuses it instead of re-placing it (see open()
+   * in wm.ts) — placement only ever happens once, at arrival.
    */
   const live = useRef<{ wins: Win[]; stage: { w: number; h: number }; agents: Agent[] }>(
     { wins: [], stage, agents: [] });
   live.current = { wins, stage, agents: snap?.agents ?? [] };
   const place = useCallback(() => {
-    const { stage: st } = live.current;
+    const { stage: st, wins } = live.current;
     const w = Math.min(CENTRE_W, st.w - 32);
     const h = Math.min(CENTRE_H, st.h - 32);
-    return { x: Math.round((st.w - w) / 2), y: Math.round((st.h - h) / 2), w, h };
+    const openCount = wins.filter((x) => !x.min).length;
+    if (arrivals < openCount) arrivals = openCount;
+    const o = (arrivals++ % 6) * 28 - (5 * 28) / 2;
+    const x0 = (st.w - w) / 2 + o, y0 = (st.h - h) / 2 + o;
+    return {
+      x: Math.round(Math.min(Math.max(8, x0), Math.max(8, st.w - w - 8))),
+      y: Math.round(Math.min(Math.max(8, y0), Math.max(8, st.h - h - 8))),
+      w, h,
+    };
   }, []);
 
   const openAgent = useCallback((a: Agent) => {
