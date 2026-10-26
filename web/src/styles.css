@@ -9,7 +9,7 @@
   --tile:48px;
   --dock-gap:10px;
   color-scheme: light;
-  --text:#0d1319; --muted:#59646f; --faint:#8b95a1;
+  --text:#0d1319; --muted:#59646f; --faint:#5f6973;
   --solid:#f6f8fb; --win-fill:#fbfdfef7;
   --line:#0d131922; --line-soft:#0d131912; --tint:#0d13190a; --tint-2:#0d131914;
 
@@ -52,10 +52,13 @@
   --t-cascade:700ms;   /* a staged multi-hop */
   --t-breathe:2.4s;    /* a row that just changed */
   --t-rest:4.8s;       /* the same row once it is old news */
+  /* Five steps, no strays: 11 is numerics, badges and signage only — body copy
+     never drops below 13 on desktop, 15 on the phone. */
+  --fs-1:20px; --fs-2:17px; --fs-3:15px; --fs-4:13px; --fs-5:11px;
 }
 [data-theme="dark"] {
   color-scheme: dark;
-  --text:#e9edf3; --muted:#98a4b4; --faint:#6d7887;
+  --text:#e9edf3; --muted:#98a4b4; --faint:#8b96a5;
   --solid:#0e1219; --win-fill:#141922fa;
   --line:#ffffff20; --line-soft:#ffffff12; --tint:#ffffff0a; --tint-2:#ffffff16;
 
@@ -1355,6 +1358,34 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
   .room-crew .face::after, .crew .face::after { content:''; position:absolute; inset:-9px; }
 }
 body { touch-action:manipulation; }
+
+/* --- five-step type ramp: 20 / 17 / 15 / 13 / 11 ---
+   11 stays for numerics, badges and signage; everything the operator actually
+   reads sits at 13 or above. One override layer, so the ramp reads in one place. */
+.persona-line, .status-line, .note, .step, .app-head p, .doc p,
+.card .meta, .card .touches, .card .detail,
+.titem-text em, .titem-text b, .mu-t em, .rd-t em, .mp-t em,
+.mu-t b, .rd-t b, .mp-t b, .mu-meta em, .rd-live em, .radio em,
+.rm-sum > p, .room-now > b, .room-now > p, .room-more p,
+.peek-now, .peek-steps li, .room-obj, .activity, .agent-name,
+.crew-text em, .crew-text b, .room-foot, .win-title,
+.sup-answers li, .sup-result b, .so-room, .slab b,
+.work-out, .work-task, .work-sub, .needs-grant, .tiny,
+.problem-line, .sitdown .muted
+  { font-size:var(--fs-4); }
+.card .what, .rm-sum > b, .mu-meta > b { font-size:var(--fs-3); }
+/* Numerals align in columns wherever they stack: costs, clocks, counts. */
+.when, .chit u, .sup-aim u, .byline, .room-foot, .dock-status, .slab b,
+.tile .badge, .slideover .count
+  { font-variant-numeric:tabular-nums; }
+@media (max-width: 767px) {
+  /* a phone is read at arm's length: body copy steps up to 15 */
+  .room-now > b, .room-now > p, .room-more p,
+  .card .what, .card .detail, .card .meta,
+  .work-text b, .work-out, .sup-turn, .rm-sum > b, .rm-sum > p,
+  .titem-text b, .peek-now
+    { font-size:var(--fs-3); }
+}
 
 /* --- work history + while-you-were-away --- */
 .work { padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
