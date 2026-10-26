@@ -4,9 +4,8 @@ import path from 'node:path';
 import { handle, snapshot } from './api.js';
 import { bus } from './bus.js';
 import { startScheduler } from './runtime/scheduler.js';
-import { ensurePolicies } from './provision.js';
-import { ensureOperatorToken, resolveAuth } from './auth.js';
 import { ensureManagers, ensurePolicies } from './provision.js';
+import { ensureOperatorToken, resolveAuth } from './auth.js';
 
 const PORT = Number(process.env.PORT ?? 8788);
 const WEB_DIST = path.resolve(process.cwd(), '../web/dist');

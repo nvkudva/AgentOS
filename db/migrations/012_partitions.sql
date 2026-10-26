@@ -3,7 +3,10 @@
 --
 -- A partitioned primary key must include the partition column, so the PK becomes
 -- (id, ts). Nothing references event(id) from another table, so this is safe.
-CREATE TABLE IF NOT EXISTS event_new (
+-- A failed first attempt leaves an empty event_new behind; it is never the live
+-- table (a success renames it to event), so dropping it makes retries safe.
+DROP TABLE IF EXISTS event_new;
+CREATE TABLE event_new (
   id bigserial,
   ts timestamptz NOT NULL DEFAULT now(),
   room_id text,
