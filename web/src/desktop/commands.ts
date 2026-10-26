@@ -1,5 +1,7 @@
-import type { Agent, Room, Inbox } from '../lib/api';
+import type { Agent, Room, Inbox, Mandate, Task, Snapshot } from '../lib/api';
 import { hours } from '../lib/humanize';
+import { interpret, type IntentResult, type VisualAction } from './intent-engine';
+import type { VoiceContext } from '../lib/voice/context';
 
 /** An unrouted sentence and the rooms that answered to it, best first. */
 export type Proposal = { kind: 'propose'; room: Room; rooms: Room[]; text: string };
@@ -17,6 +19,17 @@ export type CmdCtx = {
   focusApproval: (id: string) => void;
   /** commit a proposal: create the mandate, route it, and fly it there from `from` */
   dispatch: (text: string, room: Room, from: DOMRect, mandate?: string) => void;
+  snap?: Snapshot | null;
+  mandates?: Mandate[];
+  tasks?: Task[];
+  closeWin?: (id: string) => void;
+  focusWin?: (id: string) => void;
+  parkRoom?: (r: Room) => void;
+  clearDesk?: () => void;
+  recallMandate?: (m: Mandate) => void;
+  routeMandate?: (m: Mandate, room: Room) => void;
+  pauseRoom?: (r: Room) => void;
+  highlight?: (ids: string[]) => void;
 };
 export type CmdResult = { say: string; ok: boolean; propose?: Proposal };
 
@@ -166,6 +179,46 @@ export function run(raw: string, c: CmdCtx): CmdResult {
   if (said.split(/\s+/).length >= 3) return { say: 'Which room should take that?', ok: false };
 
   return { say: `I did not understand "${t}".`, ok: false };
+}
+
+export function applyVisual(actions: VisualAction[], c: CmdCtx): void {
+  for (const a of actions) {
+    if (a.kind === 'openRoom') { const r = c.rooms.find((x) => x.id === a.roomId); if (r) c.openRoom(r); }
+    else if (a.kind === 'openAgent') { const ag = c.agents.find((x) => x.id === a.agentId); if (ag) c.openAgent(ag); }
+    else if (a.kind === 'openTask') { const r = c.rooms.find((x) => x.id === a.roomId); if (r) c.openRoom(r); }
+    else if (a.kind === 'launch') { if (a.app === 'inbox') c.setSidebar(true); else c.launch(a.app); }
+    else if (a.kind === 'highlight') c.highlight?.(a.ids);
+    else if (a.kind === 'focusApproval') { c.setSidebar(true); c.focusApproval(a.inboxId); }
+    else if (a.kind === 'scroll') { try { window.scrollBy({ top: a.dir * 400, behavior: 'smooth' }); } catch { /* no window in tests */ } }
+    else if (a.kind === 'window') {
+      if (a.op === 'clear') c.clearDesk?.();
+      else if (a.op === 'park') { const r = c.rooms.find((x) => x.id === a.winRef); if (r) c.parkRoom?.(r); }
+      else if (a.op === 'front') { if (a.winRef) c.focusWin?.(a.winRef); }
+      else if (a.winRef) c.closeWin?.(a.winRef);
+    }
+  }
+}
+
+export type VoiceRun = CmdResult & {
+  context: VoiceContext; visual: VisualAction[];
+  intent?: IntentResult['intent']; confirm?: { label: string };
+  clarify?: IntentResult['clarify'];
+};
+
+export function runVoice(raw: string, c: CmdCtx, vctx: VoiceContext): VoiceRun {
+  if (!c.snap) { const r = run(raw, c); return { ...r, context: vctx, visual: [] }; }
+  const res = interpret(raw, c.snap, vctx);
+  if (res.intent === 'unknown' && !res.clarify) {
+    const legacy = run(raw, c);
+    if (legacy.propose || !/I did not understand|I could not find|I heard/.test(legacy.say)) {
+      return { ...legacy, context: res.context, visual: [] };
+    }
+    return { say: res.say, ok: res.ok, context: res.context, visual: [], intent: res.intent };
+  }
+  if (!res.confirm && !res.clarify) applyVisual(res.visual, c);
+  const out: VoiceRun = { say: res.say, ok: res.ok, context: res.context, visual: res.visual, intent: res.intent, confirm: res.confirm, clarify: res.clarify };
+  if (res.propose) out.propose = res.propose;
+  return out;
 }
 
 export const HELP = [

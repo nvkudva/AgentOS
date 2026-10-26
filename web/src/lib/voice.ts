@@ -1,3 +1,5 @@
+import * as settings from './voice/settings';
+
 type VoiceStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 let worker: Worker | null = null;
@@ -46,7 +48,7 @@ function speakNative(text: string) {
   if (!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.05;
+  utterance.rate = settings.getVoiceSpeed() * 1.05;
   speechSynthesis.speak(utterance);
 }
 
@@ -68,7 +70,7 @@ async function playSamples(samples: Float32Array, samplingRate: number, id: numb
 }
 
 function speakKokoro(id: number, text: string) {
-  ensureWorker()?.postMessage({ type: 'speak', id, text, voice: 'af_heart', speed: 1 });
+  ensureWorker()?.postMessage({ type: 'speak', id, text, voice: 'af_heart', speed: settings.getVoiceSpeed() });
 }
 
 export function preload() {

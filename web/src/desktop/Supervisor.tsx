@@ -1,5 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { run, stripWake, hasWake, type CmdCtx } from './commands';
+import { runVoice, applyVisual, type CmdCtx } from './commands';
+import { createSttClient, isSttSupported, STT_UNAVAILABLE_MESSAGE, type SttClient } from '../lib/voice/stt';
+import { emptyContext, type VoiceContext } from '../lib/voice/context';
+import type { IntentResult } from './intent-engine';
+import { parseVoiceSettingCommand } from '../lib/voice/settings';
 import { Orb } from './Orb';
 import { startCarry } from './carry';
 import { wireOrb, type Pitch, type Result, type Clarify } from './intent';
@@ -56,7 +60,11 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     setTurns((ts) => [...ts, { id, who, text: t }].slice(-8));
     return id;
   };
-  const rec = useRef<any>(null);
+  const stt = useRef<SttClient | null>(null);
+  const voiceCtx = useRef<VoiceContext>(emptyContext());
+  const pendingConfirm = useRef<IntentResult | null>(null);
+  const pendingClarify = useRef<IntentResult['clarify'] | null>(null);
+  const lastSay = useRef('');
   const box = useRef<HTMLInputElement>(null);
   const hide = useRef<any>(null);
   const chit = useRef<HTMLSpanElement>(null);
@@ -102,6 +110,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   };
 
   const say = (text: string) => {
+    if (text && !/^Repeating/.test(text)) lastSay.current = text;
     setReply(text);
     const id = push('orb', text);
     if (speakOn) voice.speak(text);
@@ -133,16 +142,50 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     setTimeout(() => { setLeaving(false); setProp(null); setPick(0); }, 140);
   };
 
+  const executeConfirm = (res: IntentResult) => {
+    const fc = res.context;
+    if (res.intent === 'action.agent' && fc.focusAgent) {
+      if (/^Stop/.test(res.confirm?.label ?? '')) ctx.killAgent(fc.focusAgent);
+      else { ctx.startAgent(fc.focusAgent); ctx.openAgent(fc.focusAgent); }
+    } else if (res.intent === 'action.roompause' && fc.focusRoom) {
+      if (ctx.pauseRoom) ctx.pauseRoom(fc.focusRoom);
+      else ctx.agents.filter((a) => a.room_id === fc.focusRoom!.id && a.state === 'working').forEach((a) => ctx.killAgent(a));
+    } else if (res.intent === 'action.recall' && fc.focusMandate) ctx.recallMandate?.(fc.focusMandate);
+    else if (res.intent === 'action.route' && fc.focusMandate && fc.focusRoom) ctx.routeMandate?.(fc.focusMandate, fc.focusRoom);
+  };
+
+  const handleVoiceResult = (res: IntentResult) => {
+    voiceCtx.current = res.context;
+    if (res.clarify) { pendingClarify.current = res.clarify; const id = say(res.say); aimed.current = 0; show(20000); return id; }
+    if (res.confirm) { pendingConfirm.current = res; const id = say(res.say); show(20000); return id; }
+    if (res.propose) { setProp({ room: res.propose.room, rooms: res.propose.rooms, text: res.propose.text }); setPick(0); }
+    const id = say(res.intent === 'meta.repeat' && lastSay.current ? lastSay.current : res.say);
+    if (res.intent === 'meta.stop') { voice.stop(); stt.current?.stop(); setListening(false); }
+    if (res.intent === 'meta.clear') voiceCtx.current = emptyContext();
+    aimed.current = res.propose ? id : 0;
+    show(res.propose ? 20000 : 7000);
+    return id;
+  };
+
   const submit = (text: string) => {
     if (!text.trim()) return;
-    // A spoken "yes" while a proposal is standing is an answer to the proposal, not a
-    // new sentence. Voice may commit a mandate; it may still never approve.
     if (live.current.prop && YES.test(text.trim().toLowerCase().replace(/[.!?]+$/, ''))) return commit();
+    const cleaned = text.trim().toLowerCase().replace(/[.!?]+$/, '');
+    if (pendingConfirm.current) {
+      const pc = pendingConfirm.current; pendingConfirm.current = null;
+      if (YES.test(cleaned)) { executeConfirm(pc); say(`${pc.confirm?.label ?? 'Done'}. Done.`); show(6000); return; }
+      say('Left it.'); show(4000); return;
+    }
+    if (pendingClarify.current) {
+      const opts = pendingClarify.current.options;
+      const n = { '1': 0, one: 0, '2': 1, two: 1, '3': 2, three: 2 }[cleaned] as number | undefined;
+      const hit = opts.find((o) => o.label.toLowerCase() === cleaned) ?? (n !== undefined ? opts[n] : undefined);
+      pendingClarify.current = null;
+      if (hit) { applyVisual(hit.result.visual, ctx); if (hit.result.propose) setProp({ room: hit.result.propose.room, rooms: hit.result.propose.rooms, text: hit.result.propose.text }); handleVoiceResult(hit.result); return; }
+    }
     const c = clarifies[0];
     if (c) {
-      const said = text.trim().toLowerCase().replace(/[.!?]+$/, '');
-      // Saying "two" or typing "2" answers it: the card is numbered, so the number is
-      // the shortest true thing the operator can say.
+      const said = cleaned;
       const n = { '1': 0, one: 0, '2': 1, two: 1, '3': 2, three: 2 }[said];
       const hit = c.answers.find((a) => a.toLowerCase() === said)
         ?? (n !== undefined ? c.answers[n] : undefined);
@@ -153,15 +196,21 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     setText('');
     setThinking(true);
     setTimeout(() => setThinking(false), 700);
-    const r = run(text, ctx);
+    if (/^(talk )?(faster|slower)$/.test(cleaned) || /^(quieter|louder)/.test(cleaned)) parseVoiceSettingCommand(text, { apply: true });
+    const r = runVoice(text, ctx, voiceCtx.current);
+    voiceCtx.current = r.context;
+    if (r.intent && ctx.snap) {
+      handleVoiceResult({ say: r.say, ok: r.ok, intent: r.intent, tier: 0, confidence: 1, visual: r.visual, context: r.context, propose: r.propose, confirm: r.confirm, clarify: r.clarify });
+      return;
+    }
     if (r.propose) { setProp({ room: r.propose.room, rooms: r.propose.rooms, text: r.propose.text }); setPick(0); }
     else setProp(null);
     const id = say(r.say);
-    // The question the orb asked names a room, so cycling the aim has to rewrite it —
-    // otherwise the sentence and the chip below it point at two different rooms.
     aimed.current = r.propose ? id : 0;
     show(r.propose ? 20000 : 7000);
   };
+  const submitRef = useRef(submit);
+  submitRef.current = submit;
 
   /** A chit dropped on the orb arrives here: the router already chose, and the panel
    *  holds it for three seconds so the hand can take it straight back out. */
@@ -196,40 +245,35 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
 
   useEffect(() => { if (clarifies.length) { setOpen(true); show(30000); } }, [clarifies.length]);
 
-  useEffect(() => {
-    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
-    if (!SR) { setSupported(false); return; }
-    const r = new SR();
-    r.continuous = true; r.interimResults = true; r.lang = 'en-US';
-    r.onresult = (e: any) => {
-      let final = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const tx = e.results[i][0].transcript;
-        if (e.results[i].isFinal) final += tx; else { setHeard(tx); setOpen(true); }
-      }
-      if (!final) return;
-      setHeard('');
-      if (hasWake(final) || open) submit(stripWake(final));
-    };
-    r.onend = () => { if (listening) try { r.start(); } catch {} };
-    r.onerror = () => {};
-    rec.current = r;
-    return () => { try { r.stop(); } catch {} };
-  }, [listening, open, ctx, clarifies]);
+  useEffect(() => () => { stt.current?.dispose(); stt.current = null; }, []);
+
+  const fallbackToTyping = () => {
+    setSupported(false); setListening(false); setStream(null);
+    setReply(STT_UNAVAILABLE_MESSAGE); push('orb', STT_UNAVAILABLE_MESSAGE);
+    setTyping(true); setOpen(true); show(12000); setTimeout(() => box.current?.focus(), 30);
+  };
 
   const toggleListen = async () => {
     voice.preload();
-    const r = rec.current;
-    if (!r) { setTyping(true); show(12000); setTimeout(() => box.current?.focus(), 30); return; }
     if (listening) {
-      try { r.stop(); } catch {}
-      stream?.getTracks().forEach((t) => t.stop());
-      setStream(null); setListening(false); setOpen(false);
+      stt.current?.stop(); setStream(null); setListening(false); setOpen(false);
+      voiceCtx.current = emptyContext(); pendingConfirm.current = null; pendingClarify.current = null;
       return;
     }
-    try { r.start(); setListening(true); setOpen(true); } catch { setTyping(true); show(12000); return; }
-    // A second, visual-only tap on the mic so the ring shows the real voice, not a fake one.
-    try { setStream(await navigator.mediaDevices.getUserMedia({ audio: true })); } catch { setStream(null); }
+    voice.stop();
+    if (!isSttSupported()) { fallbackToTyping(); return; }
+    stt.current ??= createSttClient({ onBargeIn: () => voice.stop() });
+    setListening(true); setOpen(true);
+    await stt.current.start(
+      (t) => {
+        if (!t.final) { setHeard(t.text); setOpen(true); return; }
+        setHeard('');
+        submitRef.current(t.text);
+      },
+      (s) => { if (s === 'error' || s === 'unsupported') fallbackToTyping(); },
+    );
+    const st = stt.current.status();
+    if (st === 'error' || st === 'unsupported') fallbackToTyping();
   };
 
   useEffect(() => {

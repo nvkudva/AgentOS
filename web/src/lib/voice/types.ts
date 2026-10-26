@@ -1,0 +1,11 @@
+export type { SttStatus, Transcript, SttClient, SttClientOptions } from './stt';
+export { createSttClient, isSttSupported, STT_UNAVAILABLE_MESSAGE } from './stt';
+export type { VadState, VadEvent, CaptureHandlers } from './capture';
+export { downsample, vadStep, startCapture } from './capture';
+export type { IntentKind, ListItem, VoiceContext } from './context';
+export { emptyContext } from './context';
+export type { RoomFacts } from './query';
+export { roomFacts, blockedList, needsMe, sortForSpeech } from './query';
+export { sayRoom, sayList } from './respond';
+export type { Tier, VisualAction, IntentResult } from '../../desktop/intent-engine';
+export { interpret } from '../../desktop/intent-engine';

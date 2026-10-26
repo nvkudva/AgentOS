@@ -699,6 +699,7 @@ export default function App() {
 
   const ctx: CmdCtx = useMemo(() => ({
     agents: snap?.agents ?? [], rooms: snap?.rooms ?? [], inbox: snap?.inbox ?? [],
+    mandates, tasks, snap: snap ?? null,
     panic: !!snap?.config?.panic_stop,
     startAgent: (a) => post(`/api/agents/${a.id}/start`),
     killAgent: (a) => post(`/api/agents/${a.id}/kill`, { reason: 'supervisor' }),
@@ -710,7 +711,24 @@ export default function App() {
     setSidebar,
     focusApproval: setFocusApproval,
     dispatch,
-  }), [snap, openAgent, openRoomConsole, launch, setTheme, dispatch]);
+    recallMandate: (m) => post(`/api/mandates/${m.id}/recall`),
+    routeMandate: (m, r) => post(`/api/mandates/${m.id}/route`, { room_key: r.key }),
+    pauseRoom: (r) => (snap?.agents ?? []).filter((a) => a.room_id === r.id && a.state === 'working')
+      .forEach((a) => post(`/api/agents/${a.id}/kill`, { reason: 'supervisor' })),
+    highlight: (ids) => {
+      const t = tasks.find((x) => ids.includes(x.id));
+      const room = t ? rooms.find((r) => r.id === (mandates.find((m) => m.id === t.mandate_id)?.room_id ?? '')) : rooms.find((r) => ids.includes(r.id));
+      if (room) openRoomConsole(room);
+    },
+    closeWin: (id) => { const w = wins.find((x) => x.ref === id || x.id === id || x.id === `room:${id}` || x.id === `roomwin:${id}`); if (w) shut(w.id); },
+    focusWin: (id) => { const w = wins.find((x) => x.ref === id || x.id === id || x.id === `room:${id}` || x.id === `roomwin:${id}`); if (w) { patch(w.id, { park: null, min: false }); focus(w.id); } },
+    parkRoom: (r) => {
+      const w = wins.find((x) => x.id === `roomwin:${r.id}` || x.id === `room:${r.id}`);
+      if (w) patch(w.id, { park: r.x < COLS / 2 ? 'left' : 'right' });
+      else openRoomWindow(r, true);
+    },
+    clearDesk: () => patchAll(() => ({ min: true })),
+  }), [snap, mandates, tasks, rooms, wins, openAgent, openRoomConsole, openRoomWindow, launch, setTheme, dispatch, shut, patch, focus, patchAll]);
 
   /**
    * A decision going back down. The worker learns it from a dot that arrives, not from
