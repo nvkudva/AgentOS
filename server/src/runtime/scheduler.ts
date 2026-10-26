@@ -35,6 +35,26 @@ export async function releaseLeases(owner: string = INSTANCE): Promise<void> {
   await q(`UPDATE agent SET lease_owner=NULL, lease_expires=NULL WHERE lease_owner=$1`, [owner]);
 }
 
+/**
+ * A5: questions expire, gate approvals don't. An expired escalation/clarify
+ * releases its agent back to work and logs the expiry — a question can delay
+ * work, never deadlock it, and replay sees the release.
+ */
+export async function sweepExpired(): Promise<number> {
+  const dead = await q<any>(
+    `UPDATE approval SET state='expired', decided_at=now()
+      WHERE state='pending' AND kind IN ('escalation','clarify')
+        AND expires_at IS NOT NULL AND expires_at < now()
+      RETURNING id, room_id, agent_id, run_id, kind, action`);
+  for (const d of dead) {
+    await q(`UPDATE run SET status='running' WHERE id=$1`, [d.run_id]);
+    await q(`UPDATE agent SET state='working', activity='unanswered — continuing' WHERE id=$1`, [d.agent_id]);
+    await append({ type: 'escalation.expired', room_id: d.room_id, agent_id: d.agent_id, run_id: d.run_id,
+      payload: { approval_id: d.id, kind: d.kind, action: d.action } });
+  }
+  return dead.length;
+}
+
 /** The chain of custody a run belongs to. Set when a manager assigns, absent otherwise. */
 export type RunLink = { mandate_id?: string | null; task_id?: string | null };
 
@@ -162,6 +182,7 @@ export async function step(agentRow: Agent, owner: string = INSTANCE) {
 async function tick() {
   const cfg = await one<any>('SELECT * FROM global_config WHERE id=1');
   if (cfg?.panic_stop) return;
+  await sweepExpired().catch((e) => console.error('[sweep]', e));
   const agents = await claimLeases();
   await Promise.all(agents.map(async (a) => {
     try { await step(a, INSTANCE); } catch (e) { console.error('[tick]', a.id, e); }

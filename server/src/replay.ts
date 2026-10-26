@@ -39,6 +39,10 @@ export async function fold(): Promise<Projected> {
       case 'escalation.raised':
         if (e.agent_id) { const a = agent(e.agent_id); a.state = 'blocked'; a.activity = `waiting on you: ${pay.question}`; }
         break;
+      case 'escalation.expired':
+        if (e.agent_id) { const a = agent(e.agent_id); a.state = 'working'; a.activity = 'unanswered — continuing'; }
+        if (e.run_id) run(e.run_id).status = 'running';
+        break;
       case 'approval.granted':
         if (e.agent_id) { const a = agent(e.agent_id); a.state = 'working'; a.activity = 'resuming'; }
         if (e.run_id) run(e.run_id).status = 'running';

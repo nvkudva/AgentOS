@@ -25,10 +25,12 @@ export async function snapshot() {
   return { rooms, agents, inbox, config, mandates, tasks, now: new Date().toISOString() };
 }
 
-/** Oldest and most expensive first — cheap-and-new must never bury expensive-and-old. */
+/** Oldest and most expensive first — cheap-and-new must never bury expensive-and-old.
+ *  wait_secs surfaces the SLA directly: anything approaching 1800s needs the operator now. */
 export async function inboxRows() {
   return q(
-    `SELECT ap.*, r.key AS room_key, r.name AS room_name, a.name AS agent_name, rn.mandate_id
+    `SELECT ap.*, r.key AS room_key, r.name AS room_name, a.name AS agent_name, rn.mandate_id,
+            EXTRACT(EPOCH FROM (now() - ap.created_at))::int AS wait_secs
        FROM approval ap JOIN room r ON r.id=ap.room_id JOIN agent a ON a.id=ap.agent_id
        LEFT JOIN run rn ON rn.id=ap.run_id
       WHERE ap.state='pending'
@@ -155,6 +157,22 @@ export async function handle(req: Req): Promise<any> {
     if (!ap) return { error: 'not found', status: 404 };
     if (!roomOk(ap.room_id)) return { error: 'forbidden for a room-scoped token', status: 403 };
     return decide(m[1], req.body);
+  }
+
+  // PM-9: approval storms are cleared in batches. Each id still goes through the
+  // atomic decide(), so a batch is as safe as N clicks; results are per-id.
+  if (p === '/api/approvals/batch' && req.method === 'POST') {
+    const ids: string[] = Array.isArray(req.body?.ids) ? req.body.ids.slice(0, 50) : [];
+    if (!ids.length) return { error: 'ids[] required (max 50)', status: 400 };
+    const out: Record<string, any> = {};
+    for (const aid of ids) {
+      const row = await one<any>(`SELECT id, room_id FROM approval WHERE id=$1`, [aid]);
+      if (!row) { out[aid] = { error: 'not found' }; continue; }
+      if (!roomOk(row.room_id)) { out[aid] = { error: 'forbidden' }; continue; }
+      out[aid] = await decide(aid, { decision: req.body?.decision, note: req.body?.note ?? null });
+    }
+    bus.publish({ type: 'refresh' });
+    return { results: out };
   }
 
   if (p === '/api/panic' && req.method === 'POST') {
@@ -351,6 +369,12 @@ async function decide(approvalId: string, body: any) {
     // kind matters on replay: rejecting an escalation resumes the run, rejecting an
     // approval ends it. Without it the fold cannot tell the two apart.
     payload: { approval_id: approvalId, action: out.row.action, kind: out.row.kind, note } });
+  // "Remember" rewrites room policy — scoped (never below high), expiring never,
+  // but AUDITED: the event says who lowered what, so replay can see it.
+  if (approved && body?.remember && out.row.blast_radius !== 'high') {
+    await append({ type: 'autonomy.lowered', room_id: out.row.room_id,
+      payload: { blast_radius: out.row.blast_radius, via_approval: approvalId, note } });
+  }
   bus.publish({ type: 'refresh' });
   return { ok: true, approved };
 }
