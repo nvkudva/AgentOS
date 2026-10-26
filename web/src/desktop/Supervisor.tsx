@@ -4,6 +4,7 @@ import { Orb } from './Orb';
 import { startCarry } from './carry';
 import { wireOrb, type Pitch, type Result, type Clarify } from './intent';
 import { hours } from '../lib/humanize';
+import * as voice from '../lib/voice';
 
 const YES = /^(yes|yep|yeah|do it|go ahead|confirm|please do|ok|okay)$/;
 
@@ -103,10 +104,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const say = (text: string) => {
     setReply(text);
     const id = push('orb', text);
-    if (speakOn && 'speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance(text); u.rate = 1.05;
-      speechSynthesis.speak(u);
-    }
+    if (speakOn) voice.speak(text);
     return id;
   };
 
@@ -189,10 +187,9 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     if (!r || spoken.current === r.id) return;
     spoken.current = r.id;
     setOpen(true); show(9000);
-    if (speakOn && 'speechSynthesis' in window) {
+    if (speakOn) {
       const first = r.text.split(/(?<=[.!?])\s/)[0] ?? r.text;
-      const u = new SpeechSynthesisUtterance(first); u.rate = 1.05;
-      speechSynthesis.speak(u);
+      voice.speak(first);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [results[0]?.id]);
@@ -221,6 +218,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   }, [listening, open, ctx, clarifies]);
 
   const toggleListen = async () => {
+    voice.preload();
     const r = rec.current;
     if (!r) { setTyping(true); show(12000); setTimeout(() => box.current?.focus(), 30); return; }
     if (listening) {
