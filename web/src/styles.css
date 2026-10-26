@@ -922,6 +922,15 @@ body.carrying .crew.full:hover .qbadge { opacity:1; }
 /* A room window is 210px tall: the strip may push the crew down, never off. */
 .roomwin .strip > div { max-height:98px; overflow-y:auto; }
 .chit.bloom { animation:bloom 260ms var(--ease) backwards; }
+.chit-fill { position:absolute; left:0; top:0; bottom:0; width:0; pointer-events:none;
+  background:color-mix(in srgb, var(--working) 16%, transparent);
+  transition:width 600ms var(--ease), background-color 600ms var(--ease); }
+.chit.half .chit-fill { background:color-mix(in srgb, var(--blocked) 38%, transparent); }
+.chit.capped .chit-fill { background:color-mix(in srgb, var(--blocked) 55%, transparent); }
+.chit-ping { position:absolute; right:4px; top:4px; width:6px; height:6px; border-radius:999px;
+  background:var(--blocked); animation:chit-ping 1.2s var(--ease-out) both; pointer-events:none; }
+@keyframes chit-ping { 0% { transform:scale(.4); opacity:0 } 20% { transform:scale(1.25); opacity:1 }
+  100% { transform:scale(1); opacity:0 } }
 .strip .chit.bloom:nth-child(1) { animation-delay:280ms }
 .strip .chit.bloom:nth-child(2) { animation-delay:325ms }
 .strip .chit.bloom:nth-child(3) { animation-delay:370ms }

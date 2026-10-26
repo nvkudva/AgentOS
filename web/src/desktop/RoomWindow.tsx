@@ -129,10 +129,14 @@ function Body({ room, agents, mandates, tasks, onAgent, activeId, onOpenTask, on
   const live = mandates.filter((m) => m.room_id === room.id && !['recalled', 'done'].includes(m.state));
   const mine = tasks.filter((t) => live.some((m) => m.id === t.mandate_id));
   const colourOf = (t: Task) => live.find((m) => m.id === t.mandate_id)?.color || room.color;
+  /**
+   * A chit carries its share of the mandate: live spend against the quoted
+   * figure, so the chip counts up and goes amber at half on its own.
+   */
   const costOf = (t: Task) => {
     const m = live.find((x) => x.id === t.mandate_id);
     const n = m ? Math.max(1, mine.filter((x) => x.mandate_id === m.id).length) : 1;
-    return hours(Math.round((m?.quoted_cents ?? 0) / n));
+    return { spent: Math.round((m?.spent_cents ?? 0) / n), quoted: Math.round((m?.quoted_cents ?? 0) / n) };
   };
   // Queued is the strip; working is on a worker's line. The walk between the two is
   // the assignment, whether the manager made it or the operator's hand did.
@@ -229,7 +233,7 @@ function Body({ room, agents, mandates, tasks, onAgent, activeId, onOpenTask, on
         <span className="ticks">
           {!mgr && ticks.map((t) => (
             <Chit key={t.id} kind="task" id={t.id} taskId={t.id} tick label={t.title}
-                  colour={colourOf(t)} cost={costOf(t)} roomId={room.id} tools={requiredTools(t.title)}
+                  colour={colourOf(t)} {...costOf(t)} roomId={room.id} tools={requiredTools(t.title)}
                   className={walking[t.id] ? 'pending' : undefined}
                   onOpen={() => onOpenTask(t)}
                   onRecall={() => { const m = live.find((x) => x.id === t.mandate_id); if (m) onRecall(m); }} />
@@ -248,7 +252,7 @@ function Body({ room, agents, mandates, tasks, onAgent, activeId, onOpenTask, on
           <div>
             {strip.slice(0, 5).map((t) => (
               <Chit key={t.id} kind="task" id={t.id} taskId={t.id} label={t.title}
-                    colour={colourOf(t)} cost={costOf(t)} roomId={room.id} waiting tools={requiredTools(t.title)}
+                    colour={colourOf(t)} {...costOf(t)} roomId={room.id} waiting tools={requiredTools(t.title)}
                     accepts="agent"
                     className={bloom[t.id] !== undefined ? 'bloom' : undefined}
                     onOpen={() => onOpenTask(t)}

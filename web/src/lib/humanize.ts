@@ -31,6 +31,16 @@ export const toolGlyph = (t: string) => TOOL[t]?.glyph ?? '•';
 export const hours = (cents: number) =>
   cents < 60 ? `${Math.round(cents)}m` : `${(cents / 60).toFixed(1)}h`;
 
+/**
+ * Where a piece of work stands against its quote: under half, past half
+ * (amber — the orb says it once), or at/over it (capped — the manager stops
+ * assigning here and raises a clarify). No quote means no opinion.
+ */
+export const quoteState = (spent: number, quoted: number): 'ok' | 'half' | 'capped' =>
+  !quoted || quoted <= 0 ? 'ok'
+  : spent >= quoted ? 'capped'
+  : spent >= quoted / 2 ? 'half' : 'ok';
+
 /** The live one-line status, in words an operator would use. */
 export function friendlyActivity(activity: string, state: string) {
   if (!activity) return friendlyState(state);
