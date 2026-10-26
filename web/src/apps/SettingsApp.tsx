@@ -12,6 +12,9 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
   wallpaper: 'calm' | 'scene'; setWallpaper: (w: 'calm' | 'scene') => void;
 }) {
   const [g, setG] = useState(config.global_budget_cents);
+  const [hasToken] = useState(() => {
+    try { return !!localStorage.getItem('atrium.token'); } catch { return false; }
+  });
   const [adding, setAdding] = useState(false);
   if (adding) return <NewRoom onDone={() => setAdding(false)} />;
   return (
@@ -46,6 +49,24 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
         frame rate, so <b>auto</b> measures {perf.measured ? `${perf.measured}fps` : 'the first two seconds'} and
         drops to flat surfaces if it cannot hold 60.
       </p>
+
+      <h4>Operator</h4>
+      <label>
+        Backend token
+        <input type="password" placeholder={hasToken ? 'set — paste to replace' : 'none — hosted demo stays offline'}
+               onKeyDown={(e) => {
+                 if (e.key !== 'Enter') return;
+                 const v = (e.target as HTMLInputElement).value.trim();
+                 try {
+                   if (v) localStorage.setItem('atrium.token', v);
+                   else localStorage.removeItem('atrium.token');
+                 } catch { /* ignore */ }
+                 location.reload();
+               }} />
+      </label>
+      <p className="muted">{hasToken
+        ? 'Token stored on this device. Enter clears it; the desk goes back to the frozen demo.'
+        : 'The live backend needs its operator token (printed once at server boot). Press Enter to save and reload.'}</p>
 
       <h4>Global</h4>
       <label>

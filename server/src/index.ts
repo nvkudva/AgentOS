@@ -5,17 +5,32 @@ import { handle, snapshot } from './api.js';
 import { bus } from './bus.js';
 import { startScheduler } from './runtime/scheduler.js';
 import { ensureManagers } from './provision.js';
+import { ensureOperatorToken, resolveAuth } from './auth.js';
 
 const PORT = Number(process.env.PORT ?? 8788);
 const WEB_DIST = path.resolve(process.cwd(), '../web/dist');
 
+// CORS is an allowlist, not '*'. Empty (the default) means same-origin only —
+// the desk served from this server needs no CORS headers at all.
+const CORS = (process.env.ATRIUM_CORS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
-  res.setHeader('access-control-allow-origin', '*');
-  res.setHeader('access-control-allow-headers', 'content-type');
+  const origin = req.headers.origin;
+  if (origin && CORS.includes(origin)) {
+    res.setHeader('access-control-allow-origin', origin);
+    res.setHeader('access-control-allow-headers', 'content-type, x-atrium-token');
+  }
   if (req.method === 'OPTIONS') return res.writeHead(204).end();
 
+  // Tokens ride the query string (EventSource cannot set headers) or a header.
+  const raw = url.searchParams.get('token') ?? req.headers['x-atrium-token'] ?? null;
+  const token = Array.isArray(raw) ? raw[0] : (raw as string | null);
+
   if (url.pathname === '/api/stream') {
+    // The stream carries every room's args and customer data: operator token only.
+    const auth = await resolveAuth(token).catch(() => ({ scope: 'none' as const }));
+    if (auth.scope !== 'operator') return res.writeHead(401).end();
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
     const send = (m: any) => res.write(`data: ${JSON.stringify(m)}\n\n`);
     send({ type: 'snapshot', ...(await snapshot()) });
@@ -33,7 +48,9 @@ const server = http.createServer(async (req, res) => {
       try { body = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch { body = {}; }
     }
     try {
-      const out = await handle({ method: req.method ?? 'GET', path: url.pathname, body, query: url.searchParams });
+      const out = await handle({
+        method: req.method ?? 'GET', path: url.pathname, body, query: url.searchParams, token,
+      });
       const status = out?.status ?? 200;
       res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(out));
     } catch (e: any) {
@@ -57,4 +74,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => console.log(`[atrium] http://localhost:${PORT}`));
 ensureManagers().catch((e) => console.error('[managers]', e));
+ensureOperatorToken().then((s) => {
+  if (s) console.log(`[atrium] OPERATOR TOKEN (keep it; shown once): ${s}`);
+}).catch((e) => console.error('[auth]', e));
 startScheduler();

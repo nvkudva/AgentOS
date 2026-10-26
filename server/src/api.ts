@@ -1,11 +1,15 @@
-import { q, one } from './db.js';
+import { q, one, tx } from './db.js';
 import { id } from './ids.js';
 import { append } from './events.js';
 import { bus } from './bus.js';
 import { startAgent, killAgent } from './runtime/scheduler.js';
 import { provisionRoom, catalog, validate, type RoomSpec } from './provision.js';
+import { resolveAuth, type Auth } from './auth.js';
 
-export type Req = { method: string; path: string; body: any; query: URLSearchParams };
+export type Req = {
+  method: string; path: string; body: any; query: URLSearchParams;
+  token?: string | null; auth?: Auth;
+};
 
 export async function snapshot() {
   const rooms = await q(`SELECT * FROM room ORDER BY y, x`);
@@ -33,8 +37,25 @@ export async function inboxRows() {
 
 export async function handle(req: Req): Promise<any> {
   const p = req.path;
+  const auth: Auth = await resolveAuth(req.token).catch(() => ({ scope: 'none' }));
+  if (auth.scope === 'none') return { error: 'unauthorized — operator or room token required', status: 401 };
+  // Room tokens see their room's detail, runs and queue — never another room,
+  // never the global snapshot, never other rooms' approvals.
+  const roomOk = (roomId: string | null | undefined) =>
+    auth.scope === 'operator' || (auth.scope === 'room' && roomId != null && auth.roomId === roomId);
+  if (auth.scope === 'room' && !(
+    p === '/api/catalog' || p === '/api/observe' || p === '/api/mandates' ||
+    /^\/api\/(rooms|agents|runs)\/([\w-]+)$/.test(p) ||
+    /^\/api\/mandates\/([\w-]+)\/(route|recall)$/.test(p) ||
+    /^\/api\/agents\/([\w-]+)\/(start|kill)$/.test(p) ||
+    /^\/api\/approvals\/([\w-]+)\/decide$/.test(p)
+  )) return { error: 'forbidden for a room-scoped token', status: 403 };
+  req.auth = auth;
 
-  if (p === '/api/state') return snapshot();
+  if (p === '/api/state') {
+    if (auth.scope !== 'operator') return { error: 'forbidden for a room-scoped token', status: 403 };
+    return snapshot();
+  }
 
   /** Everything the room creator can offer, in words rather than schema. */
   if (p === '/api/catalog') return catalog();
@@ -45,6 +66,7 @@ export async function handle(req: Req): Promise<any> {
    * the shell knows the difference between it and the rooms that shipped.
    */
   if (p === '/api/rooms' && req.method === 'POST') {
+    if (auth.scope !== 'operator') return { error: 'forbidden for a room-scoped token', status: 403 };
     const spec = req.body as RoomSpec;
     const problems = validate(spec);
     if (problems.length) return { error: problems.join('; '), problems, status: 400 };
@@ -58,6 +80,7 @@ export async function handle(req: Req): Promise<any> {
   }
 
   if (p === '/api/list') {
+    if (auth.scope !== 'operator') return { error: 'forbidden for a room-scoped token', status: 403 };
     return q(
       `SELECT e.*, r.key AS room_key, a.name AS agent_name FROM event e
          LEFT JOIN room r ON r.id=e.room_id LEFT JOIN agent a ON a.id=e.agent_id
@@ -66,9 +89,10 @@ export async function handle(req: Req): Promise<any> {
 
   let m: RegExpMatchArray | null;
 
-  if ((m = p.match(/^\/api\/rooms\/([\w]+)$/))) {
+  if ((m = p.match(/^\/api\/rooms\/([\w-]+)$/))) {
     const room = await one(`SELECT * FROM room WHERE id=$1 OR key=$1`, [m[1]]);
     if (!room) return { error: 'not found', status: 404 };
+    if (!roomOk(room.id)) return { error: 'forbidden for a room-scoped token', status: 403 };
     const [agents, events, artifacts, ledger, runs, queue] = await Promise.all([
       q(`SELECT * FROM agent WHERE room_id=$1 ORDER BY name`, [room.id]),
       q(`SELECT * FROM event WHERE room_id=$1 ORDER BY id DESC LIMIT 200`, [room.id]),
@@ -80,9 +104,10 @@ export async function handle(req: Req): Promise<any> {
     return { room, agents, events, artifacts, ledger, runs, queue };
   }
 
-  if ((m = p.match(/^\/api\/agents\/([\w]+)$/)) && req.method === 'GET') {
+  if ((m = p.match(/^\/api\/agents\/([\w-]+)$/)) && req.method === 'GET') {
     const agent = await one(`SELECT * FROM agent WHERE id=$1`, [m[1]]);
     if (!agent) return { error: 'not found', status: 404 };
+    if (!roomOk(agent.room_id)) return { error: 'forbidden for a room-scoped token', status: 403 };
     const [room, runs, events, artifacts] = await Promise.all([
       one(`SELECT * FROM room WHERE id=$1`, [agent.room_id]),
       q(`SELECT * FROM run WHERE agent_id=$1 ORDER BY started_at DESC LIMIT 10`, [agent.id]),
@@ -93,37 +118,47 @@ export async function handle(req: Req): Promise<any> {
     return { agent, room, runs, events, artifacts };
   }
 
-  if ((m = p.match(/^\/api\/runs\/([\w]+)$/))) {
-    return {
-      run: await one(`SELECT * FROM run WHERE id=$1`, [m[1]]),
-      events: await q(`SELECT * FROM event WHERE run_id=$1 ORDER BY id`, [m[1]]),
-    };
+  if ((m = p.match(/^\/api\/runs\/([\w-]+)$/))) {
+    const run = await one<any>(`SELECT * FROM run WHERE id=$1`, [m[1]]);
+    if (!run) return { error: 'not found', status: 404 };
+    if (!roomOk(run.room_id)) return { error: 'forbidden for a room-scoped token', status: 403 };
+    return { run, events: await q(`SELECT * FROM event WHERE run_id=$1 ORDER BY id`, [m[1]]) };
   }
 
-  if (p === '/api/mandates' && req.method === 'POST') return heard(req.body);
-  if ((m = p.match(/^\/api\/mandates\/([\w]+)\/route$/)) && req.method === 'POST') {
-    return route(m[1], req.body?.room_key);
+  if (p === '/api/mandates' && req.method === 'POST') return heard(req.body, auth);
+  if ((m = p.match(/^\/api\/mandates\/([\w-]+)\/route$/)) && req.method === 'POST') {
+    return route(m[1], req.body?.room_key, auth);
   }
-  if ((m = p.match(/^\/api\/mandates\/([\w]+)\/recall$/)) && req.method === 'POST') {
-    return recall(m[1]);
+  if ((m = p.match(/^\/api\/mandates\/([\w-]+)\/recall$/)) && req.method === 'POST') {
+    return recall(m[1], auth);
   }
 
-  if ((m = p.match(/^\/api\/agents\/([\w]+)\/start$/)) && req.method === 'POST') {
+  if ((m = p.match(/^\/api\/agents\/([\w-]+)\/start$/)) && req.method === 'POST') {
+    const agent = await one<any>(`SELECT * FROM agent WHERE id=$1`, [m[1]]);
+    if (!agent) return { error: 'not found', status: 404 };
+    if (!roomOk(agent.room_id)) return { error: 'forbidden for a room-scoped token', status: 403 };
     const runId = await startAgent(m[1], req.body?.goal);
     bus.publish({ type: 'refresh' });
     return { run_id: runId };
   }
-  if ((m = p.match(/^\/api\/agents\/([\w]+)\/kill$/)) && req.method === 'POST') {
+  if ((m = p.match(/^\/api\/agents\/([\w-]+)\/kill$/)) && req.method === 'POST') {
+    const agent = await one<any>(`SELECT * FROM agent WHERE id=$1`, [m[1]]);
+    if (!agent) return { error: 'not found', status: 404 };
+    if (!roomOk(agent.room_id)) return { error: 'forbidden for a room-scoped token', status: 403 };
     await killAgent(m[1], req.body?.reason ?? 'operator');
     bus.publish({ type: 'refresh' });
     return { ok: true };
   }
 
-  if ((m = p.match(/^\/api\/approvals\/([\w]+)\/decide$/)) && req.method === 'POST') {
+  if ((m = p.match(/^\/api\/approvals\/([\w-]+)\/decide$/)) && req.method === 'POST') {
+    const ap = await one<any>(`SELECT * FROM approval WHERE id=$1`, [m[1]]);
+    if (!ap) return { error: 'not found', status: 404 };
+    if (!roomOk(ap.room_id)) return { error: 'forbidden for a room-scoped token', status: 403 };
     return decide(m[1], req.body);
   }
 
   if (p === '/api/panic' && req.method === 'POST') {
+    if (auth.scope !== 'operator') return { error: 'forbidden for a room-scoped token', status: 403 };
     await q(`UPDATE global_config SET panic_stop=$1 WHERE id=1`, [!!req.body?.on]);
     if (req.body?.on) await q(`UPDATE agent SET state='blocked', activity='panic stop' WHERE state='working'`);
     await append({ type: 'panic_stop', payload: { on: !!req.body?.on } });
@@ -132,6 +167,7 @@ export async function handle(req: Req): Promise<any> {
   }
 
   if (p === '/api/rooms/resume' && req.method === 'POST') {
+    if (auth.scope !== 'operator') return { error: 'forbidden for a room-scoped token', status: 403 };
     await q(`UPDATE room SET status='open' WHERE id=$1 OR key=$1`, [req.body.room]);
     await q(`UPDATE agent SET state='idle', activity='' WHERE room_id IN (SELECT id FROM room WHERE id=$1 OR key=$1) AND state='blocked'`, [req.body.room]);
     bus.publish({ type: 'refresh' });
@@ -139,16 +175,28 @@ export async function handle(req: Req): Promise<any> {
   }
 
   if (p === '/api/budget' && req.method === 'POST') {
-    if (req.body.room) await q(`UPDATE room SET budget_cents=$2 WHERE key=$1`, [req.body.room, req.body.cents]);
-    else await q(`UPDATE global_config SET global_budget_cents=$1 WHERE id=1`, [req.body.cents]);
+    if (auth.scope !== 'operator') return { error: 'forbidden for a room-scoped token', status: 403 };
+    const cents = req.body?.cents;
+    if (!Number.isInteger(cents) || cents <= 0 || cents > 1_000_000_000) {
+      return { error: 'cents must be a positive integer number of cents', status: 400 };
+    }
+    if (req.body.room) {
+      const r = await q(`UPDATE room SET budget_cents=$2 WHERE key=$1 RETURNING id`, [req.body.room, cents]);
+      if (!r.length) return { error: 'no such room', status: 404 };
+    } else await q(`UPDATE global_config SET global_budget_cents=$1 WHERE id=1`, [cents]);
     bus.publish({ type: 'refresh' });
     return { ok: true };
   }
 
   /** Thesis instrumentation. Every view records what the operator actually did. */
   if (p === '/api/observe' && req.method === 'POST') {
+    const view = String(req.body?.view ?? ''), action = String(req.body?.action ?? '');
+    const payload = JSON.stringify(req.body?.payload ?? {});
+    if (!view || !action || view.length > 64 || action.length > 64 || payload.length > 4096) {
+      return { error: 'view/action required (≤64 chars), payload ≤4KB', status: 400 };
+    }
     await q(`INSERT INTO observation_log (view, action, payload) VALUES ($1,$2,$3)`,
-      [req.body.view, req.body.action, req.body.payload ?? {}]);
+      [view, action, req.body.payload ?? {}]);
     return { ok: true };
   }
 
@@ -160,12 +208,16 @@ export async function handle(req: Req): Promise<any> {
  * routed, so the operator can hold it on the desk and aim it, and it keeps its own
  * words through recall and redirect: those change where it is, never what was asked.
  */
-async function heard(body: any) {
+async function heard(body: any, auth?: Auth) {
   const text = String(body?.text ?? '').trim();
   if (!text) return { error: 'a mandate needs words', status: 400 };
   const room = body?.room_key
     ? await one<any>(`SELECT * FROM room WHERE key=$1 OR id=$1`, [body.room_key])
     : null;
+  // A room token may only drop mandates on its own desk; unrouted words are the operator's.
+  if (auth?.scope === 'room' && (!room || room.id !== auth.roomId)) {
+    return { error: 'forbidden for a room-scoped token', status: 403 };
+  }
   const mid = id('mnd');
   await q(`INSERT INTO mandate (id, text, room_id, state) VALUES ($1,$2,$3,'heard')`,
     [mid, text, room?.id ?? null]);
@@ -181,11 +233,14 @@ async function heard(body: any) {
  * Routing an already-working mandate is a REDIRECT: its work stands down with
  * kill_reason 'handed_over' and its artifacts travel to the new manager as context.
  */
-async function route(mandateId: string, roomKey: string) {
+async function route(mandateId: string, roomKey: string, auth?: Auth) {
   const md = await one<any>(`SELECT * FROM mandate WHERE id=$1`, [mandateId]);
   if (!md) return { error: 'no such mandate', status: 404 };
   const room = await one<any>(`SELECT * FROM room WHERE key=$1 OR id=$1`, [roomKey]);
   if (!room) return { error: 'no such room', status: 404 };
+  if (auth?.scope === 'room' && (room.id !== auth.roomId || (md.room_id && md.room_id !== auth.roomId))) {
+    return { error: 'forbidden for a room-scoped token', status: 403 };
+  }
 
   // Handing work to the room that already holds it is not a hand-over. Standing its
   // crew down and re-planning would kill the very manager driving the tasks and leave
@@ -221,9 +276,12 @@ async function route(mandateId: string, roomKey: string) {
 }
 
 /** Recall returns the mandate to the operator's hand: un-routed, still their words. */
-async function recall(mandateId: string) {
+async function recall(mandateId: string, auth?: Auth) {
   const md = await one<any>(`SELECT * FROM mandate WHERE id=$1`, [mandateId]);
   if (!md) return { error: 'no such mandate', status: 404 };
+  if (auth?.scope === 'room' && md.room_id !== auth.roomId) {
+    return { error: 'forbidden for a room-scoped token', status: 403 };
+  }
   await standDown(mandateId, 'recalled');
   await q(`UPDATE mandate SET state='recalled', room_id=NULL, color=NULL WHERE id=$1`, [mandateId]);
   await append({ type: 'mandate.recalled', room_id: md.room_id, payload: { mandate_id: mandateId } });
@@ -255,38 +313,44 @@ async function standDown(mandateId: string, reason: string): Promise<string[]> {
 }
 
 async function decide(approvalId: string, body: any) {
-  const ap = await one<any>(`SELECT * FROM approval WHERE id=$1`, [approvalId]);
-  if (!ap || ap.state !== 'pending') return { error: 'not pending', status: 409 };
   const approved = body?.decision === 'approve';
 
-  await q(`UPDATE approval SET state=$2, decided_at=now(), decided_note=$3 WHERE id=$1`,
-    [approvalId, approved ? 'approved' : 'rejected', body?.note ?? null]);
+  // "approve and remember for this room" raises autonomy for that blast radius —
+  // never below 'high', which always needs a human in v1. Everything runs inside
+  // ONE transaction (row locks on approval + run): a crash can never leave
+  // an approved row with an un-resumed run, and two racing decides cannot both win.
+  const note = body?.note ?? null;
+  const out = await tx(async (c) => {
+    const r = await c.query(`SELECT * FROM approval WHERE id=$1 FOR UPDATE`, [approvalId]);
+    const row = r.rows[0];
+    if (!row || row.state !== 'pending') return { error: 'not pending', status: 409 };
+    await c.query(`UPDATE approval SET state=$2, decided_at=now(), decided_note=$3 WHERE id=$1`,
+      [approvalId, approved ? 'approved' : 'rejected', note]);
+    const rq = await c.query(`SELECT * FROM run WHERE id=$1 FOR UPDATE`, [row.run_id]);
+    const scratch = rq.rows[0]?.scratch ?? {};
+    if (approved && body?.remember && row.blast_radius !== 'high') {
+      await c.query(`UPDATE room SET approval_policy = approval_policy || jsonb_build_object($2::text,'auto') WHERE id=$1`,
+        [row.room_id, row.blast_radius]);
+    }
+    if (approved) {
+      scratch.__approval_granted = approvalId;
+      await c.query(`UPDATE run SET status='running', scratch=$2 WHERE id=$1`, [row.run_id, scratch]);
+      await c.query(`UPDATE agent SET state='working', activity='resuming' WHERE id=$1`, [row.agent_id]);
+    } else if (row.kind === 'escalation' || row.kind === 'clarify') {
+      await c.query(`UPDATE agent SET state='working', activity='answered, continuing' WHERE id=$1`, [row.agent_id]);
+      await c.query(`UPDATE run SET status='running' WHERE id=$1`, [row.run_id]);
+    } else {
+      await c.query(`UPDATE run SET status='done', ended_at=now(), kill_reason='rejected by operator' WHERE id=$1`, [row.run_id]);
+      await c.query(`UPDATE agent SET state='idle', activity='rejected by you', current_run_id=NULL WHERE id=$1`, [row.agent_id]);
+    }
+    return { row };
+  });
+  if ('error' in out) return out;
   await append({ type: approved ? 'approval.granted' : 'approval.rejected',
-    room_id: ap.room_id, agent_id: ap.agent_id, run_id: ap.run_id,
+    room_id: out.row.room_id, agent_id: out.row.agent_id, run_id: out.row.run_id,
     // kind matters on replay: rejecting an escalation resumes the run, rejecting an
     // approval ends it. Without it the fold cannot tell the two apart.
-    payload: { approval_id: approvalId, action: ap.action, kind: ap.kind, note: body?.note ?? null } });
-
-  // "approve and remember for this room" raises autonomy for that blast radius —
-  // never below 'high', which always needs a human in v1.
-  if (approved && body?.remember && ap.blast_radius !== 'high') {
-    await q(`UPDATE room SET approval_policy = approval_policy || jsonb_build_object($2::text,'auto') WHERE id=$1`,
-      [ap.room_id, ap.blast_radius]);
-  }
-
-  const run = await one<any>(`SELECT * FROM run WHERE id=$1`, [ap.run_id]);
-  const scratch = run?.scratch ?? {};
-  if (approved) {
-    scratch.__approval_granted = approvalId;
-    await q(`UPDATE run SET status='running', scratch=$2 WHERE id=$1`, [ap.run_id, scratch]);
-    await q(`UPDATE agent SET state='working', activity='resuming' WHERE id=$1`, [ap.agent_id]);
-  } else if (ap.kind === 'escalation' || ap.kind === 'clarify') {
-    await q(`UPDATE agent SET state='working', activity='answered, continuing' WHERE id=$1`, [ap.agent_id]);
-    await q(`UPDATE run SET status='running' WHERE id=$1`, [ap.run_id]);
-  } else {
-    await q(`UPDATE run SET status='done', ended_at=now(), kill_reason='rejected by operator' WHERE id=$1`, [ap.run_id]);
-    await q(`UPDATE agent SET state='idle', activity='rejected by you', current_run_id=NULL WHERE id=$1`, [ap.agent_id]);
-  }
+    payload: { approval_id: approvalId, action: out.row.action, kind: out.row.kind, note } });
   bus.publish({ type: 'refresh' });
   return { ok: true, approved };
 }

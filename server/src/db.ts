@@ -16,13 +16,22 @@ export const pool = new Pool({
 });
 
 const rolePools = new Map<string, pg.Pool>();
-export function rolePool(role: string): pg.Pool {
-  let p = rolePools.get(role);
+export function rolePool(role: string, password?: string): pg.Pool {
+  const key = password ? `${role}#pw` : role;
+  let p = rolePools.get(key);
   if (!p) {
-    p = new Pool({ host: HOST, port: PORT, database: DB, user: role, password: role, max: 4 });
-    rolePools.set(role, p);
+    // New rooms get random passwords (provisionRoom stores them on the room row);
+    // the password==rolename default only covers pre-A9 roles.
+    p = new Pool({ host: HOST, port: PORT, database: DB, user: role, password: password ?? role, max: 4 });
+    rolePools.set(key, p);
   }
   return p;
+}
+
+/** The room's own DB password, for tooling that connects AS the room. */
+export async function roomDbPassword(roomId: string): Promise<string | null> {
+  const r = await pool.query(`SELECT db_password FROM room WHERE id=$1`, [roomId]);
+  return r.rows[0]?.db_password ?? null;
 }
 
 export async function q<T = any>(text: string, params: any[] = []): Promise<T[]> {

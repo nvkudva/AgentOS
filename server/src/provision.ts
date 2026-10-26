@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { pool, q, one, DB } from './db.js';
 import { id } from './ids.js';
 import { append } from './events.js';
@@ -153,21 +154,35 @@ export async function provisionRoom(spec: RoomSpec) {
   const tools = Array.from(new Set([...(spec.tools ?? []), 'assign', 'report', 'clarify']));
 
   const role = `atrium_${spec.key}`;              // key is validated against KEY, so this is safe to inline
+  // Random per-room password, stored hashed-side? No — the room row keeps it so
+  // tooling can connect as the room; it is never the role name (REVIEW P0).
+  const password = randomBytes(24).toString('base64url');
   await pool.query(
     `DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='${role}')
-       THEN CREATE ROLE ${role} LOGIN PASSWORD '${role}'; END IF; END $$;`);
+       THEN CREATE ROLE ${role} LOGIN PASSWORD '${password}'; END IF; END $$;`);
+  await pool.query(`ALTER ROLE ${role} WITH PASSWORD '${password}'`).catch(() => {});
   await pool.query(`GRANT CONNECT ON DATABASE ${DB} TO ${role}`);
   await pool.query(`REVOKE ALL ON SCHEMA public FROM ${role}`).catch(() => {});
   for (const g of ACCESS[spec.access].grants(role)) await pool.query(g);
+  // Verify the grants actually landed — a silent GRANT failure is an open door
+  // that looks closed. `none` gets nothing; everything else gets USAGE at least.
+  if (spec.access !== 'none') {
+    const got = await one<any>(
+      `SELECT count(*)::int n FROM information_schema.role_table_grants
+        WHERE grantee=$1 AND privilege_type IN ('SELECT','UPDATE')`, [role]);
+    if (!got || got.n < 1) {
+      throw Object.assign(new Error(`data grants for ${role} did not land`), { status: 500 });
+    }
+  }
 
   const slot = await nextSlot();
   const rid = id('room');
   await q(
-    `INSERT INTO room (id,key,name,objective,x,y,w,h,budget_cents,tool_grants,approval_policy,db_role,color,icon)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+    `INSERT INTO room (id,key,name,objective,x,y,w,h,budget_cents,tool_grants,approval_policy,db_role,db_password,color,icon)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
     [rid, spec.key, spec.name, spec.objective, slot.x, slot.y, slot.w, slot.h, spec.budget_cents,
      JSON.stringify(tools), JSON.stringify(spec.approval_policy ?? { low: 'auto', medium: 'auto', high: 'approve' }),
-     spec.access === 'none' ? null : role, spec.color, spec.icon]);
+     spec.access === 'none' ? null : role, password, spec.color, spec.icon]);
 
   await seedManager(rid, spec.key, spec.name, spec.color);
   for (const a of spec.agents) {

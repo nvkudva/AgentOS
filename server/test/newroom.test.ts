@@ -58,7 +58,12 @@ test('the new room is scoped exactly like the ones that shipped', async () => {
 });
 
 test('"no company data" means the database itself says no', async () => {
-  const p = rolePool(`atrium_${KEY}`);
+  // New rooms get random passwords — connect with the stored one, so a failure
+  // here means the grant is wrong, not the login.
+  const room = await one<any>('SELECT id, db_password FROM room WHERE key=$1', [KEY]);
+  assert.ok(room.db_password, 'the room has a stored password');
+  assert.notEqual(room.db_password, `atrium_${KEY}`, 'and the password is not the role name');
+  const p = rolePool(`atrium_${KEY}`, room.db_password);
   await assert.rejects(() => p.query('SELECT * FROM bizdata.orders LIMIT 1'), /permission denied|does not exist/i);
   await assert.rejects(() => p.query('SELECT * FROM support.ticket LIMIT 1'), /permission denied|does not exist/i);
 });

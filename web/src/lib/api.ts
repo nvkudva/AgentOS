@@ -45,11 +45,19 @@ export type Snapshot = {
  * exception, is what the operator reads.
  */
 const FETCH_MS = 5000;
+/** Operator token for the live backend; absent in the hosted demo (which has no API). */
+export const apiToken = () => { try { return localStorage.getItem('atrium.token'); } catch { return null; } };
 async function fetchJson(p: string, init?: RequestInit, fallback: any = null) {
   const c = new AbortController();
   const t = setTimeout(() => c.abort(), FETCH_MS);
   try {
-    return await fetch(p, { ...init, signal: c.signal }).then((r) => r.json());
+    const tok = apiToken();
+    const url = tok && p.startsWith('/api/') ? `${p}${p.includes('?') ? '&' : '?'}token=${encodeURIComponent(tok)}` : p;
+    const r = await fetch(url, { ...init, signal: c.signal });
+    // 401 means no/bogus token: read as offline, not as data. Other error json
+    // (validation, 409s) still returns so callers can show it.
+    if (r.status === 401) return fallback;
+    return await r.json();
   } catch {
     return fallback;
   } finally {
@@ -109,7 +117,14 @@ export function useLiveState() {
     document.addEventListener('visibilitychange', wake);
     tick();
 
-    const es = new EventSource('/api/stream');
+    const streamUrl = (() => {
+      const tok = apiToken();
+      return tok ? `/api/stream?token=${encodeURIComponent(tok)}` : '/api/stream';
+    })();
+    const es = new EventSource(streamUrl);
+    // A 401 stream retries forever and says nothing; close it so the frozen
+    // demo takes over instead of a dead socket.
+    es.onerror = () => { if (!ref.current) { offline = true; es.close(); } };
     const refetch = async () => {
       if (offline) return;
       const next = await get('/api/state');
