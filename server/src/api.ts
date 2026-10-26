@@ -3,7 +3,7 @@ import { id } from './ids.js';
 import { append } from './events.js';
 import { bus } from './bus.js';
 import { startAgent, killAgent } from './runtime/scheduler.js';
-import { provisionRoom, catalog, validate, type RoomSpec } from './provision.js';
+import { provisionRoom, catalogAsync, validateAsync, type RoomSpec } from './provision.js';
 import { resolveAuth, type Auth } from './auth.js';
 
 export type Req = {
@@ -60,7 +60,7 @@ export async function handle(req: Req): Promise<any> {
   }
 
   /** Everything the room creator can offer, in words rather than schema. */
-  if (p === '/api/catalog') return catalog();
+  if (p === '/api/catalog') return catalogAsync();
 
   /**
    * Milestone 8: a new function of the company is a form, not a deploy. This creates
@@ -70,7 +70,7 @@ export async function handle(req: Req): Promise<any> {
   if (p === '/api/rooms' && req.method === 'POST') {
     if (auth.scope !== 'operator') return { error: 'forbidden for a room-scoped token', status: 403 };
     const spec = req.body as RoomSpec;
-    const problems = validate(spec);
+    const problems = await validateAsync(spec);
     if (problems.length) return { error: problems.join('; '), problems, status: 400 };
     try {
       const room = await provisionRoom(spec);

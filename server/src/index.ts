@@ -4,8 +4,9 @@ import path from 'node:path';
 import { handle, snapshot } from './api.js';
 import { bus } from './bus.js';
 import { startScheduler } from './runtime/scheduler.js';
-import { ensureManagers } from './provision.js';
+import { ensurePolicies } from './provision.js';
 import { ensureOperatorToken, resolveAuth } from './auth.js';
+import { ensureManagers, ensurePolicies } from './provision.js';
 
 const PORT = Number(process.env.PORT ?? 8788);
 const WEB_DIST = path.resolve(process.cwd(), '../web/dist');
@@ -74,6 +75,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => console.log(`[atrium] http://localhost:${PORT}`));
 ensureManagers().catch((e) => console.error('[managers]', e));
+ensurePolicies().catch((e) => console.error('[policies]', e));
 ensureOperatorToken().then((s) => {
   if (s) console.log(`[atrium] OPERATOR TOKEN (keep it; shown once): ${s}`);
 }).catch((e) => console.error('[auth]', e));

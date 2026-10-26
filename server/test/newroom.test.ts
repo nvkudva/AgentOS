@@ -1,6 +1,6 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert';
-import { provisionRoom, validate, catalog } from '../src/provision.js';
+import { provisionRoom, validate, catalogAsync, ensurePolicies, lookupJob } from '../src/provision.js';
 import { callTool } from '../src/runtime/toolbelt.js';
 import { ScopeViolation } from '../src/errors.js';
 import { pool, rolePool, closeAll, q, one } from '../src/db.js';
@@ -87,8 +87,8 @@ test('the creator refuses a room that would not make sense', () => {
     .some((m) => m.includes('budget')));
 });
 
-test('the catalog offers real tools, real access profiles and real jobs', () => {
-  const c = catalog();
+test('the catalog offers real tools, real access profiles and real jobs', async () => {
+  const c = await catalogAsync();
   assert.ok(c.tools.length >= 10 && c.tools.every((t) => t.label && t.blast));
   assert.ok(c.access.length >= 3 && c.access.every((a) => a.label && a.note));
   assert.ok(c.jobs.length >= 5 && c.jobs.every((j) => j.goal));
@@ -111,4 +111,25 @@ test('a room cannot hire for work it is not equipped to do', async () => {
   } as any);
   assert.ok(problems.some((p) => p.includes('the room also needs')),
     'the gap is named before the room exists, not logged as a violation after');
+});
+
+test('the policy registry mirrors the code and validates from it', async () => {
+  await ensurePolicies();
+  const rows = await q<any>(`SELECT key, goal, uses, steps FROM policy`);
+  const code = (await import('../src/policies/index.js')).POLICIES;
+  assert.ok(rows.length >= Object.keys(code).length, 'every coded job is registered');
+  for (const [k, p] of Object.entries(code) as any) {
+    const r = rows.find((x: any) => x.key === k);
+    assert.ok(r, `${k} registered`);
+    assert.equal(r.goal, p.goal);
+    assert.deepEqual([...r.uses].sort(), [...p.uses].sort());
+  }
+  const job = await lookupJob('analytics.weekly');
+  assert.ok(job && job.uses.includes('sql.query'), 'registry lookup works');
+  assert.equal(await lookupJob('no.such.job'), null, 'unknown stays unknown');
+  const bad = await (await import('../src/provision.js')).validateAsync({
+    key: 'x', name: 'X', objective: 'y', color: '#fff', icon: 'x', budget_cents: 10,
+    tools: [], access: 'none', agents: [{ name: 'A', role: 'r', policy: 'no.such.job', persona: '', color: '#fff', avatar: 'x' }],
+  } as any);
+  assert.ok(bad.some((m) => m.includes('unknown job')), 'registry validation refuses unknown jobs');
 });

@@ -68,6 +68,35 @@ export type RoomSpec = {
 
 const KEY = /^[a-z][a-z0-9_]{1,22}$/;
 
+/** Registry-first job lookup: the table is authoritative, the code is fallback. */
+export async function lookupJob(policyKey: string): Promise<{ goal: string; uses: string[] } | null> {
+  const row = await one<any>(`SELECT goal, uses FROM policy WHERE key=$1`, [policyKey]).catch(() => null);
+  if (row) return { goal: row.goal, uses: row.uses ?? [] };
+  const code = POLICIES[policyKey];
+  return code ? { goal: code.goal, uses: code.uses } : null;
+}
+
+export async function validateAsync(spec: RoomSpec): Promise<string[]> {
+  const bad: string[] = [];
+  if (!KEY.test(spec.key ?? '')) bad.push('key must be lowercase letters, digits and underscores');
+  if (!spec.name?.trim()) bad.push('name is required');
+  if (!spec.objective?.trim()) bad.push('objective is required');
+  if (!(spec.budget_cents > 0)) bad.push('budget must be more than zero');
+  if (!ACCESS[spec.access]) bad.push(`unknown data access "${spec.access}"`);
+  for (const t of spec.tools ?? []) if (!TOOLS[t]) bad.push(`unknown tool "${t}"`);
+  if (!spec.agents?.length) bad.push('a room needs at least one agent');
+  for (const a of spec.agents ?? []) {
+    if (!a.name?.trim()) bad.push('every agent needs a name');
+    const job = await lookupJob(a.policy);
+    if (!job) { bad.push(`unknown job "${a.policy}"`); continue; }
+    // A room that hires for work it cannot do produces an agent that fails on its first
+    // step. Better to refuse the room than to log a scope violation nobody asked for.
+    const missing = job.uses.filter((t) => !(spec.tools ?? []).includes(t));
+    if (missing.length) bad.push(`${a.name || 'that agent'} cannot do "${job.goal}" here — the room also needs: ${missing.join(', ')}`);
+  }
+  return bad;
+}
+
 export function validate(spec: RoomSpec): string[] {
   const bad: string[] = [];
   if (!KEY.test(spec.key ?? '')) bad.push('key must be lowercase letters, digits and underscores');
@@ -132,6 +161,21 @@ async function seedManager(roomId: string, key: string, roomName: string, color:
     [id('agt'), roomId, managerName(key), `Runs ${roomName}. Breaks what you ask for into tasks, hands them out, and reports back.`, color]);
 }
 
+/**
+ * A6: the policy registry mirrors the code. Rooms are validated against the
+ * table (the authority on what jobs exist and what they need); the TS step
+ * arrays execute the registered version. Runs at boot so deploys stay the
+ * migration path — no separate registry-sync step to forget.
+ */
+export async function ensurePolicies() {
+  for (const p of Object.values(POLICIES)) {
+    await q(`INSERT INTO policy (key, version, goal, uses, steps) VALUES ($1,1,$2,$3,$4)
+             ON CONFLICT (key) DO UPDATE SET goal=EXCLUDED.goal, uses=EXCLUDED.uses, steps=EXCLUDED.steps,
+             updated_at=now()`,
+      [p.key, p.goal, JSON.stringify(p.uses), p.steps.length]);
+  }
+}
+
 /** Idempotent, and called at boot: rooms provisioned before the tier existed get theirs. */
 export async function ensureManagers() {
   // A manager asks before it guesses, so a room provisioned before the clarify tool
@@ -144,7 +188,7 @@ export async function ensureManagers() {
 }
 
 export async function provisionRoom(spec: RoomSpec) {
-  const bad = validate(spec);
+  const bad = await validateAsync(spec);
   if (bad.length) throw Object.assign(new Error(bad.join('; ')), { status: 400, problems: bad });
 
   const exists = await one('SELECT id FROM room WHERE key=$1', [spec.key]);
@@ -201,6 +245,9 @@ export async function provisionRoom(spec: RoomSpec) {
 
 /** What the room creator offers, described for a person rather than a schema. */
 export function catalog() {
+  throw new Error('use catalogAsync — jobs come from the registry'); }
+
+export async function catalogAsync() {
   const TOOL_WORDS: Record<string, string> = {
     'sql.query': 'Read the company database',
     'crm.note': 'Leave a note on a deal',
@@ -222,6 +269,11 @@ export function catalog() {
       blast: t.blast, reversible: t.reversible, external: t.external,
     })),
     access: Object.entries(ACCESS).map(([k, v]) => ({ key: k, label: v.label, note: v.note })),
-    jobs: Object.entries(POLICIES).map(([k, p]) => ({ key: k, goal: p.goal, steps: p.steps.length, uses: p.uses })),
+    jobs: await (async () => {
+      const reg = await q<any>(`SELECT key, goal, uses, steps FROM policy`).catch(() => []);
+      return reg.length
+        ? reg.map((r) => ({ key: r.key, goal: r.goal, steps: r.steps, uses: r.uses }))
+        : Object.entries(POLICIES).map(([k, p]) => ({ key: k, goal: p.goal, steps: p.steps.length, uses: p.uses }));
+    })(),
   };
 }
