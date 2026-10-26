@@ -104,6 +104,8 @@ export default function App() {
     setTimeout(() => { close(id); setClosing((c) => c.filter((x) => x !== id)); }, 150);
   }, [close]);
   const [sidebar, setSidebar] = useState(false);
+  /** the ? overlay: every shortcut the desk answers, in one place */
+  const [sheet, setSheet] = useState(false);
   const [skin, setSkin] = useState<Skin>(() => {
     try { return (localStorage.getItem('atrium.orbSkin') as Skin) || 'well'; } catch { return 'well'; }
   });
@@ -607,6 +609,7 @@ export default function App() {
       const typing = el && (/^(INPUT|TEXTAREA)$/.test(el.tagName) || el.isContentEditable);
       const cmd = e.metaKey || e.ctrlKey;
       if (cmd && e.key === '\\') { e.preventDefault(); setSidebar((v) => !v); return; }
+      if (e.key === '?' && !typing && !cmd) { e.preventDefault(); setSheet((v) => !v); return; }
       // ⌥ and not ⌘: the browser owns ⌘1-9 for its tabs and will not give them up.
       // Read the physical key, because Option rewrites e.key into a symbol on macOS.
       const digit = /^Digit([1-9])$/.exec(e.code)?.[1] ?? /^[1-9]$/.exec(e.key)?.[0];
@@ -620,6 +623,8 @@ export default function App() {
         return;
       }
       if (e.key === 'Escape' && !typing) {
+        // The sheet is a transient layer: it goes first, before the desk loses anything.
+        if (sheet) { setSheet(false); return; }
         // Escape during a drag belongs to the drag — it cancels the gesture and nothing else.
         if (dragging()) return;
         // The orb's panel is the topmost surface and dismisses itself; the desk must not
@@ -632,7 +637,7 @@ export default function App() {
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [snap?.rooms, wins, sidebar, patch, focus, shut, openRoomWindow]);
+  }, [snap?.rooms, wins, sidebar, sheet, patch, focus, shut, openRoomWindow]);
 
   const ctx: CmdCtx = useMemo(() => ({
     agents: snap?.agents ?? [], rooms: snap?.rooms ?? [], inbox: snap?.inbox ?? [],
@@ -728,7 +733,7 @@ export default function App() {
     <div className="os">
       <Wallpaper dark={resolved === 'dark'} />
 
-      <MenuBar config={snap.config} inbox={queue} needsMe={needsMe} view={VIEW} skin={skin} demo={snap.offline === true}
+      <MenuBar config={snap.config} inbox={queue} needsMe={needsMe} view={VIEW} skin={skin} demo={snap.offline === true} onSheet={() => setSheet(true)}
                theme={theme} setTheme={setTheme} ctx={ctx}
                sidebar={sidebar} onSidebar={setSidebar} onOpen={launch}
                bell={bell} results={results} clarifies={clarifies}
@@ -756,6 +761,23 @@ export default function App() {
                mandates={mandates} onDecide={onDecide}
                onOpenRoom={(key) => { const r = snap.rooms.find((x) => x.key === key); if (r) openRoomConsole(r); }}
                focusId={focusApproval} onClose={() => setSidebar(false)} onPick={openAgent} />
+
+      {sheet && <div className="scrim on" onClick={() => setSheet(false)} />}
+      {sheet && (
+        <div className="keys-sheet" role="dialog" aria-label="Keyboard shortcuts">
+          <h3>Keyboard</h3>
+          <table><tbody>
+            <tr><td><kbd>?</kbd></td><td>This list</td></tr>
+            <tr><td><kbd>⌘/Ctrl</kbd> <kbd>\</kbd></td><td>Queue sidebar</td></tr>
+            <tr><td><kbd>⌥</kbd> <kbd>1</kbd>–<kbd>9</kbd></td><td>Room rails</td></tr>
+            <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Neighbouring room console, while one is front-most</td></tr>
+            <tr><td><kbd>j</kbd> / <kbd>k</kbd> or <kbd>↑</kbd> / <kbd>↓</kbd></td><td>Move in the queue, while it is open</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Open the queued room</td></tr>
+            <tr><td><kbd>a</kbd> / <kbd>A</kbd> / <kbd>r</kbd></td><td>Approve / approve + remember / reject</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Close topmost: this list, sidebar, then window</td></tr>
+          </tbody></table>
+        </div>
+      )}
 
       <CourierLayer />
       <CarryLayer />

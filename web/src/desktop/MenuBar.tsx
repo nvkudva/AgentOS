@@ -6,12 +6,14 @@ import type { CmdCtx } from './commands';
 import type { Result, Clarify } from './intent';
 import type { Theme } from '../lib/theme';
 
-export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen, skin, demo,
+export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen, skin, demo, onSheet,
                           bell, results, clarifies, onResult, onClarify }: {
   config: any; inbox: Inbox[]; needsMe: boolean; view: string;
   theme: Theme; setTheme: (t: Theme) => void; ctx: CmdCtx;
   sidebar: boolean; onSidebar: (b: boolean) => void;
   onOpen: (k: 'floor' | 'list' | 'inbox' | 'settings') => void;
+  /** the ? overlay lives in App; the menubar only opens it */
+  onSheet: () => void;
   skin: Skin;
   /** the frozen demo desk is showing: writes only pretend */
   demo: boolean;
@@ -31,6 +33,7 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
       <span className="menu" onClick={() => onOpen('list')}>Activity</span>
       <span className="menu" onClick={() => onOpen('settings')}>Settings</span>
       <GlanceTest view={view} truth={needsMe} />
+      <span className="menu" onClick={onSheet} title="keyboard shortcuts (?)">?</span>
       {demo && <span className="demo-pill" role="status">Demo data — nothing here is live</span>}
 
       <span className="spacer" />

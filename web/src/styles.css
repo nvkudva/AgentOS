@@ -572,6 +572,15 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .room-foot { display:flex; align-items:center; gap:8px; color:var(--faint); font-size:11px;
   font-variant-numeric:tabular-nums; }
 .pill.capped { color:var(--failed); }
+.keys-sheet { position:fixed; z-index:120; left:50%; top:calc(var(--menubar) + 48px);
+  transform:translateX(-50%); width:min(480px, 92vw); background:var(--solid);
+  border:1px solid var(--line); border-radius:12px; box-shadow:var(--e3); padding:16px 18px; }
+.keys-sheet h3 { margin:0 0 4px; font-size:15px; }
+.keys-sheet table { width:100%; border-collapse:collapse; font-size:13px; }
+.keys-sheet td { padding:5px 4px; border-top:1px solid var(--line); vertical-align:top; }
+.keys-sheet td:first-child { white-space:nowrap; width:150px; }
+kbd { font:inherit; background:var(--tint-2); border:1px solid var(--line);
+  border-radius:5px; padding:0 6px; white-space:nowrap; }
 .pill.open { color:var(--room); }
 .win-bar .backbtn { border:0; background:none; color:var(--muted); font-size:12px;
   padding:2px 8px; border-radius:6px; white-space:nowrap; flex:none; }
