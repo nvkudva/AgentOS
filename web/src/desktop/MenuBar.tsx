@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { post } from '../lib/api';
-import type { Inbox } from '../lib/api';
+import type { Agent, Inbox } from '../lib/api';
 import { GlanceTest } from './GlanceTest';
 import { Supervisor, type Skin } from './Supervisor';
 import type { CmdCtx } from './commands';
@@ -48,11 +49,45 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
             onClick={() => onSidebar(!sidebar)} title="notifications and approvals">
         {bell ? '🔔' : '🔕'}{bell > 0 && <i>{bell}</i>}
       </span>
-      <button className={config.panic_stop ? 'primary' : 'danger'} onClick={() => post('/api/panic', { on: !config.panic_stop })}>
-        {config.panic_stop ? 'Resume' : 'Stop all'}
-      </button>
+      <StopAll config={config} agents={ctx.agents} />
     </div>
   );
+}
+
+/**
+ * Stopping everything names its scope before it acts: one click arms a confirm
+ * that says how many agents in how many rooms, the second click does it, and
+ * Resume is the standing undo. Neutral until something runs.
+ */
+function StopAll({ config, agents }: { config: any; agents: Agent[] }) {
+  const [confirming, setConfirming] = useState(false);
+  const running = agents.filter((a) => a.state === 'working');
+  const rooms = new Set(running.map((a) => a.room_id)).size;
+
+  useEffect(() => {
+    if (!confirming) return;
+    const off = (e: KeyboardEvent) => { if (e.key === 'Escape') setConfirming(false); };
+    addEventListener('keydown', off);
+    return () => removeEventListener('keydown', off);
+  }, [confirming]);
+
+  if (config.panic_stop) {
+    return <button className="primary" onClick={() => post('/api/panic', { on: false })}>Resume</button>;
+  }
+  if (confirming) {
+    return (
+      <span className="confirm-pop" role="alertdialog" aria-label="Confirm stop all">
+        <span>{running.length
+          ? `Stop ${running.length} running agent${running.length === 1 ? '' : 's'} in ${rooms} room${rooms === 1 ? '' : 's'}?`
+          : 'No agents are running. Stop everything anyway?'}</span>
+        <button className="danger" onClick={() => { setConfirming(false); post('/api/panic', { on: true }); }}>
+          Stop everything
+        </button>
+        <button onClick={() => setConfirming(false)}>Keep going</button>
+      </span>
+    );
+  }
+  return <button className={running.length ? 'danger' : undefined} onClick={() => setConfirming(true)}>Stop all</button>;
 }
 
 /**

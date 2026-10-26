@@ -572,6 +572,11 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .room-foot { display:flex; align-items:center; gap:8px; color:var(--faint); font-size:11px;
   font-variant-numeric:tabular-nums; }
 .pill.capped { color:var(--failed); }
+.confirm-pop { position:absolute; top:calc(100% + 6px); right:8px; z-index:110;
+  display:flex; align-items:center; gap:8px; background:var(--solid);
+  border:1px solid var(--line); border-radius:10px; box-shadow:var(--e3);
+  padding:8px 10px; font-size:13px; max-width:min(480px, 94vw); flex-wrap:wrap; }
+.pk-faces .face::after { content:''; position:absolute; inset:-4px; border-radius:999px; }
 .keys-sheet { position:fixed; z-index:120; left:50%; top:calc(var(--menubar) + 48px);
   transform:translateX(-50%); width:min(480px, 92vw); background:var(--solid);
   border:1px solid var(--line); border-radius:12px; box-shadow:var(--e3); padding:16px 18px; }

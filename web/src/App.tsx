@@ -625,6 +625,9 @@ export default function App() {
       if (e.key === 'Escape' && !typing) {
         // The sheet is a transient layer: it goes first, before the desk loses anything.
         if (sheet) { setSheet(false); return; }
+        // The stop-all confirm answers its own Escape; the desk must not also throw
+        // away the window underneath it.
+        if (document.querySelector('.confirm-pop')) return;
         // Escape during a drag belongs to the drag — it cancels the gesture and nothing else.
         if (dragging()) return;
         // The orb's panel is the topmost surface and dismisses itself; the desk must not
