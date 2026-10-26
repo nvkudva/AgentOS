@@ -33,11 +33,25 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
 }) {
   const [d, setD] = useState<any>(null);
   const [tab, setTab] = useState<Tab>('Activity');
+  /** the backend never answered: stop spinning and say so, with a way back */
+  const [dead, setDead] = useState(false);
+  const [tries, setTries] = useState(0);
 
   const load = () => get(`/api/rooms/${room.id}`).then(setD);
   useEffect(() => { load(); const t = setInterval(load, 1800); return () => clearInterval(t); }, [room.id]);
   useEffect(() => { observe(view, 'room.open', { room: room.key }); }, [room.id]);
-  if (!d) return <div className="pad muted">One moment…</div>;
+  useEffect(() => {
+    setDead(false);
+    const t = setTimeout(() => setDead(true), 5000);
+    return () => clearTimeout(t);
+  }, [room.id, tries]);
+  if (!d) return dead
+    ? <div className="pad">
+        <h3>Couldn't reach this room</h3>
+        <p className="muted">No backend answered within 5s. Nothing here is live.</p>
+        <p><button className="primary" onClick={() => { setTries((t) => t + 1); load(); }}>Retry</button></p>
+      </div>
+    : <div className="pad muted">One moment…</div>;
 
   const spent = d.room.spent_cents, cap = d.room.budget_cents;
   const nameOf = (id: string) => d.agents.find((a: any) => a.id === id)?.name ?? 'Someone';

@@ -12,6 +12,12 @@ export function ListView({ rooms, agents }: { rooms: Room[]; agents: Agent[] }) 
   const [feed, setFeed] = useState<any[]>([]);
   useEffect(() => { const f = () => get('/api/list?limit=250').then((next) => setFeed(next ?? [])); f(); const t = setInterval(f, 1500); return () => clearInterval(t); }, []);
   const roomOf = Object.fromEntries(rooms.map((r) => [r.id, r]));
+  if (!rooms.length && !agents.length) return (
+    <div className="pad">
+      <h3>No rooms yet</h3>
+      <p className="muted">Create one from Settings — it will appear here.</p>
+    </div>
+  );
 
   return (
     <div className="list">

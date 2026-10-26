@@ -52,3 +52,5 @@ Parallel tracks: 1A‖1B(file-split) after 1A lands; 2A-layout‖2B-backend with
 ## Revisions
 
 - 2026-10-26: Phase 1A implemented (per-window error boundary + poisoned-window restore guard + null-honest list reads).
+- 2026-10-26: Phase 1B implemented (demo-mode pill on offline snapshot, 5s fetch deadline in get/post, titled empty states + Retry in AgentApp/RoomApp/ListView; AgentApp null-runner crash fixed as found in browser QA). Verified in headless Chromium with screenshots.
+- 2026-10-26: Blocker recorded — no Postgres server or Docker daemon in this environment, so server suites (all DB-backed) cannot run here. Backend phases 2B/3/4 are specified with file:line targets below but stay unimplemented until a DB-backed QA lane exists; no unverified backend surgery ships on this branch.

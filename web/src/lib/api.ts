@@ -35,16 +35,35 @@ export type Task = {
 export type Snapshot = {
   rooms: Room[]; agents: Agent[]; inbox: Inbox[]; config: any;
   mandates: Mandate[]; tasks: Task[];
+  /** true when this snapshot is the frozen demo desk, not a live backend */
+  offline?: boolean;
 };
+
+/**
+ * Every read fails fast instead of hanging a window forever: 5s, then the
+ * caller's empty state takes over. Failures stay quiet — the desk, not an
+ * exception, is what the operator reads.
+ */
+const FETCH_MS = 5000;
+async function fetchJson(p: string, init?: RequestInit, fallback: any = null) {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), FETCH_MS);
+  try {
+    return await fetch(p, { ...init, signal: c.signal }).then((r) => r.json());
+  } catch {
+    return fallback;
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 /**
  * With no server behind the page there is nothing to write to, and a rejected fetch
  * would strand whatever was mid-gesture. Both calls fail quietly instead.
  */
 export const post = (p: string, body: any = {}) =>
-  fetch(p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-    .then((r) => r.json()).catch(() => ({}));
-export const get = (p: string) => fetch(p).then((r) => r.json()).catch(() => null);
+  fetchJson(p, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }, {});
+export const get = (p: string) => fetchJson(p, undefined, null);
 
 /** Records what the operator does, in whichever view. This is how the thesis gets tested. */
 export const observe = (view: string, action: string, payload: any = {}) =>
@@ -70,7 +89,7 @@ export function useLiveState() {
       if (ref.current) return;
       offline = true;
       const { DEMO } = await import('./demo');
-      ref.current = DEMO; dirty.current = true;
+      ref.current = { ...DEMO, offline: true }; dirty.current = true;
     }, 2500);
 
     // The coalescing is the point — one render a frame, not one per delta — but a tab

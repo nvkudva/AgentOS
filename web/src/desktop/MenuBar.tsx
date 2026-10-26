@@ -6,13 +6,15 @@ import type { CmdCtx } from './commands';
 import type { Result, Clarify } from './intent';
 import type { Theme } from '../lib/theme';
 
-export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen, skin,
+export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen, skin, demo,
                           bell, results, clarifies, onResult, onClarify }: {
   config: any; inbox: Inbox[]; needsMe: boolean; view: string;
   theme: Theme; setTheme: (t: Theme) => void; ctx: CmdCtx;
   sidebar: boolean; onSidebar: (b: boolean) => void;
   onOpen: (k: 'floor' | 'list' | 'inbox' | 'settings') => void;
   skin: Skin;
+  /** the frozen demo desk is showing: writes only pretend */
+  demo: boolean;
   /** what the badge is allowed to say — it lags the queue until the flight lands */
   bell: number;
   results: Result[]; clarifies: Clarify[];
@@ -29,6 +31,7 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
       <span className="menu" onClick={() => onOpen('list')}>Activity</span>
       <span className="menu" onClick={() => onOpen('settings')}>Settings</span>
       <GlanceTest view={view} truth={needsMe} />
+      {demo && <span className="demo-pill" role="status">Demo data — nothing here is live</span>}
 
       <span className="spacer" />
       <Supervisor ctx={ctx} alert={needsMe} speak={true} skin={skin}

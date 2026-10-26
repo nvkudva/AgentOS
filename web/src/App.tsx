@@ -678,7 +678,7 @@ export default function App() {
     <div className="os">
       <Wallpaper dark={resolved === 'dark'} />
 
-      <MenuBar config={snap.config} inbox={queue} needsMe={needsMe} view={VIEW} skin={skin}
+      <MenuBar config={snap.config} inbox={queue} needsMe={needsMe} view={VIEW} skin={skin} demo={snap.offline === true}
                theme={theme} setTheme={setTheme} ctx={ctx}
                sidebar={sidebar} onSidebar={setSidebar} onOpen={launch}
                bell={bell} results={results} clarifies={clarifies}

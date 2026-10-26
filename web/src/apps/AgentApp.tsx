@@ -13,12 +13,20 @@ export function AgentApp({ agentId }: { agentId: string }) {
   const [d, setD] = useState<any>(null);
   const [runId, setRunId] = useState<string | null>(null);
   const [thread, setThread] = useState<any>(null);
+  /** the backend never answered: stop spinning and say so, with a way back */
+  const [dead, setDead] = useState(false);
+  const [tries, setTries] = useState(0);
   const feed = useRef<HTMLDivElement>(null);
 
   const load = () => get(`/api/agents/${agentId}`).then((x) => {
     setD(x);
-    setRunId((cur) => cur ?? x.runs[0]?.id ?? null);
+    setRunId((cur) => cur ?? x?.runs?.[0]?.id ?? null);
   });
+  useEffect(() => {
+    setDead(false);
+    const t = setTimeout(() => setDead(true), 5000);
+    return () => clearTimeout(t);
+  }, [agentId, tries]);
   useEffect(() => { setRunId(null); load(); }, [agentId]);
   useEffect(() => { const t = setInterval(load, 1600); return () => clearInterval(t); }, [agentId]);
   useEffect(() => {
@@ -31,7 +39,13 @@ export function AgentApp({ agentId }: { agentId: string }) {
 
   const a = d?.agent;
   const turns = useMemo(() => (thread && a ? toTurns(thread.events, a.name) : []), [thread, a?.name]);
-  if (!d) return <div className="pad muted">One moment…</div>;
+  if (!d) return dead
+    ? <div className="pad">
+        <h3>Couldn't reach this agent</h3>
+        <p className="muted">No backend answered within 5s. Nothing here is live.</p>
+        <p><button className="primary" onClick={() => { setTries((t) => t + 1); load(); }}>Retry</button></p>
+      </div>
+    : <div className="pad muted">One moment…</div>;
 
   const start = () => post(`/api/agents/${a.id}/start`).then(() => { setRunId(null); load(); });
 
