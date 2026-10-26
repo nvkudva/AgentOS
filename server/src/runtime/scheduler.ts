@@ -8,8 +8,32 @@ import { POLICIES } from '../policies/index.js';
 import type { Ctx, Room, Agent, Run } from './types.js';
 
 const TICK_MS = Number(process.env.ATRIUM_TICK_MS ?? 400);
+const LEASE_MS = Number(process.env.ATRIUM_LEASE_MS ?? 30_000);
 let timer: NodeJS.Timeout | null = null;
-const inflight = new Set<string>();
+// One id per scheduler process: a second process (or a second tick that overlaps
+// the first) cannot step an agent it did not claim.
+const INSTANCE = id('sch');
+
+/**
+ * Claim every steppable agent whose lease is free or expired, skipping rows a
+ * concurrent scheduler already locked. Two schedulers racing here get disjoint
+ * sets — that is the whole double-step fix.
+ */
+export async function claimLeases(owner: string = INSTANCE, leaseMs: number = LEASE_MS): Promise<Agent[]> {
+  return q<Agent>(
+    `UPDATE agent SET lease_owner=$1, lease_expires=now()+($2||' milliseconds')::interval
+      WHERE id IN (
+        SELECT a.id FROM agent a JOIN room r ON r.id=a.room_id
+         WHERE a.state='working' AND a.current_run_id IS NOT NULL AND r.status='open'
+           AND (a.lease_expires IS NULL OR a.lease_expires < now())
+         ORDER BY a.id FOR UPDATE SKIP LOCKED)
+     RETURNING *`,
+    [owner, String(leaseMs)]);
+}
+
+export async function releaseLeases(owner: string = INSTANCE): Promise<void> {
+  await q(`UPDATE agent SET lease_owner=NULL, lease_expires=NULL WHERE lease_owner=$1`, [owner]);
+}
 
 /** The chain of custody a run belongs to. Set when a manager assigns, absent otherwise. */
 export type RunLink = { mandate_id?: string | null; task_id?: string | null };
@@ -57,7 +81,13 @@ async function say(a: Agent, activity: string) {
   bus.publish({ type: 'agent.activity', agent_id: a.id, room_id: a.room_id, activity });
 }
 
-async function step(agentRow: Agent) {
+export async function step(agentRow: Agent, owner: string = INSTANCE) {
+  // Fencing: a tick that lost its lease (crashed past TTL, superseded) must not
+  // step. The lease is checked at step time, not just claim time.
+  const lease = await one<any>('SELECT lease_owner, lease_expires FROM agent WHERE id=$1', [agentRow.id]);
+  if (!lease || lease.lease_owner !== owner || (lease.lease_expires && new Date(lease.lease_expires) < new Date())) {
+    return 'stolen';
+  }
   const room = await one<Room>('SELECT * FROM room WHERE id=$1', [agentRow.room_id]);
   const run = await one<Run>('SELECT * FROM run WHERE id=$1', [agentRow.current_run_id!]);
   if (!room || !run) return;
@@ -132,14 +162,11 @@ async function step(agentRow: Agent) {
 async function tick() {
   const cfg = await one<any>('SELECT * FROM global_config WHERE id=1');
   if (cfg?.panic_stop) return;
-  const agents = await q<Agent>(
-    `SELECT a.* FROM agent a JOIN room r ON r.id=a.room_id
-      WHERE a.state='working' AND a.current_run_id IS NOT NULL AND r.status='open'`);
-  await Promise.all(agents.filter((a) => !inflight.has(a.id)).map(async (a) => {
-    inflight.add(a.id);
-    try { await step(a); } catch (e) { console.error('[tick]', a.id, e); }
-    finally { inflight.delete(a.id); }
+  const agents = await claimLeases();
+  await Promise.all(agents.map(async (a) => {
+    try { await step(a, INSTANCE); } catch (e) { console.error('[tick]', a.id, e); }
   }));
+  await releaseLeases();
 }
 
 export function startScheduler() {
