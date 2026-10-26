@@ -1300,6 +1300,53 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 .dockwrap { padding-bottom:env(safe-area-inset-bottom, 0); }
 .slideover { bottom:calc(8px + env(safe-area-inset-bottom, 0)); }
 
+/* --- mobile triage shell: three tabs, orb as FAB, fullscreen console --- */
+.mshell { position:relative; z-index:10; display:flex; flex-direction:column; min-height:0; flex:1; }
+.mtabs-body { flex:1; min-height:0; overflow-y:auto; }
+/* The queue tab reuses the desktop slide-over as a plain list: no scrim, no rail. */
+.mshell .scrim { display:none; }
+.mshell .slideover { position:static; width:auto; max-height:none; transform:none;
+  border:0; border-radius:0; box-shadow:none; background:none; backdrop-filter:none; }
+.mshell .slideover > header button { display:none; }
+.mtabs { display:flex; gap:4px; padding:8px 12px calc(8px + env(safe-area-inset-bottom, 0));
+  background:var(--win-fill); border-top:.5px solid var(--line-soft); }
+.mtabs button { flex:1; position:relative; min-height:44px; border:0; border-radius:12px;
+  background:none; color:var(--muted); font-size:13px; }
+.mtabs button.on { background:var(--tint-2); color:var(--text); font-weight:600; }
+.mtabs .badge { position:absolute; top:4px; right:calc(50% - 34px);
+  background:var(--approval); color:#fff; border-radius:999px;
+  font-size:10px; padding:0 6px; line-height:16px; }
+.mconsole { display:flex; flex-direction:column; min-height:0; flex:1; }
+.mconsole-bar { flex:none; display:flex; align-items:center; gap:8px;
+  padding:10px 12px; border-bottom:.5px solid var(--line-soft); }
+.mconsole-bar button { min-width:44px; min-height:44px; border:0; border-radius:10px;
+  background:var(--tint-2); color:var(--text); font-size:20px; }
+.mconsole-bar b { font-size:15px; }
+.mconsole > div:last-child { flex:1; min-height:0; overflow-y:auto; }
+/* The orb leaves the menubar and becomes a floating action button; its panel
+   becomes a card pinned above it, since downward would leave the screen. */
+@media (max-width: 767px) {
+  .menubar .sup { position:fixed; left:auto; right:12px; top:auto;
+    bottom:calc(76px + env(safe-area-inset-bottom, 0)); translate:none; z-index:60; }
+  .menubar .sup.open .sup-shell { width:var(--orbsz); }
+  /* the shell's centering translate would capture the fixed panel: pin its edge instead */
+  .menubar .sup-shell { left:auto; right:0; translate:none; }
+  .menubar .sup.open .sup-body { position:fixed; right:12px;
+    bottom:calc(124px + env(safe-area-inset-bottom, 0));
+    width:min(320px, calc(100vw - 24px));
+    background:var(--win-fill); border:.5px solid var(--rim);
+    border-radius:var(--r-shell); box-shadow:var(--e4); padding-bottom:12px; }
+  .demo-pill { max-width:38vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+}
+@media (pointer: coarse) {
+  .keyhint { display:none; }
+  .card .acts button, .needs-bar button, .work-rerun, .mtabs button,
+  .mconsole-bar button, .away-strip button { min-height:44px; min-width:44px; }
+  /* touch targets, not just visible ones: faces keep their size, the hit area grows */
+  .room-crew .face::after, .crew .face::after { content:''; position:absolute; inset:-9px; }
+}
+body { touch-action:manipulation; }
+
 /* --- work history + while-you-were-away --- */
 .work { padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
 .work-filter { display:flex; gap:8px; }

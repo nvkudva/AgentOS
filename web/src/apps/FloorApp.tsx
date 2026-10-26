@@ -9,7 +9,7 @@ export function FloorApp({ rooms, agents, mandates = [], tasks = [], onOpen, inb
 }) {
   return (
     <div className="floor">
-      <div className="grid" style={{ ['--cols' as any]: 4 }}>
+      <div className="grid">
         {rooms.map((r) => (
           <RoomWidget key={r.id} room={r} agents={agents.filter((a) => a.room_id === r.id)}
                       mandates={mandates} tasks={tasks} onOpen={onOpen}

@@ -11,6 +11,7 @@ import { Wallpaper } from './desktop/Wallpaper';
 import { MenuBar } from './desktop/MenuBar';
 import { Dock } from './desktop/Dock';
 import { Sidebar } from './desktop/Sidebar';
+import { MobileShell, type MTab } from './desktop/MobileShell';
 import { SitDown } from './desktop/SitDown';
 import { RoomWindowBody, ParkedRail } from './desktop/RoomWindow';
 /**
@@ -105,6 +106,22 @@ export default function App() {
     setTimeout(() => { close(id); setClosing((c) => c.filter((x) => x !== id)); }, 150);
   }, [close]);
   const [sidebar, setSidebar] = useState(false);
+  /**
+   * Below 768px the desk becomes a triage shell: three tabs, the orb as a FAB,
+   * a fullscreen console. Same snapshot, same decide path — the tabs rearrange
+   * existing views, and the desktop keeps every window when the viewport widens.
+   */
+  const [narrow, setNarrow] = useState(() => matchMedia('(max-width: 767px)').matches);
+  useEffect(() => {
+    const mq = matchMedia('(max-width: 767px)');
+    const f = () => setNarrow(mq.matches);
+    mq.addEventListener('change', f);
+    return () => mq.removeEventListener('change', f);
+  }, []);
+  const [mtab, setMtab] = useState<MTab>('needs');
+  const [mroom, setMroom] = useState<string | null>(null);
+  const [magent, setMagent] = useState<string | null>(null);
+  const [mset, setMset] = useState(false);
   /** the ? overlay: every shortcut the desk answers, in one place */
   const [sheet, setSheet] = useState(false);
   const [skin, setSkin] = useState<Skin>(() => {
@@ -175,9 +192,10 @@ export default function App() {
 
   const openAgent = useCallback((a: Agent) => {
     observe(VIEW, 'agent.open', { agent: a.name });
+    if (narrow) { setMagent(a.id); setMroom(null); setMset(false); return; }
     open({ id: `agent:${a.id}`, kind: 'agent', ref: a.id, title: `${a.name} — ${a.role}`,
            icon: a.avatar, color: a.color, ...place() });
-  }, [open, place]);
+  }, [open, place, narrow]);
 
   /**
    * A room arrives parked, on the side the floor plan already puts it. The desk you sit
@@ -204,12 +222,25 @@ export default function App() {
 
   const openRoomConsole = useCallback((r: Room) => {
     observe(VIEW, 'room.open', { room: r.key });
+    if (narrow) { setMroom(r.id); setMagent(null); setMset(false); return; }
     open({ id: `room:${r.id}`, kind: 'room', ref: r.id, title: r.name,
            icon: r.icon, color: r.color, ...place() });
-  }, [open, place]);
+  }, [open, place, narrow]);
 
   const launch = useCallback((k: AppKind) => {
-    if (k === 'inbox') { setSidebar(true); return; }
+    if (k === 'inbox') {
+      if (narrow) { setMtab('needs'); setMroom(null); setMagent(null); setMset(false); }
+      else setSidebar(true);
+      return;
+    }
+    // The tabs are the phone: Overview and Work become tabs, Settings a sheet.
+    // The prop apps have no mobile home yet.
+    if (narrow) {
+      if (k === 'floor') { setMtab('rooms'); setMroom(null); setMagent(null); setMset(false); }
+      else if (k === 'work') { setMtab('work'); setMroom(null); setMagent(null); setMset(false); }
+      else if (k === 'settings') setMset(true);
+      return;
+    }
     const meta: Record<string, [string, string, string]> = {
       floor:    ['🗺️', 'Overview', '#7f93b5'],
       work:     ['🗂️', 'Work', '#8b7cf5'],
@@ -609,7 +640,13 @@ export default function App() {
       const el = document.activeElement as HTMLElement | null;
       const typing = el && (/^(INPUT|TEXTAREA)$/.test(el.tagName) || el.isContentEditable);
       const cmd = e.metaKey || e.ctrlKey;
-      if (cmd && e.key === '\\') { e.preventDefault(); setSidebar((v) => !v); return; }
+      if (cmd && e.key === '\\') {
+        e.preventDefault();
+        // On the phone the queue is a tab, not a sidebar.
+        if (narrow) { setMtab('needs'); setMroom(null); setMagent(null); setMset(false); }
+        else setSidebar((v) => !v);
+        return;
+      }
       if (e.key === '?' && !typing && !cmd) { e.preventDefault(); setSheet((v) => !v); return; }
       // ⌥ and not ⌘: the browser owns ⌘1-9 for its tabs and will not give them up.
       // Read the physical key, because Option rewrites e.key into a symbol on macOS.
@@ -634,6 +671,10 @@ export default function App() {
         // The orb's panel is the topmost surface and dismisses itself; the desk must not
         // also throw away the window the operator was watching underneath it.
         if (document.querySelector('.sup.open')) return;
+        // On the phone Escape backs out of the fullscreen console, agent or settings.
+        if (narrow && (mroom || magent || mset)) {
+          setMroom(null); setMagent(null); setMset(false); return;
+        }
         if (sidebar) { setSidebar(false); return; }
         const top = wins.filter((w) => !w.min && !w.park).sort((x, y) => y.z - x.z)[0];
         if (top) shut(top.id);
@@ -641,7 +682,8 @@ export default function App() {
     };
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
-  }, [snap?.rooms, wins, sidebar, sheet, patch, focus, shut, openRoomWindow]);
+  }, [snap?.rooms, wins, sidebar, sheet, patch, focus, shut, openRoomWindow, narrow,
+       mroom, magent, mset]);
 
   const ctx: CmdCtx = useMemo(() => ({
     agents: snap?.agents ?? [], rooms: snap?.rooms ?? [], inbox: snap?.inbox ?? [],
@@ -776,10 +818,26 @@ export default function App() {
 
       <MenuBar config={snap.config} inbox={queue} needsMe={needsMe} view={VIEW} skin={skin} demo={snap.offline === true} onSheet={() => setSheet(true)}
                theme={theme} setTheme={setTheme} ctx={ctx}
-               sidebar={sidebar} onSidebar={setSidebar} onOpen={launch}
+               sidebar={sidebar} onSidebar={(b) => {
+                 if (narrow) { if (b) { setMtab('needs'); setMroom(null); setMagent(null); setMset(false); } }
+                 else setSidebar(b);
+               }} onOpen={launch}
                bell={bell} results={results} clarifies={clarifies}
                onResult={onResult} onClarify={answerClarify} />
 
+      {narrow ? (
+        <MobileShell tab={mtab} setTab={(t) => { setMtab(t); setMroom(null); setMagent(null); setMset(false); }}
+                     mroom={mroom} magent={magent} mset={mset}
+                     rooms={snap.rooms} agents={snap.agents} mandates={mandates} tasks={tasks}
+                     inbox={queue} view={VIEW} focusId={focusApproval} config={snap.config}
+                     perf={perf} theme={theme} setTheme={setTheme} onDecide={onDecide}
+                     onOpenRoom={(key) => { const r = snap.rooms.find((x) => x.key === key); if (r) openRoomConsole(r); }}
+                     onPick={openAgent} onConsole={(id) => { const r = snap.rooms.find((x) => x.id === id); if (r) openRoomConsole(r); }}
+                     onRunAgain={(text, room, from) => dispatch(text, room, from)}
+                     onCloseOverlays={() => { setMroom(null); setMagent(null); setMset(false); }}
+                     strip={strip} stripNeed={stripNeed} stripBlocked={stripBlocked}
+                     stripWorking={stripWorking} onStripDone={() => setStrip(false)} />
+      ) : (<>
       <main className="stage" ref={stageRef}>
         <SitDown inbox={queue} agents={snap.agents} />
         {strip && <AwayStrip need={stripNeed} blocked={stripBlocked} working={stripWorking}
@@ -804,6 +862,7 @@ export default function App() {
                mandates={mandates} onDecide={onDecide}
                onOpenRoom={(key) => { const r = snap.rooms.find((x) => x.key === key); if (r) openRoomConsole(r); }}
                focusId={focusApproval} onClose={() => setSidebar(false)} onPick={openAgent} />
+      </>)}
 
       {sheet && <div className="scrim on" onClick={() => setSheet(false)} />}
       {sheet && (
@@ -827,6 +886,7 @@ export default function App() {
       <CarryLayer />
       <PeekLayer />
 
+      {!narrow && (
       <Dock wins={wins} agents={snap.agents} inbox={queue} unread={results.length}
             rooms={snap.rooms.map((r) => ({ id: r.id, icon: r.icon, name: r.name, color: r.color }))}
             onLaunch={launch} onFocus={focus}
@@ -839,6 +899,7 @@ export default function App() {
               if (w) { patch(w.id, { park: null, min: false, ...(w.home && { x: w.home.left, y: w.home.top, w: w.home.width, h: w.home.height }) }); focus(w.id); }
               else openRoomWindow(r);
             }} />
+      )}
     </div>
   );
 }
