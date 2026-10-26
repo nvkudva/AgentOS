@@ -12,7 +12,7 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
   config: any; inbox: Inbox[]; needsMe: boolean; view: string;
   theme: Theme; setTheme: (t: Theme) => void; ctx: CmdCtx;
   sidebar: boolean; onSidebar: (b: boolean) => void;
-  onOpen: (k: 'floor' | 'list' | 'inbox' | 'settings') => void;
+  onOpen: (k: 'floor' | 'work' | 'inbox' | 'settings') => void;
   /** the ? overlay lives in App; the menubar only opens it */
   onSheet: () => void;
   skin: Skin;
@@ -31,7 +31,7 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
       <Logo />
       <b>Atrium</b>
       <span className="menu" onClick={() => onOpen('floor')}>Overview</span>
-      <span className="menu" onClick={() => onOpen('list')}>Activity</span>
+      <span className="menu" onClick={() => onOpen('work')}>Work</span>
       <span className="menu" onClick={() => onOpen('settings')}>Settings</span>
       <GlanceTest view={view} truth={needsMe} />
       <span className="menu" onClick={onSheet} title="keyboard shortcuts (?)">?</span>

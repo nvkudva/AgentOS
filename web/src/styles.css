@@ -1277,7 +1277,7 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
   .room-more > p.quiet { display:none; }   /* so is what it may do unattended */
 }
 @media (max-width: 860px) {
-  .menubar .menu { display:none; }         /* Overview, Activity, Settings are in the dock */
+  .menubar .menu { display:none; }         /* Overview, Work, Settings are in the dock */
   .floor .grid { --cols:2; }
 }
 @media (max-width: 640px) {
@@ -1290,3 +1290,31 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 /* The dock and the queue sit on the home indicator otherwise. */
 .dockwrap { padding-bottom:env(safe-area-inset-bottom, 0); }
 .slideover { bottom:calc(8px + env(safe-area-inset-bottom, 0)); }
+
+/* --- work history + while-you-were-away --- */
+.work { padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
+.work-filter { display:flex; gap:8px; }
+.work-filter input { flex:1; background:var(--tint); border:.5px solid var(--line-soft);
+  border-radius:10px; padding:8px 12px; color:var(--text); font-size:13px; }
+.work-filter input::placeholder { color:var(--faint); }
+.work-filter button { border:0; background:none; color:var(--muted); font-size:16px; padding:0 8px; }
+.work-row { border:.5px solid var(--line-soft); border-radius:var(--r-card); background:var(--tint); }
+.work-main { display:flex; gap:12px; align-items:flex-start; width:100%; text-align:left;
+  border:0; background:none; color:var(--text); padding:10px 12px; cursor:grab; }
+.work-bar { width:3px; align-self:stretch; border-radius:2px; flex:none; }
+.work-text { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.work-text b { font-weight:500; font-size:13px; }
+.work-sub { color:var(--faint); font-size:11.5px; }
+.work-out { color:var(--muted); font-size:12px; }
+.work-chev { color:var(--faint); flex:none; }
+.work-detail { padding:0 12px 12px 27px; display:flex; flex-direction:column; gap:4px; }
+.work-task { display:flex; gap:8px; align-items:baseline; font-size:12px; }
+.work-rerun { align-self:flex-start; margin-top:4px; border:.5px solid var(--line-soft);
+  background:var(--win-fill); color:var(--text); border-radius:8px; padding:6px 12px; font-size:12px; }
+.work-rerun:hover { background:var(--tint-2); }
+.away-strip { position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:120;
+  display:flex; gap:12px; align-items:center; background:var(--win-fill);
+  border:.5px solid var(--rim); border-radius:var(--r-win); padding:10px 12px 10px 16px;
+  box-shadow:var(--e4); font-size:13px; white-space:nowrap;
+  animation:cap-in var(--t-near) var(--ease); }
+.away-strip button { border:0; background:none; color:var(--muted); font-size:15px; padding:0 4px; }

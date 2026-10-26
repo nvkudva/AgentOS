@@ -4,12 +4,13 @@
  * so an app tile and a room's crew face are obviously the same kind of object.
  */
 export type IconName =
-  | 'overview' | 'activity' | 'inbox' | 'settings'
+  | 'overview' | 'activity' | 'work' | 'inbox' | 'settings'
   | 'music' | 'ride' | 'maps';
 
 const SKIN: Record<IconName, [string, string]> = {
   overview: ['#5aa2f5', '#2f6fd0'],
   activity: ['#f7b955', '#e2842a'],
+  work:     ['#9b8cf5', '#5f4bd0'],
   inbox:    ['#6ad3a8', '#26a173'],
   settings: ['#9aa5b5', '#65707f'],
   music:    ['#fb5c74', '#e02d55'],
@@ -28,6 +29,12 @@ const MARK: Record<IconName, JSX.Element> = {
   activity: (
     <g fill="none" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3.5 13h4l2.5-6.5L13 17l2.2-4h5.3" />
+    </g>
+  ),
+  work: (
+    <g fill="none" stroke="#fff" strokeWidth="1.7" strokeLinejoin="round">
+      <rect x="4" y="4.5" width="16" height="15" rx="2.5" />
+      <path d="M4 9.5h16M9.5 13.5h5" strokeLinecap="round" />
     </g>
   ),
   inbox: (

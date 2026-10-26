@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export type WinKind = 'agent' | 'room' | 'floor' | 'list' | 'settings' | 'inbox'
+export type WinKind = 'agent' | 'room' | 'floor' | 'work' | 'settings' | 'inbox'
   | 'music' | 'ride' | 'maps';
 /** Everything that opens from the dock rather than from a room or an agent. */
 export type AppKind = Exclude<WinKind, 'agent' | 'room'>;

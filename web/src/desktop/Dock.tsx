@@ -5,7 +5,7 @@ import { AppIcon, type IconName } from './AppIcon';
 
 const APPS: { kind: AppKind; icon: IconName; label: string }[] = [
   { kind: 'floor',    icon: 'overview', label: 'Overview' },
-  { kind: 'list',     icon: 'activity', label: 'Activity' },
+  { kind: 'work',     icon: 'work',     label: 'Work' },
   { kind: 'inbox',    icon: 'inbox',    label: 'Approvals' },
   { kind: 'settings', icon: 'settings', label: 'Settings' },
 ];

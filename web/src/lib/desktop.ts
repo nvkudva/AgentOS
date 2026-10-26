@@ -7,7 +7,12 @@ const KEY = 'atrium.desktop';
  * parked, and what was open are theirs to keep across a refresh or a day away — the
  * agents live on the server, so this is the only state the browser owns.
  */
-const KINDS = new Set(['agent', 'room', 'floor', 'list', 'settings', 'inbox', 'music', 'ride', 'maps']);
+const KINDS = new Set(['agent', 'room', 'floor', 'work', 'settings', 'inbox', 'music', 'ride', 'maps']);
+
+/** The Activity tile became Work: a saved Activity window reopens as Work. */
+const MIGRATED: Record<string, Partial<Win>> = {
+  list: { kind: 'work', title: 'Work', icon: '🗂️' },
+};
 
 /**
  * A saved window that no longer parses as a window is dropped, not restored.
@@ -17,10 +22,12 @@ export function loadDesktop(): Win[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
     if (!Array.isArray(raw)) return [];
-    return raw.filter((w) =>
-      w && typeof w.id === 'string' && typeof w.title === 'string' &&
-      KINDS.has(w.kind) && Number.isFinite(w.x) && Number.isFinite(w.y) &&
-      Number.isFinite(w.w) && Number.isFinite(w.h));
+    return raw
+      .map((w) => (MIGRATED[w?.kind] ? { ...w, ...MIGRATED[w.kind], id: w.id === w.kind ? MIGRATED[w.kind].kind : w.id } : w))
+      .filter((w) =>
+        w && typeof w.id === 'string' && typeof w.title === 'string' &&
+        KINDS.has(w.kind) && Number.isFinite(w.x) && Number.isFinite(w.y) &&
+        Number.isFinite(w.w) && Number.isFinite(w.h));
   } catch {
     return [];
   }

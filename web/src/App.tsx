@@ -22,7 +22,7 @@ const AgentApp = lazy(() => import('./apps/AgentApp').then((m) => ({ default: m.
 const RoomApp = lazy(() => import('./apps/RoomApp').then((m) => ({ default: m.RoomApp })));
 const SettingsApp = lazy(() => import('./apps/SettingsApp').then((m) => ({ default: m.SettingsApp })));
 const FloorApp = lazy(() => import('./apps/FloorApp').then((m) => ({ default: m.FloorApp })));
-const ListView = lazy(() => import('./components/ListView').then((m) => ({ default: m.ListView })));
+const WorkApp = lazy(() => import('./apps/WorkApp').then((m) => ({ default: m.WorkApp })));
 const MusicApp = lazy(() => import('./apps/MusicApp').then((m) => ({ default: m.MusicApp })));
 const RideApp = lazy(() => import('./apps/RideApp').then((m) => ({ default: m.RideApp })));
 const MapsApp = lazy(() => import('./apps/MapsApp').then((m) => ({ default: m.MapsApp })));
@@ -34,6 +34,7 @@ import { send as courier, raise, decided, type Box } from './desktop/courier';
 import { PeekLayer } from './desktop/Peek';
 import { bloomOrb } from './desktop/Orb';
 import { pitch, clearPitch, loadResults, saveResults, seenMandates, markSeen, type Result, type Clarify } from './desktop/intent';
+import { AwayStrip } from './components/AwayStrip';
 import { routeRooms } from './desktop/commands';
 import { requiredTools, tripsApproval, hours, toolName, askTitle } from './lib/humanize';
 import type { CmdCtx } from './desktop/commands';
@@ -211,7 +212,7 @@ export default function App() {
     if (k === 'inbox') { setSidebar(true); return; }
     const meta: Record<string, [string, string, string]> = {
       floor:    ['🗺️', 'Overview', '#7f93b5'],
-      list:     ['📜', 'Activity', '#7f93b5'],
+      work:     ['🗂️', 'Work', '#8b7cf5'],
       settings: ['⚙️', 'Settings', '#7f93b5'],
       music:    ['🎵', 'Music',    '#fb5c74'],
       ride:     ['🚗', 'Ride',     '#15181c'],
@@ -680,6 +681,41 @@ export default function App() {
     if (room) openRoomConsole(room);
   }, [rooms, openRoomConsole]);
 
+  /**
+   * While-you-were-away: the desk notices the return, not the absence. AwayMs
+   * with no input arms it; the next input raises the strip, and the first
+   * keystroke after that dismisses it — the keystroke still lands wherever it
+   * was going. atrium.awayMs overrides the threshold for demo/QA.
+   * Above the boot return: hooks run on every render, snapshot or not.
+   */
+  const [strip, setStrip] = useState(false);
+  const lastInput = useRef(Date.now());
+  const awayMs = useMemo(() => {
+    try {
+      const v = Number(localStorage.getItem('atrium.awayMs'));
+      if (Number.isFinite(v) && v > 0) return v;
+    } catch { /* private mode: the default stands */ }
+    return 5 * 60_000;
+  }, []);
+  const stripNeed = queue.length;
+  const stripBlocked = (snap?.agents ?? []).filter((a) => a.state === 'blocked' || a.state === 'failed').length;
+  const stripWorking = (snap?.agents ?? []).filter((a) => a.state === 'working').length;
+  useEffect(() => {
+    if (!stripNeed && !stripBlocked && !stripWorking) return;
+    const touch = () => {
+      const idle = Date.now() - lastInput.current > awayMs;
+      lastInput.current = Date.now();
+      if (idle) setStrip(true);
+    };
+    const key = () => {
+      if (strip) { lastInput.current = Date.now(); setStrip(false); return; }
+      touch();
+    };
+    window.addEventListener('pointerdown', touch);
+    window.addEventListener('keydown', key);
+    return () => { window.removeEventListener('pointerdown', touch); window.removeEventListener('keydown', key); };
+  }, [strip, awayMs, stripNeed, stripBlocked, stripWorking]);
+
   if (!snap) return <div className="boot">connecting…</div>;
 
   const needsMe = queue.length > 0 ||
@@ -721,8 +757,10 @@ export default function App() {
                        tasks={snap.tasks ?? []} onOpen={openRoomConsole}
                        inbox={queue} view={VIEW} onDecide={onDecide}
                        consoles={wins.filter((x) => x.id.startsWith('room:')).map((x) => x.ref ?? '')} />}
-          {w.kind === 'list' && <ListView rooms={snap.rooms} agents={snap.agents} />}
-          {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} config={snap.config} perf={perf} theme={theme} setTheme={setTheme} />}
+          {w.kind === 'work' && <WorkApp mandates={snap.mandates ?? []} tasks={tasks}
+                       rooms={snap.rooms} agents={snap.agents} active={w.z === topZ && !w.min}
+                       onRunAgain={(text, room, from) => dispatch(text, room, from)} />}
+          {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} agents={snap.agents} config={snap.config} perf={perf} theme={theme} setTheme={setTheme} />}
           {w.kind === 'music' && <MusicApp />}
           {w.kind === 'ride' && <RideApp />}
           {w.kind === 'maps' && <MapsApp />}
@@ -744,6 +782,8 @@ export default function App() {
 
       <main className="stage" ref={stageRef}>
         <SitDown inbox={queue} agents={snap.agents} />
+        {strip && <AwayStrip need={stripNeed} blocked={stripBlocked} working={stripWorking}
+                             onDone={() => setStrip(false)} />}
         {hint && <div className={`park-shelf ${hint}`} style={{ width: SLIVER }} />}
         {guide.x.map((x) => <i key={`gx${x}`} className="guide v" style={{ left: x }} />)}
         {guide.y.map((y) => <i key={`gy${y}`} className="guide h" style={{ top: y }} />)}
@@ -776,6 +816,7 @@ export default function App() {
             <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Neighbouring room console, while one is front-most</td></tr>
             <tr><td><kbd>j</kbd> / <kbd>k</kbd> or <kbd>↑</kbd> / <kbd>↓</kbd></td><td>Move in the queue, while it is open</td></tr>
             <tr><td><kbd>Enter</kbd></td><td>Open the queued room</td></tr>
+            <tr><td><kbd>⌘/Ctrl</kbd> <kbd>F</kbd></td><td>Filter Work, while Work is front-most</td></tr>
             <tr><td><kbd>a</kbd> / <kbd>A</kbd> / <kbd>r</kbd></td><td>Approve / approve + remember / reject</td></tr>
             <tr><td><kbd>Esc</kbd></td><td>Close topmost: this list, sidebar, then window</td></tr>
           </tbody></table>

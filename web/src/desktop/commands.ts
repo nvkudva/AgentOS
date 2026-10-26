@@ -10,7 +10,7 @@ export type CmdCtx = {
   killAgent: (a: Agent) => void;
   openAgent: (a: Agent) => void;
   openRoom: (r: Room) => void;
-  launch: (k: 'floor' | 'list' | 'inbox' | 'settings') => void;
+  launch: (k: 'floor' | 'work' | 'inbox' | 'settings') => void;
   setPanic: (on: boolean) => void;
   setTheme: (t: 'light' | 'dark' | 'auto') => void;
   setSidebar: (open: boolean) => void;
@@ -128,7 +128,8 @@ export function run(raw: string, c: CmdCtx): CmdResult {
   if ((m = t.match(/^(?:open|show|go to)\s+(.+)$/))) {
     const q = m[1].trim();
     if (/^(floor|map|rooms)$/.test(q)) { c.launch('floor'); return { say: 'Floor.', ok: true }; }
-    if (/^(activity|feed|log|chat)$/.test(q)) { c.launch('list'); return { say: 'Activity.', ok: true }; }
+    if (/^(work|mandates?|history)$/.test(q)) { c.launch('work'); return { say: 'Work.', ok: true }; }
+    if (/^(activity|feed|log|chat)$/.test(q)) { c.launch('settings'); return { say: 'Activity lives in Settings now.', ok: true }; }
     if (/^(approvals?|inbox|needs me)$/.test(q)) { c.setSidebar(true); return { say: 'Approvals.', ok: true }; }
     if (/^settings?$/.test(q)) { c.launch('settings'); return { say: 'Settings.', ok: true }; }
     const a = find(c.agents, q);

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { NewRoom } from './NewRoom';
 import { post } from '../lib/api';
 import { hours } from '../lib/humanize';
-import type { Room } from '../lib/api';
+import { ListView } from '../components/ListView';
+import type { Agent, Room } from '../lib/api';
 
-export function SettingsApp({ rooms, config, perf, theme, setTheme }: {
-  rooms: Room[]; config: any;
+export function SettingsApp({ rooms, agents, config, perf, theme, setTheme }: {
+  rooms: Room[]; agents: Agent[]; config: any;
   perf: { mode: string; setMode: (m: any) => void; measured: number | null };
   theme: string; setTheme: (t: any) => void;
 }) {
@@ -75,6 +76,13 @@ export function SettingsApp({ rooms, config, perf, theme, setTheme }: {
         A room's tools, budget, memory and database role are its permission boundary. Anything
         outside them is refused by the runtime and logged.
       </p>
+
+      <h4>Activity</h4>
+      <p className="muted tiny" style={{ marginTop: 0 }}>
+        The raw event feed — the thesis's falsification control. It lives here so it
+        stops competing with Work in the dock, and it stays measurable.
+      </p>
+      <ListView rooms={rooms} agents={agents} />
     </div>
   );
 }
