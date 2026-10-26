@@ -6,6 +6,7 @@ import { loadDesktop, saveDesktop, loadSeen, saveSeen } from './lib/desktop';
 import type { Room, Agent, Inbox, Task } from './lib/api';
 import { useWindows, layout, SLIVER, type Win, type Rect, type AppKind, type Park } from './desktop/wm';
 import { Window, dragging } from './desktop/Window';
+import { WinErrorBoundary } from './desktop/WinErrorBoundary';
 import { Wallpaper } from './desktop/Wallpaper';
 import { MenuBar } from './desktop/MenuBar';
 import { Dock } from './desktop/Dock';
@@ -628,8 +629,6 @@ export default function App() {
 
   const needsMe = queue.length > 0 ||
     snap.agents.some((a) => ['awaiting_approval', 'blocked', 'failed'].includes(a.state));
-  const roomOf = (w: Win) => snap.rooms.find((r) => r.id === w.ref)!;
-
   const topZ = Math.max(0, ...wins.filter((x) => !x.min).map((x) => x.z));
   const renderWin = (w: Win, rect: Rect | null) => {
     const peers = wins
@@ -649,6 +648,7 @@ export default function App() {
                     <span className="pk-name">{w.title}</span>
                   </div>}
               onFocus={() => focus(w.id)} onClose={() => shut(w.id)} onPatch={(p) => patch(w.id, p)}>
+        <WinErrorBoundary key={w.id} title={w.title} onClose={() => shut(w.id)}>
         {w.id.startsWith('roomwin:') && room &&
           <RoomWindowBody room={room} agents={crew} activeId={activeId} onAgent={openAgent}
                           mandates={mandates} tasks={tasks} onOpenTask={openTask}
@@ -669,6 +669,7 @@ export default function App() {
           {w.kind === 'ride' && <RideApp />}
           {w.kind === 'maps' && <MapsApp />}
         </Suspense>
+        </WinErrorBoundary>
       </Window>
     );
   };
@@ -714,7 +715,8 @@ export default function App() {
             rooms={snap.rooms.map((r) => ({ id: r.id, icon: r.icon, name: r.name, color: r.color }))}
             onLaunch={launch} onFocus={focus}
             onRoom={(id) => {
-              const r = snap.rooms.find((x) => x.id === id)!;
+              const r = snap.rooms.find((x) => x.id === id);
+              if (!r) return;
               const w = wins.find((x) => x.id === `roomwin:${id}`);
               // Same as ⌥N: a tile click un-parks and gives the room back its own desk,
               // rather than raising a 72px sliver that still reads as nothing happening.

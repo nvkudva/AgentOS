@@ -10,7 +10,7 @@ import type { Agent, Room } from '../lib/api';
  */
 export function ListView({ rooms, agents }: { rooms: Room[]; agents: Agent[] }) {
   const [feed, setFeed] = useState<any[]>([]);
-  useEffect(() => { const f = () => get('/api/list?limit=250').then(setFeed); f(); const t = setInterval(f, 1500); return () => clearInterval(t); }, []);
+  useEffect(() => { const f = () => get('/api/list?limit=250').then((next) => setFeed(next ?? [])); f(); const t = setInterval(f, 1500); return () => clearInterval(t); }, []);
   const roomOf = Object.fromEntries(rooms.map((r) => [r.id, r]));
 
   return (
