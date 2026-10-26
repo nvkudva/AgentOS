@@ -46,5 +46,11 @@ export type ToolSpec = {
   touches: (args: any) => string[];
   /** Estimated cost in cents, charged before the call and trued up after. */
   estimate: (args: any) => number;
+  /**
+   * Actual cost once the result is in. Default: estimate + 1¢ per 30s of tool
+   * time — a standing judgment call (A10) that wall-clock is the cheapest
+   * universal meter; per-tool overrides live next to the tool.
+   */
+  settle?: (result: any, ms: number) => number;
   run: (ctx: Ctx, args: any) => Promise<any>;
 };

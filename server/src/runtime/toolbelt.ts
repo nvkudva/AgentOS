@@ -2,7 +2,7 @@ import { q, one } from '../db.js';
 import { append } from '../events.js';
 import { id } from '../ids.js';
 import { ScopeViolation, NeedsApproval, BudgetExceeded } from '../errors.js';
-import { charge, haltRoom } from './budget.js';
+import { charge, adjust, haltRoom } from './budget.js';
 import type { Ctx, ToolSpec, Blast } from './types.js';
 import { TOOLS } from '../tools/index.js';
 
@@ -117,10 +117,22 @@ export async function callTool(ctx: Ctx, name: string, args: any): Promise<any> 
   const started = Date.now();
   try {
     const result = await spec.run(ctx, args);
+    const ms = Date.now() - started;
     await append({
       type: 'tool.result', room_id: ctx.room.id, agent_id: ctx.agent.id, run_id: ctx.run.id,
-      payload: { tool: name, ms: Date.now() - started, result: truncate(result) },
+      payload: { tool: name, ms, result: truncate(result) },
     });
+    // 6. true-up (A10) — the quote was a guess; settle the difference. A failed
+    // call keeps its quote: attempted work still costs.
+    const actual = spec.settle ? spec.settle(result, ms) : est + Math.floor(ms / 30_000);
+    if (actual !== est) {
+      try {
+        await adjust(ctx, actual - est, `${name} true-up (quoted ${est}, actual ${actual})`);
+      } catch (e) {
+        if (e instanceof BudgetExceeded) await haltRoom(ctx.room.id, e.message);
+        throw e;
+      }
+    }
     return result;
   } catch (err: any) {
     await append({

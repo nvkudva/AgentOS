@@ -39,6 +39,43 @@ export async function charge(ctx: Ctx, cents: number, reason: string) {
   await append({ type: 'spend', room_id: ctx.room.id, agent_id: ctx.agent.id, run_id: ctx.run.id, payload: { cents, reason } });
 }
 
+/**
+ * A10 true-up: the difference between quote and actual, settled after the call.
+ * Positive deltas go back through the cap check (a true-up can still halt the
+ * room); refunds only clamp at zero. Either way the ledger says what happened.
+ */
+export async function adjust(ctx: Ctx, deltaCents: number, reason: string) {
+  if (deltaCents === 0) return;
+  await tx(async (c) => {
+    if (deltaCents > 0) {
+      const g = (await c.query('SELECT * FROM global_config WHERE id=1 FOR UPDATE')).rows[0];
+      if (g.global_spent_cents + deltaCents > g.global_budget_cents) {
+        throw new BudgetExceeded('global', `true-up ${deltaCents} breaches the global cap`);
+      }
+      const r = (await c.query('SELECT * FROM room WHERE id=$1 FOR UPDATE', [ctx.room.id])).rows[0];
+      if (r.spent_cents + deltaCents > r.budget_cents) {
+        throw new BudgetExceeded('room', `true-up ${deltaCents} breaches ${r.key}'s cap`);
+      }
+      const run = (await c.query('SELECT * FROM run WHERE id=$1 FOR UPDATE', [ctx.run.id])).rows[0];
+      if (run.spent_cents + deltaCents > ctx.agent.cost_budget_cents) {
+        throw new BudgetExceeded('run', `true-up ${deltaCents} breaches the run budget`);
+      }
+    }
+    await c.query('UPDATE global_config SET global_spent_cents = greatest(0, global_spent_cents + $1) WHERE id=1', [deltaCents]);
+    await c.query('UPDATE room SET spent_cents = greatest(0, spent_cents + $1) WHERE id=$2', [deltaCents, ctx.room.id]);
+    await c.query('UPDATE run SET spent_cents = greatest(0, spent_cents + $1) WHERE id=$2', [deltaCents, ctx.run.id]);
+    await c.query('UPDATE agent SET spent_cents = greatest(0, spent_cents + $1) WHERE id=$2', [deltaCents, ctx.agent.id]);
+    await c.query(
+      'INSERT INTO ledger (room_id, agent_id, run_id, cents, reason) VALUES ($1,$2,$3,$4,$5)',
+      [ctx.room.id, ctx.agent.id, ctx.run.id, deltaCents, reason]
+    );
+    ctx.room.spent_cents = Math.max(0, ctx.room.spent_cents + deltaCents);
+    ctx.run.spent_cents = Math.max(0, ctx.run.spent_cents + deltaCents);
+  });
+  await append({ type: 'spend', room_id: ctx.room.id, agent_id: ctx.agent.id, run_id: ctx.run.id,
+    payload: { cents: deltaCents, reason } });
+}
+
 /** Called when a cap is hit: the room stops taking work instead of overrunning it. */
 export async function haltRoom(roomId: string, why: string) {
   await q(`UPDATE room SET status='capped' WHERE id=$1 AND status='open'`, [roomId]);
