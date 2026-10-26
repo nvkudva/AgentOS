@@ -652,7 +652,8 @@ export default function App() {
         {w.id.startsWith('roomwin:') && room &&
           <RoomWindowBody room={room} agents={crew} activeId={activeId} onAgent={openAgent}
                           mandates={mandates} tasks={tasks} onOpenTask={openTask}
-                          onRecall={(m) => recall(m.id)}
+                          onRecall={(m) => recall(m.id)} inbox={queue} view={VIEW} onDecide={onDecide}
+                          onOpenConsole={openRoomConsole}
                           undo={undo && undo.room === room.id ? undo : null} />}
         {/* One boundary per window, so a chunk still arriving never blanks the desk —
             only the inside of the window that is waiting for it. */}
@@ -662,7 +663,8 @@ export default function App() {
                      tasks={snap.tasks ?? []} agents={snap.agents} />}
           {w.kind === 'agent' && <AgentApp agentId={w.ref!} />}
           {w.kind === 'floor' && <FloorApp rooms={snap.rooms} agents={snap.agents} mandates={snap.mandates ?? []}
-                       tasks={snap.tasks ?? []} onOpen={openRoomConsole} />}
+                       tasks={snap.tasks ?? []} onOpen={openRoomConsole}
+                       inbox={queue} view={VIEW} onDecide={onDecide} />}
           {w.kind === 'list' && <ListView rooms={snap.rooms} agents={snap.agents} />}
           {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} config={snap.config} perf={perf} theme={theme} setTheme={setTheme} />}
           {w.kind === 'music' && <MusicApp />}

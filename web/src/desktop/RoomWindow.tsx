@@ -1,5 +1,6 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { Room, Agent, Mandate, Task } from '../lib/api';
+import type { Room, Agent, Mandate, Task, Inbox } from '../lib/api';
+import { NeedsYouBar } from '../components/NeedsYouBar';
 import { friendlyActivity, hours, requiredTools } from '../lib/humanize';
 import { roomDetail, roomProgress } from '../lib/progress';
 import { calm, tok } from './carry';
@@ -109,10 +110,14 @@ type BodyP = {
   room: Room; agents: Agent[]; mandates: Mandate[]; tasks: Task[];
   onAgent: (a: Agent) => void; activeId?: string;
   onOpenTask: (t: Task) => void; onRecall: (m: Mandate) => void;
+  inbox?: Inbox[]; view?: string;
+  onDecide?: (it: Inbox, decision: 'approve' | 'reject') => void;
+  onOpenConsole?: (r: Room) => void;
   undo?: { text: string; run: () => void } | null;
 };
 
-function Body({ room, agents, mandates, tasks, onAgent, activeId, onOpenTask, onRecall, undo }: BodyP) {
+function Body({ room, agents, mandates, tasks, onAgent, activeId, onOpenTask, onRecall, inbox = [], view, onDecide, onOpenConsole, undo }: BodyP) {
+  const needs = inbox.filter((it) => it.room_key === room.key);
   const fresh = useFresh(agents);
   const host = useRef<HTMLDivElement>(null);
   const seats = useRef(new Map<string, DOMRect>());   // where each strip chit sat last frame
@@ -254,6 +259,8 @@ function Body({ room, agents, mandates, tasks, onAgent, activeId, onOpenTask, on
         </li>
         {workers.map(row)}
       </ul>
+      {view !== undefined &&
+        <NeedsYouBar items={needs} view={view} onDecide={onDecide} onDetails={() => onOpenConsole?.(room)} />}
       {undo && (
         <div className="undo-strip">
           <span>{undo.text}</span>
@@ -265,9 +272,12 @@ function Body({ room, agents, mandates, tasks, onAgent, activeId, onOpenTask, on
   );
 }
 
+const sameNeeds = (a: Inbox[] = [], b: Inbox[] = []) =>
+  a.length === b.length && a.every((x, i) => x.id === b[i].id);
 export const RoomWindowBody = memo(Body, (p, n) =>
   p.room === n.room && p.activeId === n.activeId && p.undo === n.undo &&
-  p.mandates === n.mandates && p.tasks === n.tasks &&
+  p.mandates === n.mandates && p.tasks === n.tasks && p.view === n.view &&
+  p.onDecide === n.onDecide && p.onOpenConsole === n.onOpenConsole && sameNeeds(p.inbox, n.inbox) &&
   p.agents.length === n.agents.length && p.agents.every((a, i) => a === n.agents[i]));
 
 

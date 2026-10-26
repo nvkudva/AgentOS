@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import type { Room, Agent, Mandate, Task } from '../lib/api';
+import type { Room, Agent, Mandate, Task, Inbox } from '../lib/api';
 import { hours } from '../lib/humanize';
 import { roomDetail, roomProgress } from '../lib/progress';
+import { NeedsYouBar } from './NeedsYouBar';
 
 const ATTN = new Set(['awaiting_approval', 'blocked', 'failed']);
 
@@ -15,9 +16,11 @@ const ATTN = new Set(['awaiting_approval', 'blocked', 'failed']);
  * The manager's report is here but clamped to two lines: it is the one line whose length
  * nothing bounds, and a card that grows with it stops being a grid. The console has all of it.
  */
-function Widget({ room, agents, mandates = [], tasks = [], onOpen }: {
+function Widget({ room, agents, mandates = [], tasks = [], onOpen, inbox = [], view, onDecide }: {
   room: Room; agents: Agent[]; mandates?: Mandate[]; tasks?: Task[]; onOpen: (r: Room) => void;
+  inbox?: Inbox[]; view?: string; onDecide?: (it: Inbox, decision: 'approve' | 'reject') => void;
 }) {
+  const needs = inbox.filter((it) => it.room_key === room.key);
   const p = roomProgress(room, mandates, tasks, agents);
   const d = roomDetail(room, mandates, tasks, agents);
   const pct = Math.min(100, (room.spent_cents / Math.max(1, room.budget_cents)) * 100);
@@ -34,6 +37,7 @@ function Widget({ room, agents, mandates = [], tasks = [], onOpen }: {
         {room.status !== 'open' && <span className="pill capped">{room.status}</span>}
         <span className="room-obj">{room.objective}</span>
       </div>
+      {view !== undefined && <NeedsYouBar items={needs} view={view} onDecide={onDecide} onDetails={() => onOpen(room)} />}
 
       <div className="room-now">
         {p.mandate && <b>“{p.mandate.text}”</b>}
@@ -68,6 +72,9 @@ function Widget({ room, agents, mandates = [], tasks = [], onOpen }: {
 }
 
 /** Memoised on the room's own slice: one chatty agent never re-renders the floor. */
+const sameNeeds = (a: Inbox[] = [], b: Inbox[] = []) =>
+  a.length === b.length && a.every((x, i) => x.id === b[i].id);
 export const RoomWidget = memo(Widget, (a, b) =>
   a.room === b.room && a.mandates === b.mandates && a.tasks === b.tasks &&
+  a.view === b.view && a.onDecide === b.onDecide && sameNeeds(a.inbox, b.inbox) &&
   a.agents.length === b.agents.length && a.agents.every((x, i) => x === b.agents[i]));

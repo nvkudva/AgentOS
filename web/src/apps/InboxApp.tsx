@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { post, observe } from '../lib/api';
+import { useEffect, useState } from 'react';
+import { useDecide, UNDO_MS } from '../lib/decide';
 import { hours, blastWords, askTitle, touchWords, plainDetail } from '../lib/humanize';
 import { startCarry } from '../desktop/carry';
 import type { Inbox as Item, Mandate } from '../lib/api';
@@ -12,9 +12,6 @@ const ago = (iso: string) => {
   return s < 60 ? `${s}s` : s < 3600 ? `${Math.round(s / 60)}m` : `${Math.round(s / 3600)}h`;
 };
 
-/** Long enough to catch the wrong key, short enough that the agent is not left hanging. */
-const UNDO_MS = 8000;
-
 /** Ordered most expensive, then oldest. Every card states action, cost and what it touches. */
 export function InboxApp({ items, view, focusId, active, mandates = [], onOpenRoom, onDecide }: {
   items: Item[]; view: string; focusId?: string;
@@ -26,33 +23,12 @@ export function InboxApp({ items, view, focusId, active, mandates = [], onOpenRo
   /** the decision, the moment it is made, so it can be flown back to the worker */
   onDecide?: (it: Item, decision: 'approve' | 'reject') => void;
 }) {
-  const [pending, setPending] = useState<Record<string, 'approve' | 'reject'>>({});
   const [sel, setSel] = useState(0);
-  const timers = useRef<Record<string, any>>({});
-  const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  const { pending, decide, undo } = useDecide(view, onDecide);
 
   // The queue re-sorts on every decision. Holding an index rather than an id keeps the
   // cursor where the hand left it instead of chasing the card that just left.
   useEffect(() => { setSel((n) => Math.max(0, Math.min(n, items.length - 1))); }, [items.length]);
-
-  const decide = (it: Item, decision: 'approve' | 'reject', remember = false) => {
-    if (pending[it.id]) return;
-    setPending((p) => ({ ...p, [it.id]: decision }));
-    onDecide?.(it, decision);
-    timers.current[it.id] = setTimeout(async () => {
-      delete timers.current[it.id];
-      await observe(view, `inbox.${decision}`,
-        { approval_id: it.id, waited_ms: Date.now() - new Date(it.created_at).getTime() });
-      await post(`/api/approvals/${it.id}/decide`, { decision, remember });
-      if (alive.current) setPending((p) => { const n = { ...p }; delete n[it.id]; return n; });
-    }, UNDO_MS);
-  };
-
-  const undo = (id: string) => {
-    clearTimeout(timers.current[id]); delete timers.current[id];
-    setPending((p) => { const n = { ...p }; delete n[id]; return n; });
-  };
 
   useEffect(() => {
     if (!active) return;
