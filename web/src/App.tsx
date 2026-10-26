@@ -251,7 +251,7 @@ export default function App() {
     };
     const [icon, title, color] = meta[k];
     open({ id: k, kind: k, title, icon, color, ...place() });
-  }, [open, place]);
+  }, [open, place, narrow]);
 
   /**
    * Every room gets a window — including one created a minute ago. Nothing here knows
