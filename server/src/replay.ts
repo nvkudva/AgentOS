@@ -7,6 +7,11 @@ export type Projected = {
   global: { spent_cents: number; panic_stop: boolean };
 };
 
+export type RoomSlice = {
+  agents: Projected['agents']; runs: Projected['runs'];
+  room: { spent_cents: number; status: string } | null;
+};
+
 /**
  * R1: state is a fold over the append-only event log. This function IS the definition
  * of what the projections mean; `npm run replay` rewrites them from it, and
@@ -14,11 +19,15 @@ export type Projected = {
  */
 export async function fold(): Promise<Projected> {
   const p: Projected = { agents: {}, rooms: {}, runs: {}, global: { spent_cents: 0, panic_stop: false } };
+  for (const e of await q<any>(`SELECT * FROM event ORDER BY id`)) applyEvent(p, e);
+  return p;
+}
+
+/** One event folded in. Shared by the full fold and the per-room resume below. */
+export function applyEvent(p: Projected, e: any) {
   const agent = (id: string) => (p.agents[id] ??= { state: 'idle', activity: '', spent_cents: 0, current_run_id: null });
   const room = (id: string) => (p.rooms[id] ??= { spent_cents: 0, status: 'open' });
   const run = (id: string) => (p.runs[id] ??= { status: 'running', spent_cents: 0, kill_reason: null });
-
-  for (const e of await q<any>(`SELECT * FROM event ORDER BY id`)) {
     const pay = e.payload ?? {};
     switch (e.type) {
       case 'run.started':
@@ -84,8 +93,49 @@ export async function fold(): Promise<Projected> {
         break;
       case 'panic_stop': p.global.panic_stop = !!pay.on; break;
     }
+}
+
+/** A7: start a room's fold from its latest snapshot instead of genesis.
+ *  Snapshots store exactly what the fold would have produced; the tail replays
+ *  on top with the same kernel, so snapshot+tail == full fold by construction. */
+export async function foldRoom(roomId: string): Promise<{ slice: RoomSlice; upto: number }> {
+  const snap = (await q<any>(`SELECT upto_event_id, projection FROM snapshot
+                              WHERE room_id=$1 ORDER BY id DESC LIMIT 1`, [roomId]))[0];
+  const slice: RoomSlice = snap?.projection
+    ? JSON.parse(JSON.stringify(snap.projection))
+    : { agents: {}, runs: {}, room: null };
+  const upto: number = snap?.upto_event_id ?? 0;
+  const p: Projected = {
+    agents: slice.agents, runs: slice.runs,
+    rooms: {}, global: { spent_cents: 0, panic_stop: false },
+  };
+  // The snapshot is the base; the tail adds to it. Without this the checkpoint
+  // is discarded and only post-snapshot events count.
+  if (slice.room) p.rooms[roomId] = { ...slice.room };
+  for (const e of await q<any>(`SELECT * FROM event WHERE id>$1 AND room_id=$2 ORDER BY id`, [upto, roomId])) {
+    applyEvent(p, e);
   }
-  return p;
+  const r = await q<any>(`SELECT spent_cents, status FROM room WHERE id=$1`, [roomId]);
+  slice.room = p.rooms[roomId] ?? (r[0] ? { spent_cents: 0, status: r[0].status } : null);
+  return { slice: { agents: p.agents, runs: p.runs, room: slice.room }, upto: upto };
+}
+
+/** Checkpoint a room: fold it fully once, store the slice with its watermark. */
+export async function writeRoomSnapshot(roomId: string): Promise<number> {
+  const full = await fold();
+  const agents: Projected['agents'] = {};
+  const runs: Projected['runs'] = {};
+  for (const a of await q<any>(`SELECT id FROM agent WHERE room_id=$1`, [roomId])) {
+    if (full.agents[a.id]) agents[a.id] = full.agents[a.id];
+  }
+  for (const r of await q<any>(`SELECT id FROM run WHERE room_id=$1`, [roomId])) {
+    if (full.runs[r.id]) runs[r.id] = full.runs[r.id];
+  }
+  const maxId = await q<any>(`SELECT coalesce(max(id),0)::int AS m FROM event WHERE room_id=$1`, [roomId]);
+  const room = full.rooms[roomId] ?? null;
+  await q(`INSERT INTO snapshot (room_id, upto_event_id, projection) VALUES ($1,$2,$3)`,
+    [roomId, maxId[0].m, JSON.stringify({ agents, runs, room })]);
+  return maxId[0].m;
 }
 
 /** Where the fold disagrees with the live tables. Empty array = replay is faithful. */
