@@ -572,6 +572,10 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .room-foot { display:flex; align-items:center; gap:8px; color:var(--faint); font-size:11px;
   font-variant-numeric:tabular-nums; }
 .pill.capped { color:var(--failed); }
+.pill.open { color:var(--room); }
+.win-bar .backbtn { border:0; background:none; color:var(--muted); font-size:12px;
+  padding:2px 8px; border-radius:6px; white-space:nowrap; flex:none; }
+.win-bar .backbtn:hover { background:var(--tint-2); color:var(--text); }
 
 .list { padding:12px 16px; }
 .thread { border:.5px solid var(--line-soft); border-radius:var(--r-card); background:var(--tint); margin-bottom:8px; }

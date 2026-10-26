@@ -16,9 +16,10 @@ const ATTN = new Set(['awaiting_approval', 'blocked', 'failed']);
  * The manager's report is here but clamped to two lines: it is the one line whose length
  * nothing bounds, and a card that grows with it stops being a grid. The console has all of it.
  */
-function Widget({ room, agents, mandates = [], tasks = [], onOpen, inbox = [], view, onDecide }: {
+function Widget({ room, agents, mandates = [], tasks = [], onOpen, inbox = [], view, onDecide, consoleOpen = false }: {
   room: Room; agents: Agent[]; mandates?: Mandate[]; tasks?: Task[]; onOpen: (r: Room) => void;
   inbox?: Inbox[]; view?: string; onDecide?: (it: Inbox, decision: 'approve' | 'reject') => void;
+  consoleOpen?: boolean;
 }) {
   const needs = inbox.filter((it) => it.room_key === room.key);
   const p = roomProgress(room, mandates, tasks, agents);
@@ -35,6 +36,7 @@ function Widget({ room, agents, mandates = [], tasks = [], onOpen, inbox = [], v
         <span style={{ color: room.color }}>{room.icon}</span>
         <span className="room-name">{room.name}</span>
         {room.status !== 'open' && <span className="pill capped">{room.status}</span>}
+        {consoleOpen && <span className="pill open">open</span>}
         <span className="room-obj">{room.objective}</span>
       </div>
       {view !== undefined && <NeedsYouBar items={needs} view={view} onDecide={onDecide} onDetails={() => onOpen(room)} />}
@@ -76,5 +78,5 @@ const sameNeeds = (a: Inbox[] = [], b: Inbox[] = []) =>
   a.length === b.length && a.every((x, i) => x.id === b[i].id);
 export const RoomWidget = memo(Widget, (a, b) =>
   a.room === b.room && a.mandates === b.mandates && a.tasks === b.tasks &&
-  a.view === b.view && a.onDecide === b.onDecide && sameNeeds(a.inbox, b.inbox) &&
+  a.view === b.view && a.onDecide === b.onDecide && a.consoleOpen === b.consoleOpen && sameNeeds(a.inbox, b.inbox) &&
   a.agents.length === b.agents.length && a.agents.every((x, i) => x === b.agents[i]));

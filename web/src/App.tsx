@@ -269,6 +269,37 @@ export default function App() {
   useEffect(() => { saveDesktop(wins); }, [wins]);
 
   /**
+   * Room-to-room travel: while a room console holds the front, ←/→ move to the
+   * neighbouring room's console instead of scrolling whatever is underneath.
+   * Typing, menus and modified keys are never stolen.
+   */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const t = document.activeElement as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (!snap) return;
+      const consoles = wins.filter((w) => w.id.startsWith('room:') && !w.min);
+      if (!consoles.length) return;
+      const front = consoles.reduce((a, b) => (a.z >= b.z ? a : b));
+      const node = document.querySelector<HTMLElement>(`[data-win="${CSS.escape(front.id)}"]`);
+      const ae = document.activeElement;
+      if (ae && ae !== document.body && !(node && node.contains(ae))) return;
+      const order = snap.rooms.map((r) => r.id);
+      const at = order.indexOf(front.ref ?? '');
+      if (at < 0) return;
+      const next = order[(at + (e.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length];
+      const r = snap.rooms.find((x) => x.id === next);
+      if (!r || r.id === front.ref) return;
+      e.preventDefault();
+      openRoomConsole(r);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [wins, snap, openRoomConsole]);
+
+  /**
    * A desk that changed size keeps its arrangement, but not at the cost of losing a
    * window off the edge of it. Saved geometry comes from whatever screen it was saved
    * on — a phone opening a layout arranged on a 1280px desktop would otherwise find
@@ -655,7 +686,7 @@ export default function App() {
     const crew = room ? snap.agents.filter((a) => a.room_id === room.id) : [];
     const attn = crew.some((a) => ['awaiting_approval', 'blocked', 'failed'].includes(a.state));
     return (
-      <Window key={w.id} win={w} rect={rect} stage={stage} flag={`${attn ? 'needs ' : ''}${w.z === topZ ? '' : 'back'}${closing.includes(w.id) ? ' closing' : ''}`}
+      <Window key={w.id} win={w} rect={rect} stage={stage} onBack={w.id.startsWith('room:') ? () => launch('floor') : undefined} flag={`${attn ? 'needs ' : ''}${w.z === topZ ? '' : 'back'}${closing.includes(w.id) ? ' closing' : ''}`}
               onHint={setHint} peers={peers} onGuide={setGuide}
               rail={room
                 ? <ParkedRail room={room} agents={crew} mandates={mandates} tasks={tasks} />
@@ -680,7 +711,8 @@ export default function App() {
           {w.kind === 'agent' && <AgentApp agentId={w.ref!} />}
           {w.kind === 'floor' && <FloorApp rooms={snap.rooms} agents={snap.agents} mandates={snap.mandates ?? []}
                        tasks={snap.tasks ?? []} onOpen={openRoomConsole}
-                       inbox={queue} view={VIEW} onDecide={onDecide} />}
+                       inbox={queue} view={VIEW} onDecide={onDecide}
+                       consoles={wins.filter((x) => x.id.startsWith('room:')).map((x) => x.ref ?? '')} />}
           {w.kind === 'list' && <ListView rooms={snap.rooms} agents={snap.agents} />}
           {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} config={snap.config} perf={perf} theme={theme} setTheme={setTheme} />}
           {w.kind === 'music' && <MusicApp />}

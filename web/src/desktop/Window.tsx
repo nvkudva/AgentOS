@@ -14,6 +14,8 @@ type P = {
   /** the hairlines this drag is currently snapped to — App draws them */
   onGuide?: (g: { x: number[]; y: number[] }) => void;
   onFocus: () => void; onClose: () => void; onPatch: (p: Partial<Win>) => void;
+  /** room consoles go back to the grid they came from */
+  onBack?: () => void;
 };
 
 /**
@@ -91,7 +93,7 @@ function paint(id: string, r: Rect | null) {
   if (r) place(n, r, false);
 }
 
-export function Window({ win, rect, children, stage, rail, flag, peers = [], onHint, onGuide, onFocus, onClose, onPatch }: P) {
+export function Window({ win, rect, children, stage, rail, flag, peers = [], onHint, onGuide, onFocus, onClose, onPatch, onBack }: P) {
   // Rooms are surfaces, not applications: no traffic lights, one close affordance.
   const plain = win.plain;
   const drag = useRef<any>(null);
@@ -241,6 +243,7 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
         <span className={`win-title${plain ? ' plain' : ''}`}>
           <span className="wt-icon">{win.icon}</span> {win.title}
         </span>
+        {onBack && <button className="backbtn" onClick={onBack} title="back to Overview">‹ Overview</button>}
       </header>
       {win.park && <div className="pk-hold" onPointerDown={(e) => down(e, 'move')}>{rail}</div>}
       <div className="win-body">{children}</div>
