@@ -5,10 +5,11 @@ import { hours } from '../lib/humanize';
 import { ListView } from '../components/ListView';
 import type { Agent, Room } from '../lib/api';
 
-export function SettingsApp({ rooms, agents, config, perf, theme, setTheme }: {
+export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wallpaper, setWallpaper }: {
   rooms: Room[]; agents: Agent[]; config: any;
   perf: { mode: string; setMode: (m: any) => void; measured: number | null };
   theme: string; setTheme: (t: any) => void;
+  wallpaper: 'calm' | 'scene'; setWallpaper: (w: 'calm' | 'scene') => void;
 }) {
   const [g, setG] = useState(config.global_budget_cents);
   const [adding, setAdding] = useState(false);
@@ -29,6 +30,14 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme }: {
         <span className="seg">
           {(['auto', 'glass', 'lite'] as const).map((m) => (
             <button key={m} className={perf.mode === m ? 'primary' : ''} onClick={() => perf.setMode(m)}>{m}</button>
+          ))}
+        </span>
+      </label>
+      <label>
+        Wallpaper
+        <span className="seg">
+          {(['calm', 'scene'] as const).map((w) => (
+            <button key={w} className={wallpaper === w ? 'primary' : ''} onClick={() => setWallpaper(w)}>{w}</button>
           ))}
         </span>
       </label>

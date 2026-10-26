@@ -5,7 +5,7 @@
  * mode and as a moonlit night in dark mode. No image files, no network, no resampling —
  * it stays sharp at any size and costs one paint.
  */
-export function Wallpaper({ dark }: { dark: boolean }) {
+export function Wallpaper({ dark, scene }: { dark: boolean; scene: boolean }) {
   return (
     <div className="wallpaper" aria-hidden="true">
       <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
@@ -32,6 +32,7 @@ export function Wallpaper({ dark }: { dark: boolean }) {
         </defs>
 
         <rect width="1600" height="900" fill="url(#sky)" />
+        {scene && (<>
         <circle cx="1152" cy="252" r="380" fill="url(#glow)" />
         <circle cx="1152" cy="252" r="34" fill="var(--sun)" opacity={dark ? 0.9 : 0.75} />
 
@@ -72,6 +73,7 @@ export function Wallpaper({ dark }: { dark: boolean }) {
                               L${x + w} ${900 - h * 0.42} L${x} ${900 - h} Z`} />
           ))}
         </g>
+        </>)}
       </svg>
       <div className="vignette" />
     </div>

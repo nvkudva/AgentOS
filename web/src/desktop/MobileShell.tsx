@@ -22,7 +22,8 @@ const FALLBACK = <div className="pad muted">One moment…</div>;
  */
 export function MobileShell({ tab, setTab, mroom, magent, mset, rooms, agents,
                               mandates, tasks, inbox, view, focusId, config, perf,
-                              theme, setTheme, onDecide, onOpenRoom, onPick, onConsole,
+                              theme, setTheme, wallpaper, setWallpaper,
+                              onDecide, onOpenRoom, onPick, onConsole,
                               onRunAgain, onCloseOverlays, strip, stripNeed,
                               stripBlocked, stripWorking, onStripDone }: {
   tab: MTab; setTab: (t: MTab) => void;
@@ -31,6 +32,7 @@ export function MobileShell({ tab, setTab, mroom, magent, mset, rooms, agents,
   inbox: Inbox[]; view: string; focusId?: string; config: any;
   perf: { mode: string; setMode: (m: any) => void; measured: number | null };
   theme: Theme; setTheme: (t: Theme) => void;
+  wallpaper: 'calm' | 'scene'; setWallpaper: (w: 'calm' | 'scene') => void;
   onDecide: (it: Inbox, decision: 'approve' | 'reject') => void;
   onOpenRoom: (roomKey: string) => void;
   onPick: (a: Agent) => void;
@@ -71,7 +73,7 @@ export function MobileShell({ tab, setTab, mroom, magent, mset, rooms, agents,
           </div>
           <Suspense fallback={FALLBACK}>
             <SettingsApp rooms={rooms} agents={agents} config={config} perf={perf}
-                         theme={theme} setTheme={setTheme} />
+                         theme={theme} setTheme={setTheme} wallpaper={wallpaper} setWallpaper={setWallpaper} />
           </Suspense>
         </div>
       ) : (

@@ -127,6 +127,18 @@ export default function App() {
   const [skin, setSkin] = useState<Skin>(() => {
     try { return (localStorage.getItem('atrium.orbSkin') as Skin) || 'well'; } catch { return 'well'; }
   });
+  /**
+   * Calm is the default: a gradient that stays out of the way. The illustrated
+   * scene is one tap away in Settings and persists like the theme.
+   */
+  const [wallpaper, setWallpaperState] = useState<'calm' | 'scene'>(() => {
+    try { return localStorage.getItem('atrium.wallpaper') === 'scene' ? 'scene' : 'calm'; }
+    catch { return 'calm'; }
+  });
+  const setWallpaper = (w: 'calm' | 'scene') => {
+    setWallpaperState(w);
+    try { localStorage.setItem('atrium.wallpaper', w); } catch { /* ignore */ }
+  };
   const [focusApproval, setFocusApproval] = useState<string | undefined>();
   /**
    * What the operator has not read yet. Results are not approvals and never become
@@ -802,7 +814,7 @@ export default function App() {
           {w.kind === 'work' && <WorkApp mandates={snap.mandates ?? []} tasks={tasks}
                        rooms={snap.rooms} agents={snap.agents} active={w.z === topZ && !w.min}
                        onRunAgain={(text, room, from) => dispatch(text, room, from)} />}
-          {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} agents={snap.agents} config={snap.config} perf={perf} theme={theme} setTheme={setTheme} />}
+          {w.kind === 'settings' && <SettingsApp rooms={snap.rooms} agents={snap.agents} config={snap.config} perf={perf} theme={theme} setTheme={setTheme} wallpaper={wallpaper} setWallpaper={setWallpaper} />}
           {w.kind === 'music' && <MusicApp />}
           {w.kind === 'ride' && <RideApp />}
           {w.kind === 'maps' && <MapsApp />}
@@ -814,7 +826,7 @@ export default function App() {
 
   return (
     <div className="os">
-      <Wallpaper dark={resolved === 'dark'} />
+      <Wallpaper dark={resolved === 'dark'} scene={wallpaper === 'scene'} />
 
       <MenuBar config={snap.config} inbox={queue} needsMe={needsMe} view={VIEW} skin={skin} demo={snap.offline === true} onSheet={() => setSheet(true)}
                theme={theme} setTheme={setTheme} ctx={ctx}
@@ -830,7 +842,7 @@ export default function App() {
                      mroom={mroom} magent={magent} mset={mset}
                      rooms={snap.rooms} agents={snap.agents} mandates={mandates} tasks={tasks}
                      inbox={queue} view={VIEW} focusId={focusApproval} config={snap.config}
-                     perf={perf} theme={theme} setTheme={setTheme} onDecide={onDecide}
+                     perf={perf} theme={theme} setTheme={setTheme} wallpaper={wallpaper} setWallpaper={setWallpaper} onDecide={onDecide}
                      onOpenRoom={(key) => { const r = snap.rooms.find((x) => x.key === key); if (r) openRoomConsole(r); }}
                      onPick={openAgent} onConsole={(id) => { const r = snap.rooms.find((x) => x.id === id); if (r) openRoomConsole(r); }}
                      onRunAgain={(text, room, from) => dispatch(text, room, from)}
