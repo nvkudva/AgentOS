@@ -34,6 +34,26 @@ export async function roomDbPassword(roomId: string): Promise<string | null> {
   return r.rows[0]?.db_password ?? null;
 }
 
+/**
+ * A8: one lock per room, held for exactly one transaction. Two engineering
+ * teams patching at once serialize instead of interleaving commits on one tree.
+ */
+export async function withRoomLock<T>(roomKey: string, fn: () => Promise<T>): Promise<T> {
+  const c = await pool.connect();
+  try {
+    await c.query('BEGIN');
+    await c.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`atrium:tree:${roomKey}`]);
+    const out = await fn();
+    await c.query('COMMIT');
+    return out;
+  } catch (e) {
+    await c.query('ROLLBACK').catch(() => {});
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
 export async function q<T = any>(text: string, params: any[] = []): Promise<T[]> {
   const r = await pool.query(text, params);
   return r.rows as T[];
