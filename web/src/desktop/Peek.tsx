@@ -11,7 +11,7 @@ export type PeekInfo = {
   chits: string[];
 };
 
-type Shown = { info: PeekInfo; at: DOMRect };
+type Shown = { info: PeekInfo; at: DOMRect; sticky?: boolean };
 
 let sink: ((s: Shown | null) => void) | null = null;
 
@@ -31,31 +31,62 @@ export function peekPress(e: React.PointerEvent, info: PeekInfo, load?: Carried)
   const el = e.currentTarget as HTMLElement;
   const p0 = { x: e.clientX, y: e.clientY };
   const pid = e.pointerId;
-  let open = false;
+  const t0 = performance.now();
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  let open = false, moved = false, sticky = false, carried = false;
+
+  /** On a coarse pointer a tap is a sheet, not a press: it stays until dismissed. */
+  const eatClick = () =>
+    addEventListener('click', (ev) => { ev.stopPropagation(); ev.preventDefault(); },
+                     { capture: true, once: true });
 
   el.classList.add('peeking');
   const timer = window.setTimeout(() => {
     open = true;
     el.classList.remove('peeking');
-    sink?.({ info, at: el.getBoundingClientRect() });
+    // A held press on touch stays up as a sheet; on a fine pointer the release
+    // still puts it away, as it always has.
+    sticky = coarse;
+    sink?.({ info, at: el.getBoundingClientRect(), sticky });
   }, HOLD);
 
   const end = () => {
     clearTimeout(timer);
     el.classList.remove('peeking');
-    if (open) sink?.(null);
+    if (!open && coarse && !moved && performance.now() - t0 < HOLD) {
+      sticky = true; eatClick();
+      sink?.({ info, at: el.getBoundingClientRect(), sticky });
+    // The press became a sheet and never became a carry: the release click
+    // belongs to the sheet, not to whatever sits underneath it.
+    } else if (open && sticky && !carried) eatClick();
+    else if (open && !sticky) sink?.(null);
     removeEventListener('pointermove', move);
     removeEventListener('pointerup', end);
-    removeEventListener('pointercancel', end);
+    removeEventListener('pointercancel', abort);
+  };
+
+  /** The browser took the gesture (a scroll won it): close, never sheet. */
+  const abort = () => {
+    clearTimeout(timer);
+    el.classList.remove('peeking');
+    if (open && !sticky) sink?.(null);
+    removeEventListener('pointermove', move);
+    removeEventListener('pointerup', end);
+    removeEventListener('pointercancel', abort);
   };
 
   function move(ev: PointerEvent) {
     const d = Math.hypot(ev.clientX - p0.x, ev.clientY - p0.y);
+    if (d >= SLIP) moved = true;
     if (open) { if (d > DRIFT) end(); return; }
     if (d < SLIP) return;
     // It was a carry. Hand the original press to the carry protocol so the ghost lifts
     // from where the finger actually went down, not from where it has drifted to.
+    const wasSheet = open && sticky;
+    carried = true;
     end();
+    // A sheet that became a carry comes down; the carry owns the click from here.
+    if (wasSheet) sink?.(null);
     // Nothing to carry — a room is where work lands, not a thing you pick up — so the
     // move just cancels the peek.
     if (!load) return;
@@ -65,7 +96,7 @@ export function peekPress(e: React.PointerEvent, info: PeekInfo, load?: Carried)
 
   addEventListener('pointermove', move);
   addEventListener('pointerup', end);
-  addEventListener('pointercancel', end);
+  addEventListener('pointercancel', abort);
 }
 
 /**
@@ -75,14 +106,24 @@ export function peekPress(e: React.PointerEvent, info: PeekInfo, load?: Carried)
 export function PeekLayer() {
   const [shown, setShown] = useState<Shown | null>(null);
   const [gone, setGone] = useState(false);
+  const close = () => {
+    setGone(true);
+    setTimeout(() => setShown(null), 100);
+  };
   useEffect(() => {
     sink = (s) => {
       if (s) { setGone(false); setShown(s); return; }
-      setGone(true);
-      setTimeout(() => setShown(null), 100);
+      close();
     };
     return () => { sink = null; };
   }, []);
+  // A stuck sheet answers to keys too; a transient popover answers to the pointer.
+  useEffect(() => {
+    if (!shown?.sticky) return;
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [shown]);
   if (!shown) return null;
 
   const { info, at } = shown;
@@ -93,8 +134,12 @@ export function PeekLayer() {
   const y = Math.max(52, Math.min(at.top - 8, innerHeight - 190));
 
   return (
-    <div className={`peek${gone ? ' out' : ''}${left ? '' : ' mirror'}`}
-         style={{ left: x, top: y, width: W, ['--c' as any]: info.colour }}>
+    <>
+    {shown.sticky && <div className="peek-scrim" onPointerDown={close} />}
+    <div className={`peek${gone ? ' out' : ''}${left && !shown.sticky ? '' : ' mirror'}${shown.sticky ? ' sheet' : ''}`}
+         style={{ left: x, top: y, width: W, ['--c' as any]: info.colour }}
+         role={shown.sticky ? 'dialog' : undefined} aria-label={shown.sticky ? info.name : undefined}>
+      {shown.sticky && <button className="peek-x" onClick={close} aria-label="Close">×</button>}
       <header>
         <span className="face" style={{ ['--c' as any]: info.colour }}>{info.avatar}<i className={`st ${info.state}`} /></span>
         <span><b>{info.name}</b><em>{info.role}</em></span>
@@ -109,5 +154,6 @@ export function PeekLayer() {
       </footer>
       {info.chits.length > 0 && <p className="peek-chits">{info.chits.join(' · ')}</p>}
     </div>
+    </>
   );
 }

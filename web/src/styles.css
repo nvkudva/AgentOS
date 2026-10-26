@@ -1084,6 +1084,15 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 .peek.out { animation:peek-out 100ms linear forwards; }
 @keyframes peek-out { to { opacity:0 } }
 .peek.mirror { border-left:0; border-right:3px solid var(--c); }
+/* A stuck sheet: a bottom card that takes the pointer, dimming the desk behind it. */
+.peek-scrim { position:fixed; inset:0; z-index:929;
+  background:color-mix(in srgb, #000 22%, transparent);
+  animation:cap-in var(--t-near) var(--ease); }
+.peek.sheet { pointer-events:auto; left:8px !important; right:8px; top:auto !important;
+  bottom:calc(8px + env(safe-area-inset-bottom, 0)); width:auto !important; max-height:62dvh;
+  overflow-y:auto; }
+.peek-x { position:absolute; top:6px; right:6px; border:0; background:none;
+  color:var(--muted); font-size:17px; padding:4px 10px; min-width:44px; min-height:44px; }
 .peek header { display:flex; align-items:center; gap:8px; }
 .peek header b { display:block; font-size:13px; font-weight:600; }
 .peek header em { display:block; font-style:normal; font-size:11px; color:var(--faint); }

@@ -1,7 +1,8 @@
 import { memo } from 'react';
 import type { Room, Agent, Mandate, Task, Inbox } from '../lib/api';
-import { hours } from '../lib/humanize';
+import { friendlyActivity, hours } from '../lib/humanize';
 import { roomDetail, roomProgress } from '../lib/progress';
+import { peekPress } from '../desktop/Peek';
 import { NeedsYouBar } from './NeedsYouBar';
 
 const ATTN = new Set(['awaiting_approval', 'blocked', 'failed']);
@@ -53,12 +54,22 @@ function Widget({ room, agents, mandates = [], tasks = [], onOpen, inbox = [], v
       </div>
 
       <div className="room-crew">
-        {agents.map((a) => (
-          <span key={a.id} className={`face sm${ATTN.has(a.state) ? ' attn' : ''}`}
-                style={{ ['--c' as any]: a.color }} title={`${a.name} — ${a.persona}`}>
-            {a.avatar}<i className={`st ${a.state}`} />
-          </span>
-        ))}
+        {agents.map((a) => {
+          const mine = tasks.filter((t) => t.agent_id === a.id);
+          return (
+            <span key={a.id} className={`face sm${ATTN.has(a.state) ? ' attn' : ''}`}
+                  style={{ ['--c' as any]: a.color }} title={`${a.name} — ${a.persona}`}
+                  onPointerDown={(e) => peekPress(e, {
+                    name: a.name, role: a.role, avatar: a.avatar, colour: a.color,
+                    activity: friendlyActivity(a.activity, a.state), state: a.state,
+                    steps: mine.filter((t) => t.state === 'done').slice(-2).map((t) => t.title),
+                    spend: `${hours(a.spent_cents)} of ${hours(a.cost_budget_cents)}`,
+                    chits: mine.filter((t) => t.state === 'queued' || t.state === 'working').map((t) => t.title),
+                  })}>
+              {a.avatar}<i className={`st ${a.state}`} />
+            </span>
+          );
+        })}
       </div>
 
       <div className="room-foot">
