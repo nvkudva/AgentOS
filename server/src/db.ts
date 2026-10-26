@@ -56,6 +56,35 @@ export async function tx<T>(fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
     c.release();
   }
 }
+
+export type Broker = 'reader' | 'writer';
+const BROKER_ROLE: Record<Broker, string> = { reader: 'broker_reader', writer: 'broker_writer' };
+
+/**
+ * A4: live tool traffic never opens a per-room pool. One checkout from the main
+ * pool assumes the broker role for exactly one transaction (SET LOCAL dies with
+ * it), tagged with the room so pg_stat_activity keeps attribution. Pool max 12
+ * stays 12 no matter how many rooms exist.
+ */
+export async function withBroker<T>(broker: Broker, roomKey: string, fn: (c: pg.PoolClient) => Promise<T>): Promise<T> {
+  const c = await pool.connect();
+  try {
+    await c.query('BEGIN');
+    await c.query(`SET LOCAL ROLE ${BROKER_ROLE[broker]}`);
+    // SET LOCAL takes no bind parameters — quote the literal by hand. Room keys
+    // are [a-z0-9_], but quote anyway; application_name truncates at 63 chars.
+    const tag = `atrium:${roomKey}:${broker}`.slice(0, 63).replace(/'/g, `''`);
+    await c.query(`SET LOCAL application_name = '${tag}'`);
+    const out = await fn(c);
+    await c.query('COMMIT');
+    return out;
+  } catch (e) {
+    await c.query('ROLLBACK').catch(() => {});
+    throw e;
+  } finally {
+    c.release();
+  }
+}
 export async function closeAll() {
   await pool.end().catch(() => {});
   for (const p of rolePools.values()) await p.end().catch(() => {});

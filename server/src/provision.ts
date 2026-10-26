@@ -4,6 +4,7 @@ import { id } from './ids.js';
 import { append } from './events.js';
 import { TOOLS } from './tools/index.js';
 import { POLICIES } from './policies/index.js';
+import type { AccessProfile } from './runtime/types.js';
 
 /**
  * A room is data, not code.
@@ -14,7 +15,7 @@ import { POLICIES } from './policies/index.js';
  * deploy. That claim is what `test/newroom.test.ts` exists to check.
  */
 
-export type AccessProfile = 'none' | 'read_business' | 'write_pipeline' | 'support_desk';
+export type { AccessProfile };
 
 /** What a room's own Postgres role is allowed to do. The database, not our code, enforces it. */
 export const ACCESS: Record<AccessProfile, { label: string; note: string; grants: (role: string) => string[] }> = {
@@ -178,11 +179,11 @@ export async function provisionRoom(spec: RoomSpec) {
   const slot = await nextSlot();
   const rid = id('room');
   await q(
-    `INSERT INTO room (id,key,name,objective,x,y,w,h,budget_cents,tool_grants,approval_policy,db_role,db_password,color,icon)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
+    `INSERT INTO room (id,key,name,objective,x,y,w,h,budget_cents,tool_grants,approval_policy,db_role,db_password,access_profile,color,icon)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
     [rid, spec.key, spec.name, spec.objective, slot.x, slot.y, slot.w, slot.h, spec.budget_cents,
      JSON.stringify(tools), JSON.stringify(spec.approval_policy ?? { low: 'auto', medium: 'auto', high: 'approve' }),
-     spec.access === 'none' ? null : role, password, spec.color, spec.icon]);
+     spec.access === 'none' ? null : role, password, spec.access, spec.color, spec.icon]);
 
   await seedManager(rid, spec.key, spec.name, spec.color);
   for (const a of spec.agents) {

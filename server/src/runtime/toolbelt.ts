@@ -46,6 +46,16 @@ export async function callTool(ctx: Ctx, name: string, args: any): Promise<any> 
     });
     throw new ScopeViolation(room.key, name);
   }
+  // Attenuation (A3): a tool that touches company data declares which data
+  // profiles may run it, and the room's profile is checked here — granting the
+  // tool is not enough. Narrowing happens at provision; this gate holds it.
+  if (spec.profiles && !spec.profiles.includes(room.access_profile as any)) {
+    await append({
+      type: 'scope.violation', room_id: ctx.room.id, agent_id: ctx.agent.id, run_id: ctx.run.id,
+      payload: { tool: name, profile: room.access_profile, allowed: spec.profiles },
+    });
+    throw new ScopeViolation(room.key, `${name} needs data profile ${spec.profiles.join(' or ')}`);
+  }
   // Tools that name a room in their args may only ever name their own.
   if (args && typeof args === 'object' && 'room_key' in args && args.room_key !== room.key) {
     await append({

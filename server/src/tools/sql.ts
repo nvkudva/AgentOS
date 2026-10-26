@@ -1,4 +1,4 @@
-import { rolePool } from '../db.js';
+import { withBroker } from '../db.js';
 import { ScopeViolation } from '../errors.js';
 import type { ToolSpec } from '../runtime/types.js';
 
@@ -13,6 +13,7 @@ const BANNED = /\b(insert|update|delete|drop|alter|create|grant|revoke|copy|trun
 export const sqlQuery: ToolSpec = {
   name: 'sql.query',
   blast: 'low', reversible: true, external: false,
+  profiles: ['read_business', 'write_pipeline', 'support_desk'],
   summary: (a) => `run a read-only query: ${String(a.sql).replace(/\s+/g, ' ').slice(0, 120)}`,
   touches: (a) => (String(a.sql).match(/\b(?:from|join)\s+([a-z_][\w.]*)/gi) ?? []).map((s) => s.split(/\s+/)[1]),
   estimate: () => 1,
@@ -21,10 +22,10 @@ export const sqlQuery: ToolSpec = {
     if (!READ_ONLY.test(sql) || BANNED.test(sql)) {
       throw new ScopeViolation(ctx.room.key, 'sql.query', 'only read-only SELECT/WITH statements are permitted');
     }
-    if (!ctx.room.db_role) throw new ScopeViolation(ctx.room.key, 'sql.query', 'room has no database role');
-    const p = rolePool(ctx.room.db_role);
-    const r = await p.query({ text: sql, rowMode: undefined });
-    return { rowCount: r.rowCount, rows: r.rows.slice(0, 200), fields: r.fields.map((f) => f.name) };
+    return withBroker('reader', ctx.room.key, async (c) => {
+      const r = await c.query({ text: sql, rowMode: undefined });
+      return { rowCount: r.rowCount, rows: r.rows.slice(0, 200), fields: r.fields.map((f) => f.name) };
+    });
   },
 };
 
@@ -32,16 +33,17 @@ export const sqlQuery: ToolSpec = {
 export const crmNote: ToolSpec = {
   name: 'crm.note',
   blast: 'medium', reversible: true, external: false,
+  profiles: ['write_pipeline'],
   summary: (a) => `add a pipeline note to deal #${a.id}`,
   touches: () => ['bizdata.pipeline'],
   estimate: () => 1,
   async run(ctx, args) {
-    if (!ctx.room.db_role) throw new ScopeViolation(ctx.room.key, 'crm.note', 'room has no database role');
-    const p = rolePool(ctx.room.db_role);
-    const r = await p.query(
-      `UPDATE bizdata.pipeline SET note = $2 WHERE id = $1 RETURNING id, account, stage, note`,
-      [args.id, String(args.note).slice(0, 500)]
-    );
-    return r.rows[0] ?? null;
+    return withBroker('writer', ctx.room.key, async (c) => {
+      const r = await c.query(
+        `UPDATE bizdata.pipeline SET note = $2 WHERE id = $1 RETURNING id, account, stage, note`,
+        [args.id, String(args.note).slice(0, 500)]
+      );
+      return r.rows[0] ?? null;
+    });
   },
 };

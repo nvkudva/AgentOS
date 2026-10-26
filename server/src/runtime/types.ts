@@ -1,11 +1,16 @@
 export type Blast = 'low' | 'medium' | 'high';
 
+/** Data profile a room was provisioned with. Tools declare which profiles may run them. */
+export type AccessProfile = 'none' | 'read_business' | 'write_pipeline' | 'support_desk';
+
 export type Room = {
   id: string; key: string; name: string; objective: string;
   x: number; y: number; w: number; h: number;
   budget_cents: number; spent_cents: number;
   tool_grants: string[]; approval_policy: Record<Blast, 'auto' | 'approve'>;
-  db_role: string | null; status: 'open' | 'halted' | 'capped';
+  db_role: string | null; db_password: string | null;
+  access_profile: AccessProfile | null;
+  status: 'open' | 'halted' | 'capped';
 };
 export type Agent = {
   id: string; room_id: string; name: string; role: string; policy_key: string;
@@ -33,6 +38,8 @@ export type ToolSpec = {
   blast: Blast;
   reversible: boolean;
   external: boolean;
+  /** Data profiles allowed to run this tool. Absent = no company data touched. */
+  profiles?: AccessProfile[];
   /** Plain-words description of the action, for the approval card. */
   summary: (args: any) => string;
   /** What this call touches: repo/branch, tables, endpoints, queues. */
