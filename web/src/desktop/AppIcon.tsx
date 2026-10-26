@@ -1,7 +1,7 @@
 /**
  * Dock icons, drawn rather than typed. Emoji glyphs read as text at 48px and change
- * shape per platform; a disc with a flat white mark is what a dock icon is here — round,
- * so an app tile and a room's crew face are obviously the same kind of object.
+ * shape per platform; a rounded rectangle with a flat white mark is what a dock icon
+ * is here — one shape for app tiles and room tiles alike.
  */
 export type IconName =
   | 'overview' | 'activity' | 'work' | 'inbox' | 'settings'
@@ -79,7 +79,7 @@ export function AppIcon({ name }: { name: IconName }) {
           <stop offset="0" stopColor={a} /><stop offset="1" stopColor={b} />
         </linearGradient>
       </defs>
-      <circle cx="12" cy="12" r="12" fill={`url(#${id})`} />
+      <rect x="0" y="0" width="24" height="24" rx="5.4" fill={`url(#${id})`} />
       {MARK[name]}
     </svg>
   );

@@ -463,9 +463,12 @@ body.dragging .win.parked:hover { width:var(--sliver); }
   border:0; background:none; box-shadow:none;
   display:grid; place-items:center;
   transition:transform var(--t-tint) var(--ease); }
-.tile .glyph { font-size:24px; line-height:1; }
-.tile .face.big { width:calc(var(--tile) - 4px); height:calc(var(--tile) - 4px); }
-.appicon { width:calc(var(--tile) - 4px); height:calc(var(--tile) - 4px); display:block; border-radius:999px;
+.tile .ric { width:calc(var(--tile) - 4px); height:calc(var(--tile) - 4px); display:grid; place-items:center;
+  font-size:22px; line-height:1; color:#fff; background:var(--c);
+  border-radius:10px; text-shadow:0 1px 2px rgba(0,0,0,.3);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),
+    0 1px 2px rgba(0,0,0,.28), 0 4px 10px rgba(0,0,0,.18); }
+.appicon { width:calc(var(--tile) - 4px); height:calc(var(--tile) - 4px); display:block; border-radius:10px;
   box-shadow:0 1px 2px rgba(0,0,0,.28), 0 4px 10px rgba(0,0,0,.18); }
 .tile { transform-origin:50% 100%; will-change:transform; }
 .tile:hover { z-index:2; }

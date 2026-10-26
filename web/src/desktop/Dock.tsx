@@ -70,7 +70,7 @@ export function Dock({ wins, agents, inbox, unread = 0, rooms, onLaunch, onFocus
             <button key={r.id} className="tile" onClick={() => onRoom(r.id)} data-label={r.name}
                     aria-label={r.name} title={r.name}
                     data-dock-room={r.id} style={{ ['--c' as any]: r.color }}>
-              <span className="face big" style={{ ['--c' as any]: r.color }}>{r.icon}</span>
+              <span className="ric" style={{ ['--c' as any]: r.color }}>{r.icon}</span>
               {w && !w.min && <i className="run" />}
             </button>
           );
@@ -80,7 +80,7 @@ export function Dock({ wins, agents, inbox, unread = 0, rooms, onLaunch, onFocus
           <button key={w.id} className="tile" onClick={() => onFocus(w.id)} data-label={w.title}
                   aria-label={w.title} title={w.title}
                   style={{ ['--c' as any]: w.color }}>
-            <span className="glyph">{w.icon}</span>
+            <span className="ric">{w.icon}</span>
             <i className="run" />
           </button>
         ))}
