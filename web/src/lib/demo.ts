@@ -37,7 +37,7 @@ export const DEMO: Snapshot = {
       },
       "db_role": null,
       "status": "open",
-      "color": "#6f8ef5",
+      "color": "#7b91ea",
       "icon": "\u2318"
     },
     {
@@ -67,7 +67,7 @@ export const DEMO: Snapshot = {
       },
       "db_role": "atrium_analytics",
       "status": "open",
-      "color": "#4bb3d4",
+      "color": "#34a2c2",
       "icon": "\u25c8"
     },
     {
@@ -98,7 +98,7 @@ export const DEMO: Snapshot = {
       },
       "db_role": null,
       "status": "open",
-      "color": "#e0794b",
+      "color": "#db7d54",
       "icon": "\u270e"
     },
     {
@@ -128,7 +128,7 @@ export const DEMO: Snapshot = {
       },
       "db_role": "atrium_sales",
       "status": "open",
-      "color": "#3fb27f",
+      "color": "#34a977",
       "icon": "\u25ce"
     },
     {
@@ -158,7 +158,7 @@ export const DEMO: Snapshot = {
       },
       "db_role": "atrium_support",
       "status": "open",
-      "color": "#e05b8f",
+      "color": "#e56f9a",
       "icon": "\u260e"
     },
     {
@@ -188,7 +188,7 @@ export const DEMO: Snapshot = {
       },
       "db_role": "atrium_finance",
       "status": "open",
-      "color": "#c9a227",
+      "color": "#b29239",
       "icon": "\u26c1"
     },
     {
@@ -218,7 +218,7 @@ export const DEMO: Snapshot = {
       },
       "db_role": "atrium_research",
       "status": "open",
-      "color": "#7f8cd6",
+      "color": "#8491dc",
       "icon": "\u25cd"
     }
   ],
