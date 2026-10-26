@@ -1,3 +1,4 @@
+import pg from 'pg';
 import { q } from './db.js';
 import { bus } from './bus.js';
 
@@ -33,4 +34,19 @@ export async function append(e: EventInput) {
     }
   }
   return row;
+}
+
+/**
+ * PM-11: the same insert, but on the CALLER's transaction. State changes and
+ * their events commit atomically — a crash can never leave an approved row
+ * whose run never resumed, or a resumed run the log never saw. The bus publish
+ * stays after commit (at-most-once delivery, next snapshot heals).
+ */
+export async function appendTx(c: pg.PoolClient, e: EventInput) {
+  const r = await c.query(
+    `INSERT INTO event (type, room_id, agent_id, run_id, payload)
+     VALUES ($1,$2,$3,$4,$5) RETURNING id, ts`,
+    [e.type, e.room_id ?? null, e.agent_id ?? null, e.run_id ?? null, e.payload ?? {}]
+  );
+  return r.rows[0];
 }

@@ -7,10 +7,11 @@ import { prOpen } from './github.js';
 import { escalate, clarify } from './escalate.js';
 import { ticketList, ticketReply } from './support.js';
 import { assign, report } from './assign.js';
+import { handoffRequest, handoffFulfill } from './handoff.js';
 
 export const TOOLS: Record<string, ToolSpec> = Object.fromEntries(
   [sqlQuery, crmNote, artifactWrite, artifactRead, queueDraft, queuePublish,
    repoRead, repoPatch, repoTest, prOpen, escalate, clarify, ticketList, ticketReply,
-   assign, report].map((t) => [t.name, t])
+   assign, report, handoffRequest, handoffFulfill].map((t) => [t.name, t])
 );
 export const toolNames = Object.keys(TOOLS);

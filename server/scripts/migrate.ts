@@ -24,9 +24,16 @@ const ROLES: Record<string, string[]> = {
 };
 
 const main = async () => {
+  // REVIEW P1: migrations are versioned. Each file runs once; re-running only
+  // re-applies the role grants below. Files must still be re-runnable-safe —
+  // a failed run retries the same file, never a half-applied rename.
+  await pool.query(`CREATE TABLE IF NOT EXISTS schema_migrations (filename text PRIMARY KEY, ran_at timestamptz NOT NULL DEFAULT now())`);
+  const done = new Set((await pool.query(`SELECT filename FROM schema_migrations`)).rows.map((r: any) => r.filename));
   for (const f of (await readdir(MIG)).sort()) {
     if (!f.endsWith('.sql')) continue;
+    if (done.has(f)) continue;
     await pool.query(await readFile(path.join(MIG, f), 'utf8'));
+    await pool.query(`INSERT INTO schema_migrations (filename) VALUES ($1)`, [f]);
     console.log('applied', f);
   }
   for (const [role, grants] of Object.entries(ROLES)) {

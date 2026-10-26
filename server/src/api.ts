@@ -1,9 +1,10 @@
 import { q, one, tx } from './db.js';
 import { id } from './ids.js';
-import { append } from './events.js';
+import { append, appendTx } from './events.js';
 import { bus } from './bus.js';
 import { startAgent, killAgent } from './runtime/scheduler.js';
 import { provisionRoom, catalogAsync, validateAsync, type RoomSpec } from './provision.js';
+import { requestHandoff, answerHandoff, revokeHandoff } from './tools/handoff.js';
 import { resolveAuth, type Auth } from './auth.js';
 
 export type Req = {
@@ -46,7 +47,8 @@ export async function handle(req: Req): Promise<any> {
   const roomOk = (roomId: string | null | undefined) =>
     auth.scope === 'operator' || (auth.scope === 'room' && roomId != null && auth.roomId === roomId);
   if (auth.scope === 'room' && !(
-    p === '/api/catalog' || p === '/api/observe' || p === '/api/mandates' ||
+    p === '/api/catalog' || p === '/api/observe' || p === '/api/mandates' || p === '/api/handoffs' ||
+    /^\/api\/handoffs\/([\w-]+)\/(respond|revoke)$/.test(p) ||
     /^\/api\/(rooms|agents|runs)\/([\w-]+)$/.test(p) ||
     /^\/api\/mandates\/([\w-]+)\/(route|recall)$/.test(p) ||
     /^\/api\/agents\/([\w-]+)\/(start|kill)$/.test(p) ||
@@ -157,6 +159,59 @@ export async function handle(req: Req): Promise<any> {
     if (!ap) return { error: 'not found', status: 404 };
     if (!roomOk(ap.room_id)) return { error: 'forbidden for a room-scoped token', status: 403 };
     return decide(m[1], req.body);
+  }
+
+  // PM-10: cross-room handoffs over HTTP. Room tokens may only send from their
+  // own room and answer handoffs addressed to it; the operator may name any sender.
+  if (p === '/api/handoffs' && req.method === 'POST') {
+    const fromId = auth.scope === 'room' ? auth.roomId
+      : req.body?.from_room && await one<any>(`SELECT id FROM room WHERE key=$1 OR id=$1`, [req.body.from_room]);
+    if (!fromId) return { error: 'unknown sending room', status: auth.scope === 'room' ? 500 : 404 };
+    const fromKey = auth.scope === 'room' ? (await one<any>(`SELECT key FROM room WHERE id=$1`, [fromId]))?.key
+      : String(req.body.from_room);
+    try {
+      const out = await requestHandoff(fromId, fromKey ?? '?', String(req.body?.to_room ?? ''),
+        Array.isArray(req.body?.artifact_ids) ? req.body.artifact_ids : [], String(req.body?.message ?? ''),
+        { agent_id: null, run_id: null });
+      bus.publish({ type: 'refresh' });
+      return out;
+    } catch (e: any) {
+      return { error: String(e?.message ?? e), status: e?.name === 'ScopeViolation' ? 403 : 500 };
+    }
+  }
+  if ((m = p.match(/^\/api\/handoffs\/([\w-]+)\/respond$/)) && req.method === 'POST') {
+    const h = await one<any>(`SELECT * FROM handoff WHERE id=$1`, [m[1]]);
+    if (!h) return { error: 'not found', status: 404 };
+    const roomId = auth.scope === 'room' ? auth.roomId
+      : req.body?.room && (await one<any>(`SELECT id FROM room WHERE key=$1 OR id=$1`, [req.body.room]))?.id;
+    if (!roomId || (auth.scope === 'room' && roomId !== h.to_room_id)) {
+      return { error: 'forbidden for a room-scoped token', status: 403 };
+    }
+    try {
+      const out = await answerHandoff(h.id, roomId, '?', req.body?.accept !== false,
+        { agent_id: null, run_id: null });
+      bus.publish({ type: 'refresh' });
+      return out;
+    } catch (e: any) {
+      return { error: String(e?.message ?? e), status: e?.name === 'ScopeViolation' ? 409 : 500 };
+    }
+  }
+  if ((m = p.match(/^\/api\/handoffs\/([\w-]+)\/revoke$/)) && req.method === 'POST') {
+    const h = await one<any>(`SELECT * FROM handoff WHERE id=$1`, [m[1]]);
+    if (!h) return { error: 'not found', status: 404 };
+    if (auth.scope === 'room' && auth.roomId !== h.from_room_id) {
+      return { error: 'forbidden for a room-scoped token', status: 403 };
+    }
+    const roomId = auth.scope === 'room' ? auth.roomId
+      : (req.body?.room && (await one<any>(`SELECT id FROM room WHERE key=$1 OR id=$1`, [req.body.room]))?.id) ?? h.from_room_id;
+    if (roomId !== h.from_room_id) return { error: 'only the sending room revokes', status: 403 };
+    try {
+      const out = await revokeHandoff(h.id, roomId, '?', { agent_id: null, run_id: null });
+      bus.publish({ type: 'refresh' });
+      return out;
+    } catch (e: any) {
+      return { error: String(e?.message ?? e), status: e?.name === 'ScopeViolation' ? 409 : 500 };
+    }
   }
 
   // PM-9: approval storms are cleared in batches. Each id still goes through the
@@ -361,20 +416,19 @@ async function decide(approvalId: string, body: any) {
       await c.query(`UPDATE run SET status='done', ended_at=now(), kill_reason='rejected by operator' WHERE id=$1`, [row.run_id]);
       await c.query(`UPDATE agent SET state='idle', activity='rejected by you', current_run_id=NULL WHERE id=$1`, [row.agent_id]);
     }
+    // Decision + audit events commit WITH the state change: no crash window between
+    // an approved row and its event, a resumed run the log never saw, or a
+    // policy change with no audit trail.
+    await appendTx(c, { type: approved ? 'approval.granted' : 'approval.rejected',
+      room_id: row.room_id, agent_id: row.agent_id, run_id: row.run_id,
+      payload: { approval_id: approvalId, action: row.action, kind: row.kind, note } });
+    if (approved && body?.remember && row.blast_radius !== 'high') {
+      await appendTx(c, { type: 'autonomy.lowered', room_id: row.room_id,
+        payload: { blast_radius: row.blast_radius, via_approval: approvalId, note } });
+    }
     return { row };
   });
   if ('error' in out) return out;
-  await append({ type: approved ? 'approval.granted' : 'approval.rejected',
-    room_id: out.row.room_id, agent_id: out.row.agent_id, run_id: out.row.run_id,
-    // kind matters on replay: rejecting an escalation resumes the run, rejecting an
-    // approval ends it. Without it the fold cannot tell the two apart.
-    payload: { approval_id: approvalId, action: out.row.action, kind: out.row.kind, note } });
-  // "Remember" rewrites room policy — scoped (never below high), expiring never,
-  // but AUDITED: the event says who lowered what, so replay can see it.
-  if (approved && body?.remember && out.row.blast_radius !== 'high') {
-    await append({ type: 'autonomy.lowered', room_id: out.row.room_id,
-      payload: { blast_radius: out.row.blast_radius, via_approval: approvalId, note } });
-  }
   bus.publish({ type: 'refresh' });
   return { ok: true, approved };
 }

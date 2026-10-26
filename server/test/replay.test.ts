@@ -18,6 +18,9 @@ test('the event log is append-only in practice', async () => {
   const [{ c }] = await q<any>(`SELECT count(*)::int c FROM event`);
   const [{ mx }] = await q<any>(`SELECT max(id)::int mx FROM event`);
   assert.ok(mx >= c, 'ids only ever move forward');
+  const [{ d }] = await q<any>(
+    `SELECT count(*)::int d FROM (SELECT id FROM event GROUP BY id HAVING count(*) > 1) t`);
+  assert.equal(d, 0, 'every id names exactly one row (partition backfills must resume the sequence)');
 });
 
 after(() => closeAll());
