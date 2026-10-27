@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { calm } from './carry';
 
-type Mode = 'idle' | 'listening' | 'thinking' | 'alert';
+type Mode = 'idle' | 'armed' | 'listening' | 'thinking' | 'alert';
 
 /**
  * The supervisor.
@@ -76,7 +76,7 @@ export function Orb({ mode, size = 38, stream, ring = true }:
       // At rest it is a single hairline ring — teeth would be motion where there is none.
       if (!live) {
         running = false;
-        g.strokeStyle = COLORS.idle; g.globalAlpha = 0.75; g.lineWidth = 1.2;
+        g.strokeStyle = COLORS[mode]; g.globalAlpha = 0.75; g.lineWidth = mode === 'armed' ? 2 : 1.2;
         g.beginPath(); g.arc(cx, cy, r0 + 1.5, 0, Math.PI * 2); g.stroke();
         g.globalAlpha = 1;
         return;
@@ -132,6 +132,7 @@ export function Orb({ mode, size = 38, stream, ring = true }:
 
 const COLORS: Record<Mode, string> = {
   idle: 'rgba(150,170,210,.5)',
+  armed: 'rgba(64,232,196,.55)',
   listening: 'rgb(64,232,196)',
   thinking: 'rgb(124,156,255)',
   alert: 'rgb(186,132,246)',

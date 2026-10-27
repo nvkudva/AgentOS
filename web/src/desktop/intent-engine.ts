@@ -1,5 +1,6 @@
 import type * as Api from '../lib/api';
 import type * as Commands from './commands';
+import type { AppKind } from './wm';
 import * as humanize from '../lib/humanize';
 import * as context from '../lib/voice/context';
 import * as query from '../lib/voice/query';
@@ -12,16 +13,20 @@ export type Tier = 0 | 1 | 2 | 3;
 export type VisualAction =
   | { kind: 'openRoom'; roomId: string } | { kind: 'openAgent'; agentId: string }
   | { kind: 'openTask'; taskId: string; roomId: string }
-  | { kind: 'launch'; app: 'floor' | 'work' | 'inbox' | 'settings' }
+  | { kind: 'launch'; app: AppKind }
   | { kind: 'highlight'; ids: string[]; roomId: string | null }
   | { kind: 'focusApproval'; inboxId: string } | { kind: 'scroll'; dir: 1 | -1 }
-  | { kind: 'window'; op: 'close' | 'minimise' | 'front' | 'park' | 'clear'; winRef: string | null };
+  | { kind: 'window'; op: 'close' | 'minimise' | 'front' | 'park' | 'clear' | 'closeAll'; winRef: string | null };
 
 export type IntentResult = {
   say: string; ok: boolean; intent: context.IntentKind; tier: Tier; confidence: number;
   visual: VisualAction[]; context: context.VoiceContext;
   propose?: Commands.Proposal;
   confirm?: { label: string };
+  /** T3: executed only after the operator's spoken or typed yes */
+  decide?: { inboxId: string; decision: 'approve' | 'reject' };
+  /** meta.wake: turn the hands-free wake word on or off */
+  wake?: boolean;
   clarify?: { question: string; options: { label: string; result: IntentResult }[] };
 };
 
@@ -34,8 +39,23 @@ const ORD: Record<string, number> = {
 };
 const STOP = new Set(('the a an and or of to in on for from with our my your this that last next please can you we us it its is are was were do does did run go get make give take put show tell me about into over out up down all any some more most new old why how what when who').split(' '));
 
+const APP_WORDS: Record<string, AppKind> = {
+  music: 'music', maps: 'maps', map: 'maps', ride: 'ride', work: 'work', mandates: 'work', mandate: 'work', history: 'work',
+  settings: 'settings', setting: 'settings', overview: 'floor', floor: 'floor', rooms: 'floor',
+  approvals: 'inbox', approval: 'inbox', inbox: 'inbox',
+};
+const APP_NAMES: Record<AppKind, string> = {
+  music: 'Music', maps: 'Maps', ride: 'Ride', work: 'Work', settings: 'Settings', floor: 'Overview', inbox: 'Approvals',
+};
+const APP_PATTERN = Object.keys(APP_WORDS).join('|');
+const DECISION_ORD = 'first|second|third|fourth|fifth|1|2|3|4|5';
+
 function norm(raw: string): string {
-  return raw.trim().toLowerCase().replace(/^(hey\s+)?atrium[,!.\s]*/i, '').replace(/[.!?]+$/, '').trim();
+  const t = raw.trim().toLowerCase()
+    .replace(/^(?:(?:hey|ok|okay)\s+)?(?:atrium|agent\s*os)\b[,!.\s]*/, '')
+    .replace(/[.!?,\s]+$/, '').replace(/[,\s]+please$/, '').replace(/[.!?,\s]+$/, '');
+  const unfilled = t.replace(/\b(?:team|dashboard|console|department)\b/g, ' ');
+  return (/^(?:next|previous) room$/.test(t) ? unfilled : unfilled.replace(/\broom\b/g, ' ')).replace(/\s+/g, ' ').trim();
 }
 
 function lev(a: string, b: string): number {
@@ -117,16 +137,71 @@ function listResult(snap: Api.Snapshot, ctx: context.VoiceContext, intent: conte
   return out;
 }
 
-function openEntity(snap: Api.Snapshot, ctx: context.VoiceContext, q: string, rawText: string): IntentResult {
-  const apps: Record<string, 'floor' | 'work' | 'inbox' | 'settings'> = {
-    floor: 'floor', map: 'floor', rooms: 'floor', work: 'work', mandates: 'work', mandate: 'work',
-    history: 'work', inbox: 'inbox', approvals: 'inbox', approval: 'inbox', settings: 'settings', setting: 'settings',
-  };
-  if (apps[q]) {
-    const out = base(ctx, 'nav.open', 1, q === 'settings' || q === 'setting' ? 'Settings.' : `${q[0].toUpperCase()}${q.slice(1)}.`);
-    out.visual = [{ kind: 'launch', app: apps[q] }];
-    return out;
+function launchApp(ctx: context.VoiceContext, app: AppKind): IntentResult {
+  const out = base(ctx, 'nav.open', 1, `${APP_NAMES[app]}.`);
+  out.visual = [{ kind: 'launch', app }];
+  return out;
+}
+
+const STATUS_ROOM_PATTERNS = [
+  /^what(?:'s|s| is) (?:going on|happening|new) (?:with|in|at|on) (.+)$/,
+  /^(?:give me )?(?:an? )?(?:update|status|report) (?:on|for|of) (.+)$/,
+  /^how(?:'s|s| is| are) (.+?)(?: doing| going)?$/,
+  /^(.+?) (?:update|status)$/,
+];
+const BRIEF_PATTERN = /^(?:what(?:'s|s| is) the latest(?: update)?|any updates?|(?:the )?latest updates?|brief me|catch me up|what(?:'s|s| is) (?:going on|happening)(?: now| today)?)$/;
+
+function statusRoomPhrase(t: string, snap: Api.Snapshot): Api.Room | null {
+  for (const pattern of STATUS_ROOM_PATTERNS) {
+    const hit = t.match(pattern);
+    const room = hit ? roomInText(hit[1], snap) : null;
+    if (room) return room;
   }
+  return null;
+}
+
+function briefResult(snap: Api.Snapshot, ctx: context.VoiceContext): IntentResult {
+  const facts = query.brief(snap);
+  const next = context.withList(ctx, query.needsMe(snap).items, 'status.brief');
+  const out = base(next, 'status.brief', 0, respond.sayBrief(facts));
+  out.context = next;
+  if (facts.top) out.visual = [{ kind: 'focusApproval', inboxId: facts.top.id }];
+  return out;
+}
+
+function shortTitle(item: Api.Inbox): string {
+  return humanize.askTitle(item).replace(`${item.agent_name} wants to `, '');
+}
+
+function decisionTarget(snap: Api.Snapshot, ctx: context.VoiceContext, spec: string): Api.Inbox | null {
+  const listed = ctx.lastList?.items[0]?.kind === 'inbox' ? ctx.lastList.items : null;
+  const pool = listed ?? query.needsMe(snap).items;
+  const byId = (id: string | undefined) => snap.inbox.find((i) => i.id === id) ?? null;
+  const ord = spec.match(new RegExp(`^(?:the )?(${DECISION_ORD})(?: one| item| card)?$`));
+  if (ord) return byId(pool[(ORD[ord[1]] ?? 1) - 1]?.id);
+  if (!spec || /^(?:this|that|it)(?: one)?$/.test(spec)) return byId(pool[0]?.id);
+  const name = spec.replace(/^(?:the )?/, '').replace(/'s\b.*$/, '').trim();
+  const cands = snap.inbox.map((i) => ({ name: i.agent_name, item: i }));
+  return link(name, cands).item?.item ?? null;
+}
+
+function decideResult(snap: Api.Snapshot, ctx: context.VoiceContext, verb: string, spec: string): IntentResult {
+  if (!snap.inbox.length) return base(ctx, 'action.decide', 3, 'Nothing is waiting for a decision.');
+  const target = decisionTarget(snap, ctx, spec);
+  if (!target) return base(ctx, 'unknown', 3, 'I could not tell which approval you mean.', false, 0);
+  const approve = verb === 'approve';
+  const word = approve ? 'Approve' : 'Decline';
+  const next = context.withList(ctx, query.needsMe(snap).items, 'action.decide');
+  const out = base(next, 'action.decide', 3, `${humanize.askTitle(target)}. ${word} it? Say yes to confirm.`);
+  out.context = next;
+  out.confirm = { label: `${word} ${target.agent_name}: ${shortTitle(target)}` };
+  out.decide = { inboxId: target.id, decision: approve ? 'approve' : 'reject' };
+  out.visual = [{ kind: 'focusApproval', inboxId: target.id }];
+  return out;
+}
+
+function openEntity(snap: Api.Snapshot, ctx: context.VoiceContext, q: string, rawText: string): IntentResult {
+  if (APP_WORDS[q]) return launchApp(ctx, APP_WORDS[q]);
   if (q === 'that' || q === 'it' || q === 'this') return openFocus(snap, ctx);
   const agentLink = link(q, snap.agents);
   const roomLink = link(q, snap.rooms);
@@ -317,20 +392,31 @@ export function interpret(raw: string, snap: Api.Snapshot, ctx: context.VoiceCon
   if (/^(repeat|say that again|say again)( slower)?$/.test(t)) {
     return base(ctx, 'meta.repeat', 0, ctx.lastIntent ? 'Repeating the last answer.' : 'There is nothing to repeat yet.', !!ctx.lastIntent, ctx.lastIntent ? 1 : 0);
   }
-  if (/^(stop talking|stop listening|that's all|that is all|stop)$/.test(t)) return base(ctx, 'meta.stop', 0, 'Stopped.');
+  if (/^(stop listening|stop talking|that's all|that is all|goodbye|go to sleep)$/.test(t)) return base(ctx, 'meta.stop', 0, 'Going quiet.');
+  if (/^(stop|cancel|never ?mind|shut up|quiet|be quiet)$/.test(t)) return base(ctx, 'meta.stop', 0, 'Stopped.');
+  if (/^(undo|undo that|take that back)$/.test(t)) return base(ctx, 'meta.undo', 1, 'Undone.');
+  if ((m = t.match(/^(turn on|enable|turn off|disable) wake word$/))) {
+    const on = /on|enable/.test(m[1]);
+    const out = base(ctx, 'meta.wake', 1, on ? 'Wake word on. Say "Atrium" any time.' : 'Wake word off.');
+    out.wake = on;
+    return out;
+  }
   if (/^(talk )?(faster|slower)$/.test(t) || /^speed (up|down)$/.test(t)) return base(ctx, 'meta.speed', 1, t.includes('slow') || t.includes('down') ? 'Slower.' : 'Faster.');
   if (/^(quieter|louder|volume (up|down))$/.test(t)) return base(ctx, 'meta.volume', 1, t.includes('quiet') || t.includes('down') ? 'Quieter.' : 'Louder.');
   if (/^(help|what can i say|what can you do)$/.test(t)) {
-    return base(ctx, 'meta.help', 0, 'Try: what needs me, what is blocked, how are we doing in Sales, open Marketing task 1, or show approvals.');
+    return base(ctx, 'meta.help', 0, 'Try: what needs me, brief me, engineering update, open Sales or open music, close all, approve this, undo, stop, or turn on wake word.');
   }
-  if (/^(approve|reject|deny|say yes to|say no to)/.test(t)) {
-    const top = query.needsMe(snap).top;
-    if (!top) return base(ctx, 'approval.nav', 3, 'Nothing is waiting for a decision.');
-    const out = base(ctx, 'approval.nav', 3, 'I never approve by voice. Here is the card.');
-    out.visual = [{ kind: 'focusApproval', inboxId: top.id }];
-    return out;
+  const statusRoom = statusRoomPhrase(t, snap);
+  if (statusRoom) return roomStatus(snap, ctx, statusRoom);
+  if (BRIEF_PATTERN.test(t)) return briefResult(snap, ctx);
+  // Whisper often hears the verb as "approved" or "approves".
+  if ((m = t.match(/^(?:(?:yes|ok|okay),? )?(approve[ds]?|decline[ds]?|reject(?:ed|s)?|deny|denied)(?: (.+))?$/))) {
+    return decideResult(snap, ctx, m[1].startsWith('approve') ? 'approve' : 'reject', (m[2] ?? '').trim());
   }
-  if (/^(show|read|open) (my )?approvals?$/.test(t) || /^how many approvals/.test(t) || /^(next|read the first) approval/.test(t)) {
+  if ((m = t.match(new RegExp(`^(?:open|launch|start|show(?: me)?)\\s+(?:the\\s+)?(${APP_PATTERN})(?:\\s+app)?$`))) && !/^show (?:my )?approvals?$/.test(t)) {
+    return launchApp(ctx, APP_WORDS[m[1]]);
+  }
+  if (/^(show|read) (my )?approvals?$/.test(t) || /^how many approvals/.test(t) || /^(next|read the first) approval/.test(t)) {
     return needsMeResult(snap, ctx, /next|first/.test(t) ? 'approval.nav' : 'status.needsme');
   }
   if ((m = t.match(/^what about (.+)$/))) {
@@ -385,9 +471,20 @@ export function interpret(raw: string, snap: Api.Snapshot, ctx: context.VoiceCon
     }
   }
 
-  if (/^(close this|minimise this|minimize this)$/.test(t)) {
+  if (/^close (?:all|everything)(?: windows)?$/.test(t)) {
+    const out = base(ctx, 'nav.window', 1, 'Closed everything.');
+    out.visual = [{ kind: 'window', op: 'closeAll', winRef: null }];
+    return out;
+  }
+  if (/^(close (?:this|it|that)|minimise this|minimize this)$/.test(t)) {
     const out = base(ctx, 'nav.window', 1, 'Closed.');
-    out.visual = [{ kind: 'window', op: t.startsWith('close') ? 'close' : 'minimise', winRef: ctx.focusRoom?.id ?? null }];
+    out.visual = [{ kind: 'window', op: t.startsWith('close') ? 'close' : 'minimise', winRef: 'top' }];
+    return out;
+  }
+  if ((m = t.match(new RegExp(`^close (?:the )?(${APP_PATTERN})(?: app)?$`)))) {
+    const app = APP_WORDS[m[1]];
+    const out = base(ctx, 'nav.window', 1, `${APP_NAMES[app]}.`);
+    out.visual = [{ kind: 'window', op: 'close', winRef: app }];
     return out;
   }
   if (/^(clear desk|show everything)$/.test(t)) {
@@ -395,7 +492,7 @@ export function interpret(raw: string, snap: Api.Snapshot, ctx: context.VoiceCon
     out.visual = [{ kind: 'window', op: 'clear', winRef: null }];
     return out;
   }
-  if ((m = t.match(/^(?:close|minimise|minimize|park)\s+(.+)$/)) || (m = t.match(/^bring\s+(.+?)\s+to (?:the )?front$/))) {
+  if ((m = t.match(/^(?:close|minimise|minimize|park)\s+(?:the\s+)?(.+)$/)) || (m = t.match(/^bring\s+(.+?)\s+to (?:the )?front$/))) {
     const q = (m[1] ?? '').trim();
     const room = roomInText(q, snap) ?? link(q, snap.rooms).item ?? (q === 'this' ? ctx.focusRoom : null);
     if (!room) return base(ctx, 'unknown', 0, `I could not find ${q}.`, false, 0);
@@ -511,7 +608,7 @@ export function interpret(raw: string, snap: Api.Snapshot, ctx: context.VoiceCon
     return out;
   }
 
-  if ((m = t.match(/^(?:open|show|go to)\s+(.+)$/))) return openEntity(snap, ctx, m[1].trim(), t);
+  if ((m = t.match(/^(?:open|show(?: me)?|go to)\s+(?:the\s+)?(.+?)(?:\s+app)?$/))) return openEntity(snap, ctx, m[1].trim(), t);
 
   const ranked = rankRooms(t, snap.rooms);
   const said = raw.trim().replace(/[.!?]+$/, '');

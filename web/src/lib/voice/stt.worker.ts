@@ -35,8 +35,9 @@ function load() {
           if (adapter) device = 'webgpu';
         } catch { /* fall through to wasm */ }
       }
+      // q8 decodes to gibberish on WebGPU; its supported mix is an fp32 encoder + q4 decoder.
       const make = (dev: 'wasm' | 'webgpu') => pipeline('automatic-speech-recognition', MODEL_ID, {
-        dtype: 'q8',
+        dtype: dev === 'webgpu' ? { encoder_model: 'fp32', decoder_model_merged: 'q4' } : 'q8',
         device: dev,
         progress_callback: (progress: any) => self.postMessage({ type: 'progress', progress }),
       } as any);

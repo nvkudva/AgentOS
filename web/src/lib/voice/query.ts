@@ -107,3 +107,14 @@ export function searchSnapshot(snap: Api.Snapshot, query: string): Ctx.ListItem[
 export function failedTasks(snap: Api.Snapshot): Ctx.ListItem[] {
   return sortForSpeech(snap.tasks.filter((t) => ['failed', 'killed'].includes(t.state)), snap);
 }
+
+export type BriefFacts = { count: number; top: Api.Inbox | null; blocked: number; working: number; report: string };
+
+export function brief(snap: Api.Snapshot): BriefFacts {
+  const needs = needsMe(snap);
+  const newest = [...snap.mandates].filter((m) => m.report?.trim()).sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+  return {
+    count: needs.count, top: needs.top, blocked: blockedList(snap).length,
+    working: snap.agents.filter((a) => a.state === 'working').length, report: newest?.report ?? '',
+  };
+}

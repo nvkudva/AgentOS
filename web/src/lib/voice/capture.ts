@@ -103,7 +103,7 @@ export type CaptureHandlers = {
   isSpeaking?(): boolean;
 };
 
-export async function startCapture(handlers: CaptureHandlers): Promise<{ stop(): void }> {
+export async function startCapture(handlers: CaptureHandlers): Promise<{ stop(): void; stream: MediaStream }> {
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia
       || typeof AudioContext === 'undefined') {
     throw new Error('Microphone is not available in this browser.');
@@ -157,6 +157,7 @@ export async function startCapture(handlers: CaptureHandlers): Promise<{ stop():
   source.connect(processor);
   processor.connect(ctx.destination);
   return {
+    stream,
     stop() {
       if (stopped) return;
       stopped = true;

@@ -4,7 +4,8 @@ export type IntentKind = 'status.global' | 'status.room' | 'status.blocked' | 's
   | 'status.finished' | 'status.running' | 'entity.detail' | 'nav.open' | 'nav.ordinal' | 'nav.window'
   | 'nav.scroll' | 'search' | 'followup.room' | 'action.dispatch' | 'action.agent' | 'action.roompause'
   | 'action.recall' | 'action.route' | 'approval.nav' | 'meta.repeat' | 'meta.stop' | 'meta.help'
-  | 'meta.speed' | 'meta.volume' | 'meta.clear' | 'unknown';
+  | 'meta.speed' | 'meta.volume' | 'meta.clear' | 'meta.undo' | 'meta.wake' | 'status.brief'
+  | 'action.decide' | 'unknown';
 
 export type ListItem = {
   kind: 'task' | 'mandate' | 'agent' | 'inbox' | 'room';

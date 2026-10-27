@@ -143,10 +143,13 @@ p { margin:8px 0; }
 
 /* --- menu bar --- */
 .menubar { position:relative; z-index:80; height:var(--menubar); flex:none; display:flex; align-items:center;
-  gap:16px; padding:0 16px; border-bottom:.5px solid var(--line);
+  gap:16px; padding:0 16px; border-bottom:.5px solid var(--line); }
+/* The glass lives on a layer, not the bar: a backdrop-filter on the bar itself would make it the
+   containing block of the orb, which is position:fixed on phones, and pin the orb off-screen. */
+.menubar::before { content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
   background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
   backdrop-filter:blur(28px) saturate(180%); }
-[data-perf="lite"] .menubar { backdrop-filter:none; background:color-mix(in srgb,var(--solid) 96%, transparent); }
+[data-perf="lite"] .menubar::before { backdrop-filter:none; background:color-mix(in srgb,var(--solid) 96%, transparent); }
 .logo { width:17px; height:17px; color:var(--working); flex:none; }
 .menu { color:var(--muted); cursor:pointer; padding:4px 8px; border-radius:999px; }
 .menu:hover { background:var(--tint-2); color:var(--text); }
@@ -184,6 +187,8 @@ p { margin:8px 0; }
   transition:transform var(--t-ui) var(--ease); }
 .orb-btn:hover { transform:scale(1.06); background:none; }
 .orb-btn:active { transform:scale(.97); }
+/* wake word armed: the mic is open for "Atrium" — always visible, whatever the orb's mood */
+.orb-btn.armed { border-radius:50%; box-shadow:0 0 0 2px rgba(64,232,196,.55), 0 0 10px rgba(64,232,196,.35); }
 .sup.open .orb-btn { margin:8px 0 2px; }
 
 .sup-body { overflow:hidden; min-height:0; opacity:0;
@@ -210,6 +215,7 @@ p { margin:8px 0; }
 .orb { position:relative; display:grid; place-items:center;
   width:var(--size); height:var(--size); --glow:#5b8cff; }
 .orb.listening { --glow:#2fe0c0; }
+.orb.armed     { --glow:#2fe0c0; }
 .orb.thinking  { --glow:#7a9bff; }
 .orb.alert     { --glow:#b083ee; }
 
@@ -1305,6 +1311,7 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 }
 @media (max-width: 860px) {
   .menubar .menu { display:none; }         /* Overview, Work, Settings are in the dock */
+  .menubar button { white-space:nowrap; }
   .floor .grid { --cols:2; }
 }
 @media (max-width: 640px) {
@@ -1331,7 +1338,8 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 .mtabs button { flex:1; position:relative; min-height:44px; border:0; border-radius:12px;
   background:none; color:var(--muted); font-size:13px; }
 .mtabs button.on { background:var(--tint-2); color:var(--text); font-weight:600; }
-.mtabs .badge { position:absolute; top:4px; right:calc(50% - 34px);
+/* inline after the label: an absolute offset guessed the label's width and sat on "you" */
+.mtabs .badge { display:inline-block; margin-left:6px; vertical-align:1px; font-style:normal;
   background:var(--approval); color:#fff; border-radius:999px;
   font-size:10px; padding:0 6px; line-height:16px; }
 .mconsole { display:flex; flex-direction:column; min-height:0; flex:1; }
@@ -1420,3 +1428,7 @@ body { touch-action:manipulation; }
   box-shadow:var(--e4); font-size:13px; white-space:nowrap;
   animation:cap-in var(--t-near) var(--ease); }
 .away-strip button { border:0; background:none; color:var(--muted); font-size:15px; padding:0 4px; }
+
+/* settings: voice */
+.settings .voice-models { margin:0 0 12px; padding-left:18px; }
+.settings input[type=checkbox] { width:auto; flex:none; margin:0; }

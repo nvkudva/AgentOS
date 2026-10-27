@@ -37,3 +37,38 @@ export function useDecide(view: string, onDecide?: (it: Inbox, decision: 'approv
 
   return { pending, decide, undo };
 }
+
+export type DecideRequest = { id: string; decision: 'approve' | 'reject' };
+const DECIDE_EVENT = 'atrium:decide';
+const UNDO_EVENT = 'atrium:undo-decide';
+
+/**
+ * Voice has no card of its own, so it asks the mounted queue to decide: the card shows
+ * its pending state and undo exactly as if the hand had done it. False when no queue
+ * took the request.
+ */
+export function requestDecide(id: string, decision: DecideRequest['decision']): boolean {
+  return !dispatchEvent(new CustomEvent<DecideRequest>(DECIDE_EVENT, { detail: { id, decision }, cancelable: true }));
+}
+
+export function requestUndo(id: string): void {
+  dispatchEvent(new CustomEvent<{ id: string }>(UNDO_EVENT, { detail: { id } }));
+}
+
+/** The queue side: take requests for items it holds. */
+export function useDecideRequests(items: Inbox[], decide: (it: Inbox, d: DecideRequest['decision']) => void,
+                                  undo: (id: string) => void) {
+  useEffect(() => {
+    const onDecide = (e: Event) => {
+      const { id, decision } = (e as CustomEvent<DecideRequest>).detail;
+      const it = items.find((x) => x.id === id);
+      if (!it) return;
+      e.preventDefault();
+      decide(it, decision);
+    };
+    const onUndo = (e: Event) => undo((e as CustomEvent<{ id: string }>).detail.id);
+    addEventListener(DECIDE_EVENT, onDecide);
+    addEventListener(UNDO_EVENT, onUndo);
+    return () => { removeEventListener(DECIDE_EVENT, onDecide); removeEventListener(UNDO_EVENT, onUndo); };
+  }, [items, decide, undo]);
+}

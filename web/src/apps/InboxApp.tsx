@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useDecide, UNDO_MS } from '../lib/decide';
+import { useDecide, useDecideRequests, UNDO_MS } from '../lib/decide';
 import { hours, blastWords, askTitle, touchWords, plainDetail } from '../lib/humanize';
 import { startCarry } from '../desktop/carry';
 import type { Inbox as Item, Mandate } from '../lib/api';
@@ -25,6 +25,7 @@ export function InboxApp({ items, view, focusId, active, mandates = [], onOpenRo
 }) {
   const [sel, setSel] = useState(0);
   const { pending, decide, undo } = useDecide(view, onDecide);
+  useDecideRequests(items, decide, undo);
 
   // The queue re-sorts on every decision. Holding an index rather than an id keeps the
   // cursor where the hand left it instead of chasing the card that just left.

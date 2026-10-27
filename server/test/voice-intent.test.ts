@@ -24,7 +24,7 @@ test('FR-6 per-room progress reuses roomProgress wording', () => {
   const r = check('How are we doing in Sales?', 'status.room', 0, 'Sales:');
   assert.deepEqual(r.visual, [{ kind: 'openRoom', roomId: sales.id }]);
   assert.equal(r.context.focusRoom?.id, sales.id);
-  check("What's the latest progress in Engineering?", 'status.room', 0, 'Engineering:');
+  check("What's the latest progress in Engineering?", 'status.room', 0, 'Engineering \u2014 Kit reports:');
   check('Update on Marketing', 'status.room', 0, 'Marketing:');
 });
 
@@ -40,14 +40,11 @@ test('FR-8/FR-16 needs-me and approval refusal R2', () => {
   const r = check('What needs me?', 'status.needsme', 0, 'waiting on you');
   assert.equal(r.visual[0].kind, 'focusApproval');
   check('How many approvals waiting?', 'status.needsme', 0, 'waiting on you');
-  const refuse = interpret('Approve the first one', snap(), ctx());
-  assert.equal(refuse.intent, 'approval.nav');
-  assert.equal(refuse.tier, 3);
-  assert.equal(refuse.say, 'I never approve by voice. Here is the card.');
-  assert.equal(refuse.propose, undefined);
-  assert.equal(refuse.confirm, undefined);
-  const reject = interpret('Reject that', snap(), ctx());
-  assert.equal(reject.say, 'I never approve by voice. Here is the card.');
+  const approve = interpret('Approve the first one', snap(), ctx());
+  assert.equal(approve.intent, 'action.decide');
+  assert.equal(approve.tier, 3);
+  assert.ok(approve.confirm);
+  assert.deepEqual(approve.decide, { inboxId: 'inb_1', decision: 'approve' });
 });
 
 test('FR-9 entity detail', () => {
@@ -156,6 +153,10 @@ test('FR-14/FR-15 agent, room pause, recall, route require confirm', () => {
 test('FR-17 meta commands and clear resets context', () => {
   check('Repeat', 'meta.repeat', 0, 'nothing to repeat');
   check('Stop', 'meta.stop', 0, 'Stopped');
+  check('Never mind', 'meta.stop', 0, 'Stopped');
+  check('Be quiet', 'meta.stop', 0, 'Stopped');
+  check('Goodbye', 'meta.stop', 0, 'Going quiet');
+  check("That's all", 'meta.stop', 0, 'Going quiet');
   check('Help', 'meta.help', 0, 'Try:');
   check('Talk slower', 'meta.speed', 1, 'Slower');
   check('Louder', 'meta.volume', 1, 'Louder');
@@ -172,4 +173,112 @@ test('confidence floor: unknown short utterance does not execute', () => {
   assert.equal(r.ok, false);
   assert.ok(r.confidence < 0.75);
   assert.equal(r.visual.length, 0);
+});
+
+const visualOf = (text: string, c = ctx()) => interpret(text, snap(), c).visual;
+
+test('room status phrasings are never dispatches', () => {
+  for (const q of ["What's going on with the engineering team?", 'what is going on in sales', 'engineering team update',
+    'Give me an update on marketing', "How's the sales team doing?", 'status of marketing']) {
+    const r = interpret(q, snap(), ctx());
+    assert.equal(r.intent, 'status.room', q);
+    assert.equal(r.visual[0].kind, 'openRoom', q);
+    assert.equal(r.propose, undefined, q);
+  }
+});
+
+test('manager voices the room status', () => {
+  check('engineering update', 'status.room', 0, 'Engineering \u2014 Kit reports:');
+});
+
+test('global brief', () => {
+  for (const q of ["What's the latest update?", 'any updates', 'brief me', 'catch me up', "what's going on", "what's happening"]) {
+    const r = interpret(q, snap(), ctx());
+    assert.equal(r.intent, 'status.brief', q);
+    assert.equal(r.tier, 0);
+    assert.equal(r.visual[0].kind, 'focusApproval');
+    assert.ok(r.say.includes('waiting on you'), r.say);
+    assert.ok(r.say.split(/[.!?](?:\s|$)/).filter(Boolean).length <= 3, r.say);
+  }
+});
+
+test('open room and apps', () => {
+  for (const q of ['open sales team dashboard', 'open the sales dashboard']) {
+    assert.deepEqual(visualOf(q), [{ kind: 'openRoom', roomId: sales.id }], q);
+  }
+  assert.deepEqual(visualOf('show me the engineering team'), [{ kind: 'openRoom', roomId: 'room_eng' }]);
+  const apps: [string, string][] = [['open music', 'music'], ['launch maps', 'maps'], ['start the music app', 'music'],
+    ['open the ride app', 'ride'], ['open overview', 'floor'], ['open approvals', 'inbox'], ['open settings', 'settings']];
+  for (const [q, app] of apps) assert.deepEqual(visualOf(q), [{ kind: 'launch', app }], q);
+  check('open music', 'nav.open', 1, 'Music.');
+});
+
+test('close app, room, this, all', () => {
+  assert.deepEqual(visualOf('close music'), [{ kind: 'window', op: 'close', winRef: 'music' }]);
+  assert.deepEqual(visualOf('close the maps app'), [{ kind: 'window', op: 'close', winRef: 'maps' }]);
+  assert.deepEqual(visualOf('close approvals'), [{ kind: 'window', op: 'close', winRef: 'inbox' }]);
+  assert.deepEqual(visualOf('close the sales dashboard'), [{ kind: 'window', op: 'close', winRef: sales.id }]);
+  assert.deepEqual(visualOf('close it'), [{ kind: 'window', op: 'close', winRef: 'top' }]);
+  // "this" is the front-most window, not whichever room was last talked about
+  assert.deepEqual(visualOf('close this', { ...ctx(), focusRoom: sales }), [{ kind: 'window', op: 'close', winRef: 'top' }]);
+  for (const q of ['close all', 'close everything', 'close all windows']) {
+    assert.deepEqual(visualOf(q), [{ kind: 'window', op: 'closeAll', winRef: null }], q);
+  }
+});
+
+test('decisions need confirm and resolve targets', () => {
+  for (const q of ['approve', 'approve this', 'approve it', 'yes approve it']) {
+    const r = interpret(q, snap(), ctx());
+    assert.equal(r.intent, 'action.decide', q);
+    assert.equal(r.decide?.inboxId, 'inb_1', q);
+    assert.ok(r.confirm, q);
+  }
+  const named = interpret("approve Sam's post", snap(), ctx());
+  assert.equal(named.decide?.inboxId, 'inb_1');
+  assert.equal(named.say, 'Sam wants to publish a post. Approve it? Say yes to confirm.');
+  const second = interpret('approve the second one', snap(), ctx());
+  assert.equal(second.decide?.inboxId, 'inb_2');
+  for (const q of ['decline', 'reject this', 'deny', 'decline Kit', 'reject the second one']) {
+    const r = interpret(q, snap(), ctx());
+    assert.equal(r.decide?.decision, 'reject', q);
+    assert.ok(r.confirm?.label.startsWith('Decline'), q);
+    assert.equal(r.tier, 3);
+  }
+  const listed = interpret('what needs me', snap(), ctx());
+  assert.equal(interpret('approve the first one', snap(), listed.context).decide?.inboxId, 'inb_1');
+  const empty = interpret('approve', { ...snap(), inbox: [] }, ctx());
+  assert.equal(empty.say, 'Nothing is waiting for a decision.');
+  assert.equal(empty.decide, undefined);
+});
+
+test('undo and wake toggles', () => {
+  for (const q of ['undo', 'undo that', 'take that back']) check(q, 'meta.undo', 1, 'Undone.');
+  for (const q of ['turn on wake word', 'enable wake word']) {
+    const r = check(q, 'meta.wake', 1, 'Wake word on.');
+    assert.equal(r.wake, true);
+  }
+  for (const q of ['turn off wake word', 'disable wake word']) {
+    const r = check(q, 'meta.wake', 1, 'Wake word off.');
+    assert.equal(r.wake, false);
+  }
+});
+
+test('stop all falls through, stop Rex stays an agent action', () => {
+  for (const q of ['stop all', 'stop everyone', 'stop everything']) {
+    const r = interpret(q, snap(), ctx());
+    assert.equal(r.intent, 'unknown', q);
+    assert.equal(r.clarify, undefined, q);
+  }
+  check('stop Rex', 'action.agent', 2, 'Stop Rex?');
+});
+
+test('wake phrases and trailing please are stripped', () => {
+  check('hey atrium, what needs me', 'status.needsme', 0, 'waiting on you');
+  check('ok atrium stop', 'meta.stop', 0, 'Stopped');
+  check('agent os, brief me', 'status.brief', 0, 'waiting on you');
+  check('open music please', 'nav.open', 1, 'Music.');
+});
+
+test('help mentions new commands', () => {
+  check('help', 'meta.help', 0, 'brief me');
 });

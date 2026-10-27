@@ -49,6 +49,11 @@ function speakNative(text: string) {
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = settings.getVoiceSpeed() * 1.05;
+  utterance.volume = settings.getVoiceVolume();
+  // On-device voices only: a network voice would send the reply text off the machine.
+  const local = speechSynthesis.getVoices().find((v) => v.localService && v.lang.startsWith('en'));
+  if (!local) return;
+  utterance.voice = local;
   speechSynthesis.speak(utterance);
 }
 
@@ -61,7 +66,9 @@ async function playSamples(samples: Float32Array, samplingRate: number, id: numb
   buffer.copyToChannel(samples as Float32Array<ArrayBuffer>, 0);
   const source = audioContext.createBufferSource();
   source.buffer = buffer;
-  source.connect(audioContext.destination);
+  const gain = audioContext.createGain();
+  gain.gain.value = settings.getVoiceVolume();
+  source.connect(gain).connect(audioContext.destination);
   currentSource = source;
   await new Promise<void>((resolve) => {
     source.onended = () => { if (currentSource === source) currentSource = null; resolve(); };
@@ -104,6 +111,11 @@ export function stop() {
   }
   worker?.postMessage({ type: 'cancel', id: speakSequence });
   if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
+
+/** True while a reply is audible, so the mic can tell the orb's own voice from the operator's. */
+export function isSpeaking(): boolean {
+  return !!currentSource || fallbackTexts.size > 0 || ('speechSynthesis' in window && speechSynthesis.speaking);
 }
 
 export function getStatus(): VoiceStatus {

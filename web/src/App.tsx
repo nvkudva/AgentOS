@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLiveState, observe, post } from './lib/api';
+import { useDecide, requestDecide, requestUndo, UNDO_MS } from './lib/decide';
 import { useTheme } from './lib/theme';
 import { usePerf } from './lib/perf';
 import { loadDesktop, saveDesktop, loadSeen, saveSeen } from './lib/desktop';
@@ -88,6 +89,12 @@ const roomHeight = (crew: number, st: { h: number }) => {
 };
 
 const restored = loadDesktop();
+
+/** The window a "close this" or Escape means: front-most, on the desk. */
+const topWindow = (wins: Win[]) => wins.filter((w) => !w.min && !w.park).sort((x, y) => y.z - x.z)[0];
+/** A voice reference to a window: "top", an app or window id, or a room id (its console before its rail). */
+const findWin = (wins: Win[], ref: string) => ref === 'top' ? topWindow(wins)
+  : wins.find((w) => w.id === ref) ?? wins.find((w) => w.id === `room:${ref}`) ?? wins.find((w) => w.id === `roomwin:${ref}`);
 
 export default function App() {
   const snap = useLiveState();
@@ -688,7 +695,7 @@ export default function App() {
           setMroom(null); setMagent(null); setMset(false); return;
         }
         if (sidebar) { setSidebar(false); return; }
-        const top = wins.filter((w) => !w.min && !w.park).sort((x, y) => y.z - x.z)[0];
+        const top = topWindow(wins);
         if (top) shut(top.id);
       }
     };
@@ -697,6 +704,25 @@ export default function App() {
   }, [snap?.rooms, wins, sidebar, sheet, patch, focus, shut, openRoomWindow, narrow,
        mroom, magent, mset]);
 
+  /**
+   * A decision going back down. The worker learns it from a dot that arrives, not from
+   * a row that changes underneath it — and a parked room flashes its own colour so a
+   * rail you cannot read still tells you something happened inside it.
+   */
+  const onDecide = useCallback((it: Inbox, decision: 'approve' | 'reject') => {
+    const room = rooms.find((r) => r.key === it.room_key);
+    const worker = agentsOf.find((a) => a.name === it.agent_name && a.room_id === room?.id);
+    const from = rectOf('[data-bell]');
+    const to = worker && room ? seatOf(worker.id, room.id) : null;
+    if (!from || !to || !room) return;
+    const el = document.querySelector<HTMLElement>(`[data-agent="${CSS.escape(worker!.id)}"]`)
+      ?? document.querySelector<HTMLElement>(`.win.parked[data-win="roomwin:${CSS.escape(room.id)}"] .pk-rail`);
+    decided(from, to, decision === 'approve', el);
+  }, [rooms, agentsOf]);
+
+  /** Voice decisions outside a mounted queue (the phone) still get the one path and its undo. */
+  const fallbackDecide = useDecide(VIEW, onDecide);
+  const lastVoiceDecision = useRef<{ id: string; at: number } | null>(null);
   const ctx: CmdCtx = useMemo(() => ({
     agents: snap?.agents ?? [], rooms: snap?.rooms ?? [], inbox: snap?.inbox ?? [],
     mandates, tasks, snap: snap ?? null,
@@ -720,31 +746,34 @@ export default function App() {
       const room = t ? rooms.find((r) => r.id === (mandates.find((m) => m.id === t.mandate_id)?.room_id ?? '')) : rooms.find((r) => ids.includes(r.id));
       if (room) openRoomConsole(room);
     },
-    closeWin: (id) => { const w = wins.find((x) => x.ref === id || x.id === id || x.id === `room:${id}` || x.id === `roomwin:${id}`); if (w) shut(w.id); },
-    focusWin: (id) => { const w = wins.find((x) => x.ref === id || x.id === id || x.id === `room:${id}` || x.id === `roomwin:${id}`); if (w) { patch(w.id, { park: null, min: false }); focus(w.id); } },
+    closeWin: (id) => {
+      if (id === 'inbox') { setSidebar(false); return; }
+      const w = findWin(wins, id);
+      if (w) shut(w.id);
+    },
+    minimiseWin: (id) => { const w = findWin(wins, id); if (w) patch(w.id, { min: true }); },
+    focusWin: (id) => { const w = findWin(wins, id); if (w) { patch(w.id, { park: null, min: false }); focus(w.id); } },
     parkRoom: (r) => {
       const w = wins.find((x) => x.id === `roomwin:${r.id}` || x.id === `room:${r.id}`);
       if (w) patch(w.id, { park: r.x < COLS / 2 ? 'left' : 'right' });
       else openRoomWindow(r, true);
     },
     clearDesk: () => patchAll(() => ({ min: true })),
-  }), [snap, mandates, tasks, rooms, wins, openAgent, openRoomConsole, openRoomWindow, launch, setTheme, dispatch, shut, patch, focus, patchAll]);
-
-  /**
-   * A decision going back down. The worker learns it from a dot that arrives, not from
-   * a row that changes underneath it — and a parked room flashes its own colour so a
-   * rail you cannot read still tells you something happened inside it.
-   */
-  const onDecide = useCallback((it: Inbox, decision: 'approve' | 'reject') => {
-    const room = rooms.find((r) => r.key === it.room_key);
-    const worker = agentsOf.find((a) => a.name === it.agent_name && a.room_id === room?.id);
-    const from = rectOf('[data-bell]');
-    const to = worker && room ? seatOf(worker.id, room.id) : null;
-    if (!from || !to || !room) return;
-    const el = document.querySelector<HTMLElement>(`[data-agent="${CSS.escape(worker!.id)}"]`)
-      ?? document.querySelector<HTMLElement>(`.win.parked[data-win="roomwin:${CSS.escape(room.id)}"] .pk-rail`);
-    decided(from, to, decision === 'approve', el);
-  }, [rooms, agentsOf]);
+    closeAll: () => wins.forEach((w) => shut(w.id)),
+    decide: (id, decision) => {
+      lastVoiceDecision.current = { id, at: Date.now() };
+      if (requestDecide(id, decision)) return;
+      const it = queue.find((x) => x.id === id);
+      if (it) fallbackDecide.decide(it, decision);
+    },
+    undoDecide: () => {
+      const last = lastVoiceDecision.current;
+      if (!last || Date.now() - last.at > UNDO_MS) return false;
+      lastVoiceDecision.current = null;
+      requestUndo(last.id); fallbackDecide.undo(last.id);
+      return true;
+    },
+  }), [snap, mandates, tasks, rooms, wins, queue, fallbackDecide, openAgent, openRoomConsole, openRoomWindow, launch, setTheme, dispatch, shut, patch, focus, patchAll]);
 
   const onResult = useCallback((r: Result, what: 'open' | 'done') => {
     setResults((rs) => { const n = rs.filter((x) => x.id !== r.id); saveResults(n); return n; });

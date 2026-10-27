@@ -17,7 +17,9 @@ function firstSentence(text: string): string {
 }
 
 export function sayRoom(f: Query.RoomFacts): string {
-  const parts: string[] = [`${f.room.name}: ${f.progress.where}`];
+  const manager = f.crew.find((a) => a.tier === 'manager');
+  const lead = manager ? `${f.room.name} \u2014 ${manager.name} reports: ` : `${f.room.name}: `;
+  const parts: string[] = [`${lead}${f.progress.where}`];
   if (f.blocked.length) parts.push(`${countWord(f.blocked.length)} blocked`);
   if (f.waiting.length) parts.push(`${countWord(f.waiting.length)} waiting on you`);
   const head = parts.join(' ');
@@ -54,7 +56,8 @@ function emptySay(kind: Ctx.IntentKind): string {
 
 export function sayNeedsMe(count: number, top: Api.Inbox | null): string {
   if (!count || !top) return 'Nothing is waiting on you.';
-  return `${countWord(count)} waiting on you. The biggest is ${top.agent_name} in ${top.room_name}, about ${humanize.hours(top.est_cost_cents)}.`;
+  const n = countWord(count);
+  return `${n[0].toUpperCase()}${n.slice(1)} waiting on you. The biggest is ${top.agent_name} in ${top.room_name}, about ${humanize.hours(top.est_cost_cents)}.`;
 }
 
 export function sayAgent(agent: Api.Agent, room: Api.Room | null): string {
@@ -72,4 +75,11 @@ export function sayCrew(room: Api.Room, crew: Api.Agent[]): string {
   const mgr = crew.find((a) => a.tier === 'manager');
   const names = crew.map((a) => a.name).join(' and ');
   return mgr ? `${mgr.name} runs ${room.name}. Crew: ${names}.` : `${room.name} crew: ${names}.`;
+}
+
+export function sayBrief(f: Query.BriefFacts): string {
+  const counts = `${f.blocked ? `${countWord(f.blocked)} blocked` : 'nothing blocked'}, ${f.working ? `${countWord(f.working)} working` : 'none working'}`;
+  const report = firstSentence(f.report).replace(/[.!?]+$/, '');
+  const tail = report ? `${counts}; latest: ${report}.` : `${counts}.`;
+  return `${sayNeedsMe(f.count, f.top)} ${tail[0].toUpperCase()}${tail.slice(1)}`;
 }

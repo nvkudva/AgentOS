@@ -2,6 +2,7 @@ import type { Agent, Room, Inbox, Mandate, Task, Snapshot } from '../lib/api';
 import { hours } from '../lib/humanize';
 import { interpret, type IntentResult, type VisualAction } from './intent-engine';
 import type { VoiceContext } from '../lib/voice/context';
+import type { AppKind } from './wm';
 
 /** An unrouted sentence and the rooms that answered to it, best first. */
 export type Proposal = { kind: 'propose'; room: Room; rooms: Room[]; text: string };
@@ -12,7 +13,7 @@ export type CmdCtx = {
   killAgent: (a: Agent) => void;
   openAgent: (a: Agent) => void;
   openRoom: (r: Room) => void;
-  launch: (k: 'floor' | 'work' | 'inbox' | 'settings') => void;
+  launch: (k: AppKind) => void;
   setPanic: (on: boolean) => void;
   setTheme: (t: 'light' | 'dark' | 'auto') => void;
   setSidebar: (open: boolean) => void;
@@ -30,6 +31,11 @@ export type CmdCtx = {
   routeMandate?: (m: Mandate, room: Room) => void;
   pauseRoom?: (r: Room) => void;
   highlight?: (ids: string[]) => void;
+  /** route a decision through the one decide path (8s undo); false if no surface took it */
+  decide?: (inboxId: string, decision: 'approve' | 'reject') => void;
+  undoDecide?: () => boolean;
+  closeAll?: () => void;
+  minimiseWin?: (id: string) => void;
 };
 export type CmdResult = { say: string; ok: boolean; propose?: Proposal };
 
@@ -85,9 +91,9 @@ const find = <T extends { name?: string; key?: string }>(xs: T[], q: string) =>
  * The supervisor's brain. Deterministic on purpose: a spoken sentence that half-parsed
  * must never become an action nobody asked for.
  *
- * The one thing it deliberately cannot do is approve. Voice recognition is the wrong
- * place for an irreversible decision, so "approve the PR" surfaces the card and waits
- * for a click. R2 stays intact.
+ * This is the fallback for when there is no snapshot yet. Spoken decisions go through
+ * intent-engine, which asks for a yes first; here there is no queue to resolve "this"
+ * against, so a decision only surfaces the card.
  */
 export function run(raw: string, c: CmdCtx): CmdResult {
   const t = stripWake(raw).toLowerCase().replace(/[.!?]+$/, '').trim();
@@ -157,7 +163,7 @@ export function run(raw: string, c: CmdCtx): CmdResult {
     const first = c.inbox[0];
     if (!first) return { say: 'Nothing is waiting for a decision.', ok: true };
     c.setSidebar(true); c.focusApproval(first.id);
-    return { say: 'I never approve by voice. Here is the card.', ok: true };
+    return { say: 'Here is the card.', ok: true };
   }
 
   // --- chrome ---------------------------------------------------------------
@@ -192,8 +198,10 @@ export function applyVisual(actions: VisualAction[], c: CmdCtx): void {
     else if (a.kind === 'scroll') { try { window.scrollBy({ top: a.dir * 400, behavior: 'smooth' }); } catch { /* no window in tests */ } }
     else if (a.kind === 'window') {
       if (a.op === 'clear') c.clearDesk?.();
+      else if (a.op === 'closeAll') { c.closeAll?.(); c.setSidebar(false); }
       else if (a.op === 'park') { const r = c.rooms.find((x) => x.id === a.winRef); if (r) c.parkRoom?.(r); }
       else if (a.op === 'front') { if (a.winRef) c.focusWin?.(a.winRef); }
+      else if (a.op === 'minimise') { if (a.winRef) c.minimiseWin?.(a.winRef); }
       else if (a.winRef) c.closeWin?.(a.winRef);
     }
   }
@@ -203,6 +211,7 @@ export type VoiceRun = CmdResult & {
   context: VoiceContext; visual: VisualAction[];
   intent?: IntentResult['intent']; confirm?: { label: string };
   clarify?: IntentResult['clarify'];
+  decide?: IntentResult['decide']; wake?: boolean;
 };
 
 export function runVoice(raw: string, c: CmdCtx, vctx: VoiceContext): VoiceRun {
@@ -215,8 +224,10 @@ export function runVoice(raw: string, c: CmdCtx, vctx: VoiceContext): VoiceRun {
     }
     return { say: res.say, ok: res.ok, context: res.context, visual: [], intent: res.intent };
   }
-  if (!res.confirm && !res.clarify) applyVisual(res.visual, c);
-  const out: VoiceRun = { say: res.say, ok: res.ok, context: res.context, visual: res.visual, intent: res.intent, confirm: res.confirm, clarify: res.clarify };
+  // A decision's card is surfaced while it waits for the yes; other confirms show nothing yet.
+  if (!res.clarify && (!res.confirm || res.decide)) applyVisual(res.visual, c);
+  const out: VoiceRun = { say: res.say, ok: res.ok, context: res.context, visual: res.visual, intent: res.intent,
+                          confirm: res.confirm, clarify: res.clarify, decide: res.decide, wake: res.wake };
   if (res.propose) out.propose = res.propose;
   return out;
 }

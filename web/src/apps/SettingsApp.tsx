@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getSmartNlu, getWakeWord, setSmartNlu, setWakeWord, VOICE_SETTINGS_EVENT } from '../lib/voice/settings';
+import * as llm from '../lib/voice/llm';
 import { NewRoom } from './NewRoom';
 import { post } from '../lib/api';
 import { hours } from '../lib/humanize';
@@ -49,6 +51,8 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
         frame rate, so <b>auto</b> measures {perf.measured ? `${perf.measured}fps` : 'the first two seconds'} and
         drops to flat surfaces if it cannot hold 60.
       </p>
+
+      <VoiceSection />
 
       <h4>Operator</h4>
       <label>
@@ -124,5 +128,44 @@ function RoomCap({ room }: { room: Room }) {
       <input type="number" value={v} onChange={(e) => setV(Number(e.target.value))} />
       <button onClick={() => post('/api/budget', { room: room.key, cents: v })}>set</button>
     </span>
+  );
+}
+
+function VoiceSection() {
+  const [wake, setWake] = useState(getWakeWord);
+  const [smart, setSmart] = useState(getSmartNlu);
+  const [deleted, setDeleted] = useState(false);
+  useEffect(() => {
+    const sync = () => { setWake(getWakeWord()); setSmart(getSmartNlu()); };
+    window.addEventListener(VOICE_SETTINGS_EVENT, sync);
+    return () => window.removeEventListener(VOICE_SETTINGS_EVENT, sync);
+  }, []);
+  const deleteModels = async () => {
+    try {
+      const names = await caches.keys();
+      await Promise.all(names.filter((n) => n.includes('transformers')).map((n) => caches.delete(n)));
+    } catch { /* no Cache Storage: nothing to delete */ }
+    setDeleted(true);
+  };
+  return (
+    <>
+      <h4>Voice</h4>
+      <label>
+        <input type="checkbox" checked={wake} onChange={(e) => setWakeWord(e.target.checked)} />
+        Wake word — say “Atrium” hands-free (mic stays on; audio never leaves this device)
+      </label>
+      <label>
+        <input type="checkbox" checked={smart} onChange={(e) => { setSmartNlu(e.target.checked); if (e.target.checked) llm.preload(); }} />
+        Smart understanding — on-device language model, 270–390 MB one-time download
+      </label>
+      <p className="muted tiny">On-device models:</p>
+      <ul className="muted tiny voice-models">
+        <li>Speech recognition: Whisper tiny.en ~40 MB</li>
+        <li>Voice: Kokoro 82M ~90 MB</li>
+        <li>Language: SmolLM2 360M 270–390 MB, only with smart understanding</li>
+      </ul>
+      <button onClick={deleteModels}>Delete downloaded voice models</button>
+      {deleted && <p className="muted tiny">Deleted — models download again on next use.</p>}
+    </>
   );
 }
