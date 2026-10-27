@@ -1,7 +1,7 @@
 import { test, after } from 'node:test';
 import assert from 'node:assert';
 import { callTool } from '../src/runtime/toolbelt.js';
-import { withBroker, closeAll } from '../src/db.js';
+import { withBroker, closeAll, q } from '../src/db.js';
 import { ScopeViolation } from '../src/errors.js';
 import { makeRoom, refresh } from './helpers.js';
 
@@ -33,12 +33,16 @@ test('a grant does not widen the profile: read_business cannot annotate', async 
 });
 
 test('support rooms work tickets through the broker; others are refused', async () => {
+  // Seed creates no tickets, so stage one open ticket as the fixture.
+  const staged = await q<{ id: number }>(
+    `INSERT INTO support.ticket (subject, body) VALUES ('probe', 'probe') RETURNING id`);
   const s = await makeRoom({ grants: ['ticket.list'], accessProfile: 'support_desk' });
   try {
     const r: any = await callTool(s.ctx, 'ticket.list', { status: 'open' });
     assert.ok(Array.isArray(r.rows) && r.rows.length > 0, 'support reads its tickets');
   } finally {
     await s.cleanup();
+    await q('DELETE FROM support.ticket WHERE id=$1', [staged[0].id]);
   }
   const o = await makeRoom({ grants: ['ticket.list'], accessProfile: 'read_business' });
   try {

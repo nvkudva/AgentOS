@@ -69,9 +69,15 @@ test('"no company data" means the database itself says no', async () => {
 });
 
 test('a room with the support profile gets that access and no more', async () => {
-  const p = rolePool('atrium_support');
+  // Seed randomizes the role password — connect with the stored one, as above.
+  const pw = (await q('SELECT db_password FROM room WHERE key=$1', ['support']))[0]?.db_password;
+  const p = rolePool('atrium_support', pw);
+  // Seed creates no tickets, so stage one as the fixture.
+  const staged = await q<{ id: number }>(
+    `INSERT INTO support.ticket (subject, body) VALUES ('probe', 'probe') RETURNING id`);
   const r = await p.query('SELECT count(*)::int n FROM support.ticket');
   assert.ok(r.rows[0].n > 0, 'it can read the tickets it is meant to answer');
+  await q('DELETE FROM support.ticket WHERE id=$1', [staged[0].id]);
   await assert.rejects(() => p.query(`UPDATE bizdata.pipeline SET note='x'`), /permission denied/i,
     'and cannot touch the sales room\'s data');
 });

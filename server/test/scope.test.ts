@@ -37,12 +37,17 @@ test('sql.query refuses anything that writes', async () => {
 
 test('the engineering database role has no grant on business data', async () => {
   // Not our gate — postgres itself refuses. Belt and braces.
-  const p = rolePool('atrium_engineering');
+  // Seed provisions rooms with random passwords, so connect with the stored
+  // one: a failure here must mean the grant is wrong, not the login.
+  const pw = (await q('SELECT db_password FROM room WHERE key=$1', ['engineering']))[0]?.db_password;
+  const p = rolePool('atrium_engineering', pw);
   await assert.rejects(() => p.query('SELECT * FROM bizdata.orders LIMIT 1'), /permission denied|does not exist/i);
 });
 
 test('the analytics role can read business data but not write it', async () => {
-  const p = rolePool('atrium_analytics');
+  // Same stored-password rule as above: seed randomizes the role password.
+  const pw = (await q('SELECT db_password FROM room WHERE key=$1', ['analytics']))[0]?.db_password;
+  const p = rolePool('atrium_analytics', pw);
   const r = await p.query('SELECT count(*)::int n FROM bizdata.orders');
   assert.ok(r.rows[0].n > 0, 'analytics really can read the real table');
   await assert.rejects(() => p.query(`UPDATE bizdata.orders SET status='paid'`), /permission denied/i);
