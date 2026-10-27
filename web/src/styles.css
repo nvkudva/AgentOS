@@ -10,18 +10,18 @@
   --dock-gap:10px;
   color-scheme: light;
   --text:#0d1319; --muted:#59646f; --faint:#5f6973;
-  --solid:#f6f8fb; --win-fill:#fbfdfef7;
-  --line:#0d131922; --line-soft:#0d131912; --tint:#0d13190a; --tint-2:#0d131914;
+  --solid:#f6f8fb; --win-fill:#fbfbfd;
+  --line:#0d131922; --line-soft:#0d131914; --tint:#3c465a0f; --tint-2:#3c465a1a;
 
-  --sheen-1:rgb(255 255 255 / .55); --sheen-2:rgb(255 255 255 / .28);
-  --rim:rgb(255 255 255 / .55); --spec:rgb(255 255 255 / .70);
+  --sheen-1:transparent; --sheen-2:transparent;
+  --rim:rgb(255 255 255 / .6); --spec:rgb(255 255 255 / .55);
 
-  --e1:0 1px 2px rgb(0 0 0 / .06), 0 0 0 .5px rgb(0 0 0 / .07);
-  --e2:0 2px 8px -2px rgb(0 0 0 / .12), 0 0 0 .5px rgb(0 0 0 / .08);
-  --e3:0 12px 32px -12px rgb(0 0 0 / .22), 0 2px 6px -3px rgb(0 0 0 / .12);
-  --e4:0 32px 64px -20px rgb(0 0 0 / .34), 0 4px 12px -6px rgb(0 0 0 / .18);
+  --e1:0 0 0 .5px rgb(0 0 0 / .08), 0 1px 2px rgb(0 0 0 / .06);
+  --e2:0 0 0 .5px rgb(0 0 0 / .10), 0 8px 24px -6px rgb(0 0 0 / .18);
+  --e3:0 0 0 .5px rgb(0 0 0 / .12), 0 10px 30px -10px rgb(0 0 0 / .20);
+  --e4:0 0 0 .5px rgb(0 0 0 / .14), 0 22px 60px -14px rgb(0 0 0 / .34), 0 6px 14px -6px rgb(0 0 0 / .16);
 
-  --idle:#98a2b0; --working:#2f6fe0; --blocked:#c9821c; --approval:#8352c9;
+  --idle:#7a8494; --working:#2f6fe0; --blocked:#c9821c; --blocked-text:#9a5a00; --approval:#8352c9;
   --failed:#d1483c; --killed:#b3bac4; --ok:#2f9468;
 
   --sky-1:#a9cdf0; --sky-2:#d3e3f4; --sky-3:#f7ecdc; --sun:#ffc98a;
@@ -33,7 +33,8 @@
   --ui:'Google Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable',
        'Segoe UI', system-ui, sans-serif;
 
-  --r-shell:26px; --r-win:18px; --r-card:12px; --r-ctl:9px;
+  --r-shell:20px; --r-win:14px; --r-card:12px; --r-ctl:8px;
+  --spring:cubic-bezier(.34,1.3,.64,1);
   --menubar:44px; --dock:84px;
 
   /* ONE easing family, ONE duration scale. Nothing in this file may state a curve
@@ -59,21 +60,21 @@
 [data-theme="dark"] {
   color-scheme: dark;
   --text:#e9edf3; --muted:#98a4b4; --faint:#8b96a5;
-  --solid:#0e1219; --win-fill:#141922fa;
+  --solid:#171b22; --win-fill:#1c1f26;
   --line:#ffffff20; --line-soft:#ffffff12; --tint:#ffffff0a; --tint-2:#ffffff16;
 
-  --sheen-1:rgb(255 255 255 / .10); --sheen-2:rgb(255 255 255 / .04);
-  --rim:rgb(255 255 255 / .12); --spec:rgb(255 255 255 / .16);
+  --sheen-1:transparent; --sheen-2:transparent;
+  --rim:rgb(255 255 255 / .14); --spec:rgb(255 255 255 / .10);
 
-  --e1:0 1px 2px rgb(0 0 0 / .40), 0 0 0 .5px rgb(0 0 0 / .50);
-  --e2:0 2px 10px -2px rgb(0 0 0 / .55), 0 0 0 .5px rgb(0 0 0 / .55);
-  --e3:0 14px 38px -12px rgb(0 0 0 / .70), 0 2px 8px -3px rgb(0 0 0 / .50);
-  --e4:0 36px 74px -20px rgb(0 0 0 / .85), 0 4px 14px -6px rgb(0 0 0 / .55);
+  --e1:0 0 0 .5px rgb(255 255 255 / .08), 0 1px 2px rgb(0 0 0 / .50);
+  --e2:0 0 0 .5px rgb(255 255 255 / .10), 0 8px 24px -6px rgb(0 0 0 / .60);
+  --e3:0 0 0 .5px rgb(255 255 255 / .10), 0 10px 30px -10px rgb(0 0 0 / .70);
+  --e4:0 0 0 .5px rgb(255 255 255 / .12), 0 22px 60px -14px rgb(0 0 0 / .85), 0 6px 14px -6px rgb(0 0 0 / .55);
 
-  --idle:#4c5563; --working:#5b96ff; --blocked:#e0a63a; --approval:#b083ee;
+  --idle:#6b7686; --working:#5b96ff; --blocked:#e0a63a; --blocked-text:#e0a63a; --approval:#b083ee;
   --failed:#ec6a5e; --killed:#333a45; --ok:#4bbd8a;
 
-  --sky-1:#080d1a; --sky-2:#101a30; --sky-3:#1b2740; --sun:#cfd9ff;
+  --sky-1:#0a1124; --sky-2:#16233f; --sky-3:#1b2740; --sun:#cfd9ff;
   --ridge-3:#16203a; --ridge-2:#111a2f; --ridge-1:#0c1324;
   --mist:#9fb6d8; --water:#0a1020; --fore:#050912;
 }
@@ -366,8 +367,9 @@ p { margin:8px 0; }
    persists across reloads — it was already past 150 here, so any "sensibly small"
    value loses. It cannot escape the desk either way: .stage is its own stacking
    context, so the menubar and dock still sit above all of this. */
-.win.plain:hover, .win.parked:hover { z-index:var(--z-front); }
-.win.parked:hover { width:340px; }
+.win.parked:hover { z-index:var(--z-front); }
+.win.parked:hover { width:380px; height:auto; min-height:var(--ph); max-height:calc(100vh - 200px);
+  background:var(--win-fill); box-shadow:var(--e4); }
 .win.parked:hover .win-body { overflow:auto; }
 /* while something is being dragged, a rail must not swell under the pointer */
 body.dragging .win.parked:hover { width:var(--sliver); }
@@ -407,8 +409,7 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .win.dragging { box-shadow:var(--e4); will-change:left, top, width, height; }
 .win.dragging .win-body { pointer-events:none; }
 .win-bar { height:38px; flex:none; display:flex; align-items:center; gap:12px; padding:0 12px;
-  border-bottom:.5px solid var(--line-soft); user-select:none; touch-action:none;
-  background:linear-gradient(var(--sheen-1), transparent); }
+  border-bottom:.5px solid var(--line-soft); user-select:none; touch-action:none; }
 .lights { display:flex; gap:8px; }
 .l { width:12px; height:12px; border-radius:999px; padding:0; border:0; cursor:pointer; }
 .l.red{background:#ff5f57}.l.yellow{background:#febc2e}.l.green{background:#28c840}
@@ -423,9 +424,7 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .win-body {
   background:
     linear-gradient(var(--win-fill), transparent) top    / 100% 12px no-repeat local,
-    linear-gradient(transparent, var(--win-fill)) bottom / 100% 12px no-repeat local,
-    radial-gradient(farthest-side at 50% 0,    rgb(0 0 0 / .14), transparent) top    / 100% 7px no-repeat scroll,
-    radial-gradient(farthest-side at 50% 100%, rgb(0 0 0 / .14), transparent) bottom / 100% 7px no-repeat scroll; }
+    linear-gradient(transparent, var(--win-fill)) bottom / 100% 12px no-repeat local; }
 .grip { position:absolute; right:0; bottom:0; width:18px; height:18px; cursor:nwse-resize; touch-action:none; }
 
 /* --- slide-over --- */
@@ -557,7 +556,7 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .card .touches { color:var(--faint); font-size:12px; }
 .card .acts { display:flex; gap:8px; }
 .calm { color:var(--faint); }
-.cost { color:var(--blocked); font-variant-numeric:tabular-nums; }
+.cost { color:var(--blocked-text); font-variant-numeric:tabular-nums; }
 
 /* Settings: inset grouped lists, the System Settings layout. One card per section,
    a label on the left and its control on the right, hairlines between rows. */
@@ -1082,13 +1081,13 @@ body.carrying .orb-btn { box-shadow:0 0 0 2px color-mix(in srgb, var(--working) 
 
 /* --- a parked rail, opened by dwelling on it while carrying ------------- */
 .win.parked { transition:width var(--t-near) var(--ease); }
-body.carrying .win.parked.dwell { width:340px; z-index:var(--z-front); }
+body.carrying .win.parked.dwell { width:380px; z-index:var(--z-front); }
 body.carrying .win.parked.dwell .win-bar, body.carrying .win.parked.dwell .win-body { display:flex; }
 body.carrying .win.parked.dwell .win-body { display:block; overflow:auto; }
 body.carrying .win.parked.dwell .pk-hold { display:none; }
 
 /* --- the chain, on hover. The only dimming in this product. ------------- */
-.stage[data-trace] .win, .stage[data-trace] > .sit-down {
+.stage[data-trace] .win:not(:hover), .stage[data-trace] > .sit-down {
   opacity:.45; transition:opacity var(--t-tint) var(--ease); }
 .stage .win { transition:opacity var(--t-tint) var(--ease); }
 
@@ -1460,17 +1459,16 @@ body { touch-action:manipulation; }
 .wake-toggle.on { box-shadow:0 0 0 2px #2dd4bf; }
 
 /* ================= polish pass: windows, room app, content ================= */
-/* The front window is the one glass pane over the wallpaper; back windows stay flat
-   so no more than a few blurred surfaces are ever on screen. */
-.win:not(.back):not(.parked):not(.dragging) {
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)),
-             color-mix(in srgb, var(--solid) 92%, transparent);
-  backdrop-filter:blur(30px) saturate(170%);
-  box-shadow:inset 0 .5px 0 var(--spec), var(--e4); }
-[data-perf="lite"] .win:not(.back):not(.parked) { backdrop-filter:none; background:var(--win-fill); }
-.win-bar { height:40px; background:linear-gradient(var(--sheen-1), transparent); border-bottom:.5px solid var(--line-soft); }
+/* Front windows are opaque with a hairline and a deep shadow; only chrome is glass.
+   Back windows sit flatter, so front and back differ by more than a shadow. */
+.win { background:var(--win-fill); border:0; box-shadow:var(--e4); }
+.win.back { box-shadow:var(--e3); filter:saturate(.85); }
+.win-bar { height:44px; gap:12px; padding:0 14px; background:none; }
 .win-title { font-size:13px; font-weight:600; color:var(--text); letter-spacing:-.01em; }
 .win.back .win-title { color:var(--faint); font-weight:500; }
+.win:not(.plain) .win-title { position:absolute; left:84px; right:84px; text-align:center;
+  pointer-events:none; }
+.win .backbtn { margin-left:auto; position:relative; z-index:1; }
 
 .roomapp { background:transparent; }
 .app-head { padding:18px 20px 14px; gap:14px; border-bottom:0; }
@@ -1504,3 +1502,160 @@ body { touch-action:manipulation; }
 .plain-list { gap:6px; }
 .plain-list li { padding:8px 10px; border-radius:9px; background:var(--tint); align-items:center; }
 .pill { background:var(--tint); }
+
+/* ================= design pass: one material, one rhythm ================= */
+:root { --menubar:40px; --tile:52px; }
+
+button:active:not(:disabled) { transform:scale(.97); transition:transform 80ms var(--ease), background var(--t-tint); }
+button.primary:hover { background:var(--working); filter:brightness(1.07); }
+[data-theme="dark"] button.primary { background:#0a84ff; }
+button.danger { border-color:transparent; background:var(--tint-2); }
+button.danger:hover { background:color-mix(in srgb, var(--failed) 16%, transparent); }
+:focus-visible { outline:2px solid color-mix(in srgb, var(--working) 70%, transparent); outline-offset:2px; }
+h4 { text-transform:none; letter-spacing:.01em; font-size:12px; color:var(--muted); }
+.l { position:relative; }
+.l::before { content:''; position:absolute; inset:-4px; border-radius:999px; }
+.l:focus-visible { outline-offset:3px; }
+
+/* --- menu bar --- */
+.menu { color:var(--text); border-radius:var(--r-ctl); }
+.demo-pill { font-size:11px; font-weight:500; color:var(--blocked-text); border:0;
+  background:color-mix(in srgb, var(--blocked) 16%, transparent); padding:2px 9px; }
+.wake-toggle { height:28px; border:0; border-radius:var(--r-ctl); background:var(--tint); padding:0 10px; }
+.bell { border-radius:var(--r-ctl); padding:4px 8px; }
+.bell i, .tile .badge { min-width:16px; height:16px; box-sizing:border-box; padding:0 4px; text-align:center;
+  font:600 10px/12px var(--ui); border:2px solid var(--solid); }
+.bell i { top:-4px; right:-4px; }
+
+/* --- dock --- */
+.tile .ric, .appicon { border-radius:23%; }
+.tile .badge { top:-6px; right:-6px; }
+.tile .badge.quiet { left:-6px; }
+.tile .run { background:color-mix(in srgb, var(--text) 60%, transparent); }
+.dock-sep { width:1px; height:28px; align-self:center; opacity:.5; margin:0 4px; }
+.tile:hover::after { padding:4px 12px; font-size:12px; font-weight:500; border:0;
+  background:color-mix(in srgb, var(--solid) 72%, transparent);
+  backdrop-filter:blur(20px) saturate(180%); box-shadow:var(--e2);
+  animation:cap-in 120ms var(--ease) both; }
+.tile:focus-visible { outline-offset:4px; transform:translateY(-8px) scale(1.2); }
+.tile { transition:transform 160ms var(--ease); }
+
+/* --- slide-over: sits above the dock, never on it --- */
+.scrim { background:rgb(0 0 0 / .18); }
+.slideover { bottom:calc(var(--dock) + 8px + env(safe-area-inset-bottom, 0)); }
+@media (min-width: 641px) { .slideover { width:min(360px, 92vw); } }
+.slideover > header { padding:14px 12px 12px 18px; }
+.slideover .count { min-width:20px; text-align:center; }
+.keyhint { opacity:.75; }
+
+/* --- room window: a place with its own chrome --- */
+.win.plain .win-bar { padding:0 12px 0 14px; }
+.win.plain .win-title { flex:1; min-width:0; display:flex; align-items:center; gap:8px; }
+.win.plain .wt-icon { display:inline-grid; place-items:center; width:22px; height:22px; flex:none;
+  border-radius:7px; font-size:12px;
+  background:color-mix(in srgb, var(--c) 18%, transparent);
+  box-shadow:inset 0 0 0 .5px color-mix(in srgb, var(--c) 35%, transparent); }
+.win.plain .lights { order:2; margin-left:auto; }
+.win.plain .lights .l.red { width:22px; height:22px; font-size:14px; background:var(--tint-2);
+  color:var(--muted); }
+.win.plain .lights .l.red:hover { background:color-mix(in srgb, var(--failed) 18%, transparent); color:var(--failed); }
+
+.roomwin { padding:12px; }
+.roomwin .strip > div { max-height:132px; }
+.crew { transition:background var(--t-tint); }
+.crew.on { box-shadow:inset 2px 0 0 var(--room); }
+.crew-text em { color:var(--muted); }
+.crew-text em.cap { height:18px; }
+.crew-text em { max-width:220px; }
+.st { box-shadow:0 0 0 2px var(--win-fill); }
+.chit { height:28px; border-radius:8px; font-size:12px; }
+.chit.waiting { animation-name:chit-wait-soft; animation-duration:3.2s; }
+@keyframes chit-wait-soft { 0%,100% { opacity:.75 } 50% { opacity:1 } }
+.chit.tick { transition:width 140ms var(--ease) 120ms, height 140ms var(--ease) 120ms,
+  background 140ms var(--ease) 120ms, box-shadow 140ms var(--ease) 120ms, opacity 120ms linear; }
+.chit.tick b, .chit.tick u { transition:opacity 140ms var(--ease) 120ms; }
+.chit.tick:hover { height:28px; }
+
+/* the room's one question, as a card with one primary act */
+.needs-bar { position:relative; overflow:hidden; flex-wrap:wrap; gap:8px; margin-top:8px; padding:12px 12px 12px 14px;
+  border:0; border-radius:var(--r-card);
+  background:color-mix(in srgb, var(--approval) 9%, var(--tint));
+  box-shadow:inset 3px 0 0 var(--approval); }
+.needs-bar.high { border-top:0; }
+.needs-what { flex:1 1 100%; font-weight:600; line-height:1.35; }
+.needs-what .muted { display:block; margin-top:2px; font-weight:400; font-size:12px; }
+.needs-bar .spacer { display:none; }
+.needs-bar button { height:28px; padding:0 14px; border:0; }
+.needs-bar button.danger { color:var(--failed); }
+.needs-bar button:not(.primary):not(.danger):not(.more) { background:none; color:var(--working); padding:0 6px; }
+.needs-bar .more { margin-left:auto; }
+
+/* --- parked rails --- */
+.win.parked { box-shadow:var(--e3); }
+.pk-faces { gap:8px; }
+.pk-icon { box-shadow:inset 0 0 0 1px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.2); }
+
+/* --- settings: two panes, grouped rows --- */
+.settings-app { display:grid; grid-template-columns:200px minmax(0, 1fr); height:100%; min-height:0; }
+.settings-nav { display:flex; flex-direction:column; gap:2px; padding:12px 8px; overflow:auto;
+  border-right:.5px solid var(--line-soft); background:var(--tint); }
+.settings-nav button { display:flex; align-items:center; gap:10px; height:32px; padding:0 8px; border:0;
+  border-radius:var(--r-ctl); background:none; text-align:left; color:var(--text); }
+.settings-nav button:hover { background:var(--tint-2); }
+.settings-nav button.on { background:var(--working); color:#fff; }
+.settings-nav i { width:20px; height:20px; flex:none; display:grid; place-items:center; border-radius:6px;
+  font-style:normal; font-size:11px; color:#fff; background:var(--c); }
+.settings-app > .settings { max-width:none; width:100%; margin:0; padding:24px 28px 32px; overflow:auto; min-height:0;
+  animation:cap-in var(--t-near) var(--ease) both; }
+.settings h4 { font-size:13px; margin:24px 4px 8px 16px; }
+.settings h4:first-child { margin-top:0; }
+.sgroup { background:var(--tint); }
+.sgroup > label, .sgroup > .kv { position:relative; }
+.sgroup > label { min-height:44px; padding:10px 16px; }
+.sgroup > label + label, .sgroup > .kv + .kv { border-top:0; }
+.sgroup > label + label::before, .sgroup > .kv + .kv::before { content:''; position:absolute; left:16px; right:0; top:0;
+  height:.5px; background:var(--line-soft); }
+.srow { display:flex; flex-direction:column; gap:1px; min-width:0; flex:1; }
+.srow b { font-weight:500; font-size:13px; }
+.srow em { font-style:normal; font-size:12px; line-height:1.35; color:var(--muted); }
+.kv { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 16px; font-size:13px; }
+.kv em { font-style:normal; color:var(--muted); white-space:nowrap; }
+.sgnote { margin:8px 16px 0; font-size:12px; }
+.settings .capedit input { width:96px; }
+.seg { border-radius:var(--r-ctl); }
+.seg button { border-radius:6px; font-size:12px; }
+.seg button.primary { font-weight:600; }
+.settings input[type=checkbox] { background:rgb(120 128 140 / .32); }
+.settings input[type=checkbox]::after { transition:transform 220ms var(--spring), width 120ms var(--ease); }
+.settings input[type=checkbox]:active::after { width:22px; }
+.settings input[type=checkbox]:checked:active::after { transform:translateX(12px); }
+@media (max-width: 767px) {
+  .settings-app { grid-template-columns:1fr; grid-template-rows:auto minmax(0, 1fr); }
+  .settings-nav { flex-direction:row; overflow-x:auto; border-right:0; border-bottom:.5px solid var(--line-soft); }
+  .settings-nav button { flex:none; }
+}
+
+/* --- other apps --- */
+.work-row { background:var(--tint); }
+.work-main { padding:12px; }
+.work-filter input { height:32px; padding:0 12px; border-radius:var(--r-ctl); }
+.mu-art { border-radius:var(--r-card); }
+.mu-ctl button.big { width:44px; height:44px; border-radius:999px; background:var(--text); color:var(--solid); font-size:18px; }
+.mu-list li { min-height:44px; }
+.rd-t { min-width:0; }
+.rd-tiers li > :last-child { flex:none; font-weight:600; }
+.mp-canvas svg { height:auto; min-height:170px; }
+.mp-search { border-radius:var(--r-ctl); height:32px; }
+.mp-zoom { gap:0; border-radius:var(--r-ctl); overflow:hidden; box-shadow:var(--e1); }
+.mp-zoom button { border-radius:0; border:0; width:30px; height:30px; }
+.grid { grid-auto-rows:minmax(196px, auto); }
+.room.needs, .room.blocked, .room.capped { border-width:1.5px; }
+.thread-item { transition:background var(--t-tint); }
+.persona .face.big, .persona .face { box-shadow:0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); }
+.msg .bubble { border-radius:16px; }
+
+/* a window the pointer merely passes over must not jump the stack */
+.glance-ask, .away-strip { border-radius:var(--r-shell); }
+.seg button.primary:hover { background:var(--win-fill); filter:none; }
+[data-theme="dark"] .seg button.primary { background:#3a404c; color:var(--text); }
+.tile:hover::after { font-size:9px; padding:3px 8px; }

@@ -85,7 +85,7 @@ export function Dock({ wins, agents, inbox, unread = 0, rooms, onLaunch, onFocus
           </button>
         ))}
       </div>
-      <span className="dock-status">{working} working · {agents.length} agents</span>
+      {working > 0 && <span className="dock-status">{working} working · {agents.length} agents</span>}
     </div>
   );
 }

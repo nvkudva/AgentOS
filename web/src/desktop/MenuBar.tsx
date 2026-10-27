@@ -36,7 +36,7 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
       <span className="menu" onClick={() => onOpen('settings')}>Settings</span>
       <GlanceTest view={view} truth={needsMe} />
       <span className="menu" onClick={onSheet} title="keyboard shortcuts (?)">?</span>
-      {demo && <span className="demo-pill" role="status">Demo data — nothing here is live</span>}
+      {demo && <span className="demo-pill" role="status" title="Nothing here is live">Demo data</span>}
 
       <span className="spacer" />
       <Supervisor ctx={ctx} alert={needsMe} speak={true} skin={skin}

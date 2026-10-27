@@ -236,9 +236,9 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
     >
       <header className="win-bar" onPointerDown={(e) => down(e, 'move')} onDoubleClick={() => plain || onPatch({ max: !win.max })}>
         <span className="lights">
-          <button className="l red" onClick={onClose} title="close" />
-          {!plain && <button className="l yellow" onClick={() => onPatch({ min: true })} title="minimise" />}
-          {!plain && <button className="l green" onClick={() => onPatch({ max: !win.max })} title="zoom" />}
+          <button className="l red" onClick={onClose} title="close" aria-label="Close window" />
+          {!plain && <button className="l yellow" onClick={() => onPatch({ min: true })} title="minimise" aria-label="Minimise window" />}
+          {!plain && <button className="l green" onClick={() => onPatch({ max: !win.max })} title="zoom" aria-label="Zoom window" />}
         </span>
         <span className={`win-title${plain ? ' plain' : ''}`}>
           <span className="wt-icon">{win.icon}</span> {win.title}

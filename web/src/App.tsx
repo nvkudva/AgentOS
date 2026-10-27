@@ -67,9 +67,9 @@ const CENTRE_W = 900, CENTRE_H = 600;
  * Aligned to the live desk on first use; modulo keeps it bounded forever.
  */
 let arrivals = -1;
-const COLS = 4, PAD = 10, ROOM_W = 320;
+const COLS = 4, PAD = 10, ROOM_W = 380;
 /** The room window's own furniture, in the sizes styles.css actually gives it. */
-const BAR_H = 39, BODY_PAD = 18, MGR_ROW = 60, CREW_ROW = 48, ROW_GAP = 2;
+const BAR_H = 44, BODY_PAD = 24, MGR_ROW = 60, CREW_ROW = 48, ROW_GAP = 2;
 /**
  * A room is as tall as its crew — a bar, a manager, a line per worker and room for the
  * strip of queued work. The floor plan gives the column; the desk decides how many rows
@@ -85,7 +85,7 @@ const BAR_H = 39, BODY_PAD = 18, MGR_ROW = 60, CREW_ROW = 48, ROW_GAP = 2;
 const roomHeight = (crew: number, st: { h: number }) => {
   const need = BAR_H + BODY_PAD + MGR_ROW + Math.max(0, crew - 1) * CREW_ROW
              + Math.max(1, crew) * ROW_GAP;
-  return Math.min(Math.max(190, need), Math.max(180, st.h - PAD * 2));
+  return Math.min(Math.max(260, need), Math.max(180, Math.round(st.h * 0.7)));
 };
 
 const restored = loadDesktop();

@@ -128,7 +128,7 @@ export function Chit({ kind, id, label, colour, cost, spent, quoted, tools, room
           ? <button className="chit-undo" onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); keep(); }}>Undo</button>
           : live
-            ? <u>{hours(shown)}{state === 'capped' ? ' · at quote' : ''}</u>
+            ? (shown > 0 || state === 'capped') && <u>{hours(shown)}{state === 'capped' ? ' · at quote' : ''}</u>
             : cost && <u>{cost}</u>}
         {draining && <i className="chit-drain" />}
         {ping && <i className="chit-ping" />}
