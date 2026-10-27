@@ -33,41 +33,32 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
 }) {
   const [d, setD] = useState<any>(null);
   const [tab, setTab] = useState<Tab>('Activity');
-  /** the backend never answered: stop spinning and say so, with a way back */
-  const [dead, setDead] = useState(false);
-  const [tries, setTries] = useState(0);
 
   const load = () => get(`/api/rooms/${room.id}`).then(setD);
   useEffect(() => { load(); const t = setInterval(load, 1800); return () => clearInterval(t); }, [room.id]);
   useEffect(() => { observe(view, 'room.open', { room: room.key }); }, [room.id]);
-  useEffect(() => {
-    setDead(false);
-    const t = setTimeout(() => setDead(true), 5000);
-    return () => clearTimeout(t);
-  }, [room.id, tries]);
-  if (!d) return dead
-    ? <div className="pad">
-        <h3>Couldn't reach this room</h3>
-        <p className="muted">No backend answered within 5s. Nothing here is live.</p>
-        <p><button className="primary" onClick={() => { setTries((t) => t + 1); load(); }}>Retry</button></p>
-      </div>
-    : <div className="pad muted">One moment…</div>;
-
-  const spent = d.room.spent_cents, cap = d.room.budget_cents;
-  const nameOf = (id: string) => d.agents.find((a: any) => a.id === id)?.name ?? 'Someone';
+  // No backend (the hosted demo) or still loading: draw the room from the desk's own
+  // snapshot instead of an empty window. Detail tabs are empty until the live data lands.
+  const live = !!d;
+  const d_ = d ?? { room, agents: agents.filter((a) => a.room_id === room.id),
+    events: [], artifacts: [], queue: [], ledger: [], runs: [] };
+  const mandateIds = new Set(mandates.filter((m) => m.room_id === room.id).map((m) => m.id));
+  const roomTasks = tasks.filter((t) => mandateIds.has(t.mandate_id));
+  const spent = d_.room.spent_cents, cap = d_.room.budget_cents;
+  const nameOf = (id: string) => d_.agents.find((a: any) => a.id === id)?.name ?? 'Someone';
 
   return (
     <div className="roomapp">
       <header className="app-head">
-        <span className="app-icon" style={{ color: (d.room as any).color }}>{(d.room as any).icon}</span>
+        <span className="app-icon" style={{ ['--c' as any]: (d_.room as any).color }}>{(d_.room as any).icon}</span>
         <div>
-          <b>{d.room.name}</b>
-          <p className="muted">{d.room.objective}</p>
+          <b>{d_.room.name}</b>
+          <p className="muted">{d_.room.objective}</p>
         </div>
         <span className="spacer" />
-        {d.room.status !== 'open' &&
+        {d_.room.status !== 'open' &&
           <button onClick={() => post('/api/rooms/resume', { room: room.key }).then(load)}>Resume</button>}
-        {d.agents.map((a: any) => (
+        {d_.agents.map((a: any) => (
           <button key={a.id} className={a.state === 'working' ? '' : 'primary'}
                   onClick={() => post(a.state === 'working' ? `/api/agents/${a.id}/kill` : `/api/agents/${a.id}/start`).then(load)}>
             {a.state === 'working' ? `Pause ${a.name}` : `Start ${a.name}`}
@@ -75,8 +66,9 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
         ))}
       </header>
 
-      <Summary room={d.room} mandates={mandates} tasks={tasks}
-               agents={agents.length ? agents : d.agents} />
+      <Summary room={d_.room} mandates={mandates} tasks={tasks}
+               agents={agents.length ? agents : d_.agents} />
+      {!live && <p className="rm-offline">Snapshot — not live. Details appear when the desk is connected.</p>}
 
       <nav className="segmented">
         {TABS.map((t) => (
@@ -87,7 +79,15 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
       <div className="app-body">
         {tab === 'Activity' && (
           <div className="rows">
-            {d.events.map((e: any) => {
+            {!d_.events.length && !roomTasks.length && <p className="empty">No activity to show yet.</p>}
+            {!d_.events.length && roomTasks.map((t) => (
+              <div className="row" key={t.id}>
+                <span className="sg">{t.state === 'done' ? '✅' : t.state === 'working' ? '⏳' : t.state === 'queued' ? '•' : '⚠️'}</span>
+                <span className="rtext">{t.title}</span>
+                <span className="when">{t.state}</span>
+              </div>
+            ))}
+            {d_.events.map((e: any) => {
               const said = describe(e, nameOf(e.agent_id));
               if (!said) return null;
               return (
@@ -103,9 +103,9 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
 
         {tab === 'Files' && (
           <>
-            {d.queue?.length > 0 && <>
+            {d_.queue?.length > 0 && <>
               <h4>Waiting to be published</h4>
-              {d.queue.map((c: any) => (
+              {d_.queue.map((c: any) => (
                 <article className="doc" key={c.id}>
                   <header><b>{c.title}</b><span className="pill">{c.state}</span><span className="pill">{c.channel}</span></header>
                   <p>{c.body.slice(0, 420)}{c.body.length > 420 ? '…' : ''}</p>
@@ -113,8 +113,8 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
               ))}
             </>}
             <h4>Written by this room</h4>
-            {!d.artifacts.length && <p className="muted">Nothing yet.</p>}
-            {d.artifacts.map((a: any) => (
+            {!d_.artifacts.length && <p className="muted">Nothing yet.</p>}
+            {d_.artifacts.map((a: any) => (
               <article className="doc" key={a.id}>
                 <header>
                   <b>{a.title}</b>
@@ -139,7 +139,8 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
             </div>
             <h4>Where it went</h4>
             <div className="rows">
-              {d.ledger.map((l: any) => (
+              {!d_.ledger.length && <p className="empty">No spending recorded yet.</p>}
+              {d_.ledger.map((l: any) => (
                 <div className="row" key={l.id}>
                   <span className="sg">{toolGlyph(String(l.reason).split(' ')[0])}</span>
                   <span className="rtext">{toolName(String(l.reason).split(' ')[0])}</span>
@@ -152,7 +153,8 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
 
         {tab === 'History' && (
           <div className="rows">
-            {d.runs.map((r: any) => (
+            {!d_.runs.length && <p className="empty">No runs yet.</p>}
+            {d_.runs.map((r: any) => (
               <div className="row" key={r.id}>
                 <span className="sg">{r.status === 'done' ? '✅' : r.status === 'running' ? '⏳' : '⚠️'}</span>
                 <span className="rtext">
@@ -170,17 +172,17 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
           <>
             <h4>This room may</h4>
             <ul className="plain-list">
-              {(d.room.tool_grants ?? []).map((g: string) => (
+              {(d_.room.tool_grants ?? []).map((g: string) => (
                 <li key={g}><span className="sg">{toolGlyph(g)}</span> use {toolName(g)}</li>
               ))}
             </ul>
             <h4>Data access</h4>
-            <p>{d.room.db_role
+            <p>{d_.room.db_role
               ? 'Can read the company database through its own account. Other rooms cannot see what it reads.'
               : 'No access to the company database at all.'}</p>
             <h4>What runs without asking you</h4>
             <ul className="plain-list">
-              {Object.entries(d.room.approval_policy ?? {}).map(([k, v]) => (
+              {Object.entries(d_.room.approval_policy ?? {}).map(([k, v]) => (
                 <li key={k}>
                   <span className="sg">{v === 'auto' ? '🟢' : '🟣'}</span>
                   {k === 'low' ? 'Read-only work' : k === 'medium' ? 'Work visible inside the company' : 'Anything that leaves the company'}

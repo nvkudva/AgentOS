@@ -559,10 +559,35 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .calm { color:var(--faint); }
 .cost { color:var(--blocked); font-variant-numeric:tabular-nums; }
 
-.settings label { display:flex; gap:12px; align-items:center; margin-bottom:8px; }
-.settings input { width:100px; }
-.seg { display:inline-flex; gap:4px; }
-.seg button { text-transform:capitalize; }
+/* Settings: inset grouped lists, the System Settings layout. One card per section,
+   a label on the left and its control on the right, hairlines between rows. */
+.settings { max-width:640px; margin:0 auto; padding:24px 24px 32px; }
+.settings h4 { margin:28px 4px 8px; }
+.settings h4:first-child { margin-top:0; }
+.sgroup { border-radius:var(--r-card); background:var(--tint); border:.5px solid var(--line-soft); overflow:hidden; }
+.sgroup.flush { overflow:auto; }
+.sgroup > label { display:flex; gap:12px; align-items:center; justify-content:space-between;
+  min-height:44px; padding:8px 14px; margin:0; }
+.sgroup > label + label { border-top:.5px solid var(--line-soft); }
+.sgnote { margin:8px 6px 0; line-height:1.45; }
+.settings input:not([type=checkbox]) { width:140px; text-align:right; }
+.settings input[type=number] { width:96px; }
+.seg { display:inline-flex; gap:2px; padding:2px; border-radius:var(--r-ctl); background:var(--tint-2); }
+.seg button { text-transform:capitalize; border:0; background:transparent; padding:4px 12px;
+  border-radius:7px; color:var(--muted); }
+.seg button:hover { background:transparent; color:var(--text); }
+.seg button.primary { background:var(--win-fill); color:var(--text); box-shadow:var(--e1); }
+/* checkbox drawn as the switch every other OS uses for an instant on/off */
+.settings input[type=checkbox] { appearance:none; -webkit-appearance:none; flex:none; width:38px; height:22px;
+  margin:0; padding:0; border-radius:999px; background:var(--tint-2); border:0; position:relative; cursor:pointer;
+  order:2; transition:background var(--t-ui) var(--ease); }
+.settings input[type=checkbox]::after { content:''; position:absolute; top:2px; left:2px; width:18px; height:18px;
+  border-radius:999px; background:#fff; box-shadow:0 1px 3px rgb(0 0 0 / .3);
+  transition:transform var(--t-ui) var(--ease); }
+.settings input[type=checkbox]:checked { background:var(--ok); }
+.settings input[type=checkbox]:checked::after { transform:translateX(16px); }
+.settings input[type=checkbox]:focus-visible { outline:2px solid var(--working); outline-offset:2px; }
+.settings .voice-models { margin:4px 0 12px; padding-left:22px; }
 .grid-table { width:100%; border-collapse:collapse; font-size:12px; }
 .grid-table th { text-align:left; color:var(--faint); font-weight:600; font-size:11px;
   border-bottom:.5px solid var(--line); padding:8px; }
@@ -1430,8 +1455,52 @@ body { touch-action:manipulation; }
 .away-strip button { border:0; background:none; color:var(--muted); font-size:15px; padding:0 4px; }
 
 /* settings: voice */
-.settings .voice-models { margin:0 0 12px; padding-left:18px; }
-.settings input[type=checkbox] { width:auto; flex:none; margin:0; }
 
 .wake-toggle { font-size:12px; padding:2px 8px; white-space:nowrap; }
 .wake-toggle.on { box-shadow:0 0 0 2px #2dd4bf; }
+
+/* ================= polish pass: windows, room app, content ================= */
+/* The front window is the one glass pane over the wallpaper; back windows stay flat
+   so no more than a few blurred surfaces are ever on screen. */
+.win:not(.back):not(.parked):not(.dragging) {
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)),
+             color-mix(in srgb, var(--solid) 92%, transparent);
+  backdrop-filter:blur(30px) saturate(170%);
+  box-shadow:inset 0 .5px 0 var(--spec), var(--e4); }
+[data-perf="lite"] .win:not(.back):not(.parked) { backdrop-filter:none; background:var(--win-fill); }
+.win-bar { height:40px; background:linear-gradient(var(--sheen-1), transparent); border-bottom:.5px solid var(--line-soft); }
+.win-title { font-size:13px; font-weight:600; color:var(--text); letter-spacing:-.01em; }
+.win.back .win-title { color:var(--faint); font-weight:500; }
+
+.roomapp { background:transparent; }
+.app-head { padding:18px 20px 14px; gap:14px; border-bottom:0; }
+.app-head > div:not(.spacer) { min-width:0; }
+.app-head b { font-size:var(--fs-2); font-weight:600; letter-spacing:-.02em; }
+.app-head p { font-size:var(--fs-4); }
+.app-head button { font-size:12px; padding:4px 10px; }
+.app-icon { display:grid; place-items:center; width:40px; height:40px; flex:none; border-radius:11px; font-size:20px;
+  color:var(--c); background:color-mix(in srgb, var(--c) 16%, transparent);
+  box-shadow:inset 0 0 0 .5px color-mix(in srgb, var(--c) 30%, transparent); }
+.rm-sum { margin:0 20px 12px; padding:13px 15px; border-radius:var(--r-card); box-shadow:var(--e1); }
+.rm-sum > b { font-size:var(--fs-3); letter-spacing:-.01em; }
+.rm-sum > p { font-size:var(--fs-4); line-height:1.45; }
+.rm-offline { margin:-4px 22px 8px; font-size:var(--fs-5); color:var(--faint); }
+.segmented { margin:4px 20px 0; padding:2px; border-radius:var(--r-ctl); background:var(--tint-2); }
+.segmented button { border-radius:7px; padding:4px 14px; font-size:12px; font-weight:500; }
+.segmented button:hover { background:transparent; color:var(--text); }
+.segmented button.on { box-shadow:var(--e1); }
+.app-body { padding:14px 20px 24px; }
+.rows { gap:1px; }
+.row { padding:9px 10px; border-radius:9px; align-items:center; }
+.row + .row { box-shadow:0 -.5px 0 var(--line-soft); }
+.row .sg { width:24px; height:24px; display:grid; place-items:center; border-radius:7px; background:var(--tint); font-size:12px; }
+.row .rtext { font-size:var(--fs-4); line-height:1.4; }
+.empty { margin:24px 0; text-align:center; color:var(--faint); }
+.doc { padding:14px 16px; box-shadow:var(--e1); }
+.doc > header b { font-size:var(--fs-4); font-weight:600; }
+.doc p { line-height:1.5; }
+.big-stat { padding:4px 0 8px; }
+.big-stat b { font-size:40px; letter-spacing:-.03em; }
+.plain-list { gap:6px; }
+.plain-list li { padding:8px 10px; border-radius:9px; background:var(--tint); align-items:center; }
+.pill { background:var(--tint); }

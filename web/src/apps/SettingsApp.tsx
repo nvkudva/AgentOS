@@ -22,6 +22,7 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
   return (
     <div className="pad settings">
       <h4>Appearance</h4>
+      <div className="sgroup">
       <label>
         Theme
         <span className="seg">
@@ -46,7 +47,8 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
           ))}
         </span>
       </label>
-      <p className="muted tiny">
+      </div>
+      <p className="muted tiny sgnote">
         Glass blurs the wallpaper behind the chrome. On software rendering that halves the
         frame rate, so <b>auto</b> measures {perf.measured ? `${perf.measured}fps` : 'the first two seconds'} and
         drops to flat surfaces if it cannot hold 60.
@@ -55,6 +57,7 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
       <VoiceSection />
 
       <h4>Operator</h4>
+      <div className="sgroup">
       <label>
         Backend token
         <input type="password" placeholder={hasToken ? 'set — paste to replace' : 'none — hosted demo stays offline'}
@@ -68,17 +71,20 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
                  location.reload();
                }} />
       </label>
-      <p className="muted">{hasToken
+      </div>
+      <p className="muted tiny sgnote">{hasToken
         ? 'Token stored on this device. Enter clears it; the desk goes back to the frozen demo.'
         : 'The live backend needs its operator token (printed once at server boot). Press Enter to save and reload.'}</p>
 
       <h4>Global</h4>
+      <div className="sgroup">
       <label>
         Global cap (agent-minutes)
         <input type="number" value={g} onChange={(e) => setG(Number(e.target.value))} />
         <button onClick={() => post('/api/budget', { cents: g })}>Save</button>
       </label>
-      <p className="muted">Spent {hours(config.global_spent_cents)}. When a cap is hit, work halts — it never overruns.</p>
+      </div>
+      <p className="muted tiny sgnote">Spent {hours(config.global_spent_cents)}. When a cap is hit, work halts — it never overruns.</p>
       <button className={config.panic_stop ? 'primary' : 'danger'} onClick={() => post('/api/panic', { on: !config.panic_stop })}>
         {config.panic_stop ? 'Resume everything' : 'Stop everything'}
       </button>
@@ -89,7 +95,7 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
         the access you choose — nothing in the app is written per room.
       </p>
       <button className="primary" style={{ marginBottom: 12 }} onClick={() => setAdding(true)}>New room…</button>
-      <table className="grid-table">
+      <div className="sgroup flush"><table className="grid-table">
         <thead><tr><th>Room</th><th>Cap</th><th>Spent</th><th>DB role</th><th>Tools</th><th>Status</th></tr></thead>
         <tbody>
           {rooms.map((r) => (
@@ -105,8 +111,8 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
             </tr>
           ))}
         </tbody>
-      </table>
-      <p className="muted">
+      </table></div>
+      <p className="muted tiny sgnote">
         A room's tools, budget, memory and database role are its permission boundary. Anything
         outside them is refused by the runtime and logged.
       </p>
@@ -150,6 +156,7 @@ function VoiceSection() {
   return (
     <>
       <h4>Voice</h4>
+      <div className="sgroup">
       <label>
         <input type="checkbox" checked={wake} onChange={(e) => setWakeWord(e.target.checked)} />
         Wake word — say “Atrium” hands-free (mic stays on; audio never leaves this device)
@@ -158,7 +165,8 @@ function VoiceSection() {
         <input type="checkbox" checked={smart} onChange={(e) => { setSmartNlu(e.target.checked); if (e.target.checked) llm.preload(); }} />
         Smart understanding — on-device language model (SmolLM2 360M), 270–390 MB one-time download, on by default
       </label>
-      <p className="muted tiny">On-device models:</p>
+      </div>
+      <p className="muted tiny sgnote">On-device models:</p>
       <ul className="muted tiny voice-models">
         <li>Speech recognition: Whisper tiny.en ~40 MB</li>
         <li>Voice: Kokoro 82M ~90 MB</li>
