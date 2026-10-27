@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { get, post, observe } from '../lib/api';
 import type { Room, Mandate, Task, Agent } from '../lib/api';
 import { describe, hours, toolName, toolGlyph } from '../lib/humanize';
 import { roomProgress } from '../lib/progress';
+import { DEMO_THREADS } from '../lib/demo';
 
-const TABS = ['Activity', 'Files', 'Spending', 'History', 'Permissions'] as const;
+const TABS = ['Chat', 'Files', 'Spending', 'History', 'Permissions'] as const;
 type Tab = typeof TABS[number];
 
 /**
@@ -32,7 +33,7 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
   room: Room; view: string; mandates?: Mandate[]; tasks?: Task[]; agents?: Agent[];
 }) {
   const [d, setD] = useState<any>(null);
-  const [tab, setTab] = useState<Tab>('Activity');
+  const [tab, setTab] = useState<Tab>('Chat');
 
   const load = () => get(`/api/rooms/${room.id}`).then(setD);
   useEffect(() => { load(); const t = setInterval(load, 1800); return () => clearInterval(t); }, [room.id]);
@@ -45,7 +46,45 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
   const mandateIds = new Set(mandates.filter((m) => m.room_id === room.id).map((m) => m.id));
   const roomTasks = tasks.filter((t) => mandateIds.has(t.mandate_id));
   const spent = d_.room.spent_cents, cap = d_.room.budget_cents;
-  const nameOf = (id: string) => d_.agents.find((a: any) => a.id === id)?.name ?? 'Someone';
+  const agentOf = (id: string) => d_.agents.find((a: any) => a.id === id);
+
+  /** One chat line, whether it came down the wire or out of the frozen demo. */
+  type UIMsg = {
+    key: string; who: string; avatar: string; color: string; text: string; time: string;
+    kind: 'say' | 'sys' | 'ask'; problem?: boolean; approvalId?: string; compact?: boolean;
+  };
+  let msgs: UIMsg[] = [];
+  if (live) {
+    let lastWho = '';
+    for (const e of d_.events) {
+      const a = e.agent_id ? agentOf(e.agent_id) : undefined;
+      const who = a?.name ?? 'Someone';
+      const said = describe(e, who);
+      if (!said) continue;
+      const time = new Date(e.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      if (said.kind === 'bubble') {
+        const compact = who === lastWho;
+        lastWho = who;
+        msgs.push({ key: String(e.id), who, avatar: a?.avatar ?? '•', color: a?.color ?? room.color,
+                    text: said.text, time, kind: 'say', compact });
+      } else if (said.kind === 'ask') {
+        lastWho = '';
+        msgs.push({ key: String(e.id), who, avatar: a?.avatar ?? '•', color: a?.color ?? room.color,
+                    text: said.text, time, kind: 'ask', approvalId: (e.payload as any)?.approval_id });
+      } else {
+        lastWho = '';
+        msgs.push({ key: String(e.id), who: '', avatar: '', color: '', text: said.text, time,
+                    kind: 'sys', problem: said.kind === 'problem' });
+      }
+    }
+  } else {
+    msgs = (DEMO_THREADS[room.key] ?? []).map((m, i) => ({ ...m, key: `${room.key}-${i}` }));
+  }
+  const chatRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = chatRef.current;
+    if (el && tab === 'Chat') el.scrollTop = el.scrollHeight;
+  }, [msgs.length, tab, room.id]);
 
   return (
     <div className="roomapp">
@@ -77,27 +116,51 @@ export function RoomApp({ room, view, mandates = [], tasks = [], agents = [] }: 
       </nav>
 
       <div className="app-body">
-        {tab === 'Activity' && (
-          <div className="rows">
-            {!d_.events.length && !roomTasks.length && <p className="empty">No activity to show yet.</p>}
-            {!d_.events.length && roomTasks.map((t) => (
-              <div className="row" key={t.id}>
-                <span className="sg">{t.state === 'done' ? '✅' : t.state === 'working' ? '⏳' : t.state === 'queued' ? '•' : '⚠️'}</span>
-                <span className="rtext">{t.title}</span>
-                <span className="when">{t.state}</span>
+        {tab === 'Chat' && (
+          <div className="chat" ref={chatRef}>
+            {!msgs.length && roomTasks.map((t) => (
+              <div className="chat-sys" key={t.id}>
+                <span>{t.state === 'done' ? 'Done' : t.state === 'working' ? 'Working on it' : 'Queued'} — {t.title}</span>
               </div>
             ))}
-            {d_.events.map((e: any) => {
-              const said = describe(e, nameOf(e.agent_id));
-              if (!said) return null;
-              return (
-                <div className={`row ${said.kind}`} key={e.id}>
-                  <span className="sg">{said.kind === 'step' ? (said as any).glyph : said.kind === 'problem' ? '⚠️' : '•'}</span>
-                  <span className="rtext">{said.text}</span>
-                  <span className="when">{new Date(e.ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+            {!msgs.length && !roomTasks.length && <p className="empty">Nothing said yet.</p>}
+            {msgs.map((m) =>
+              m.kind === 'say' ? (
+                <div className={`msg${m.compact ? ' compact' : ''}`} key={m.key}>
+                  {!m.compact && (
+                    <span className="face" style={{ ['--c' as any]: m.color }}>{m.avatar}</span>
+                  )}
+                  <div className="msg-main">
+                    {!m.compact && (
+                      <header><b>{m.who}</b><span className="when">{m.time}</span></header>
+                    )}
+                    <p>{m.text}</p>
+                  </div>
                 </div>
-              );
-            })}
+              ) : m.kind === 'ask' ? (
+                <div className="chat-ask" key={m.key}>
+                  <span className="face small" style={{ ['--c' as any]: m.color }}>{m.avatar}</span>
+                  <div className="msg-main">
+                    <header><b>{m.who}</b><span className="when">{m.time}</span></header>
+                    <p>{m.text}</p>
+                    {live && m.approvalId && (
+                      <div className="ask-btns">
+                        <button className="primary" onClick={() =>
+                          post(`/api/approvals/${m.approvalId}/decide`, { decision: 'approve' }).then(load)}>
+                          Approve</button>
+                        <button onClick={() =>
+                          post(`/api/approvals/${m.approvalId}/decide`, { decision: 'reject' }).then(load)}>
+                          Reject</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className={`chat-sys${m.problem ? ' problem' : ''}`} key={m.key}>
+                  <span>{m.text}</span>
+                  <span className="when">{m.time}</span>
+                </div>
+              ))}
           </div>
         )}
 

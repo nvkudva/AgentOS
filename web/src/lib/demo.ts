@@ -12,7 +12,7 @@ export const DEMO: Snapshot = {
       "id": "room_366519d8b1ca",
       "key": "engineering",
       "name": "Engineering",
-      "objective": "Ship small, tested changes",
+      "objective": "Keep the Copper Cup ordering site fast and green",
       "x": 0,
       "y": 0,
       "w": 2,
@@ -38,13 +38,13 @@ export const DEMO: Snapshot = {
       "db_role": null,
       "status": "open",
       "color": "#7b91ea",
-      "icon": "\u2318"
+      "icon": "⌘"
     },
     {
       "id": "room_1a7f30408fbc",
       "key": "analytics",
       "name": "Analytics",
-      "objective": "Answer questions from company data",
+      "objective": "Answer questions from the till and the website",
       "x": 2,
       "y": 0,
       "w": 2,
@@ -68,13 +68,13 @@ export const DEMO: Snapshot = {
       "db_role": "atrium_analytics",
       "status": "open",
       "color": "#34a2c2",
-      "icon": "\u25c8"
+      "icon": "◈"
     },
     {
       "id": "room_45dc31b85bfd",
       "key": "marketing",
       "name": "Marketing",
-      "objective": "Draft numbers-backed posts",
+      "objective": "Fill the café on slow afternoons",
       "x": 0,
       "y": 1,
       "w": 2,
@@ -99,13 +99,13 @@ export const DEMO: Snapshot = {
       "db_role": null,
       "status": "open",
       "color": "#db7d54",
-      "icon": "\u270e"
+      "icon": "✎"
     },
     {
       "id": "room_db4c56c3bf69",
       "key": "sales",
       "name": "Sales",
-      "objective": "Keep the pipeline honest",
+      "objective": "Sign offices up for weekly bean delivery",
       "x": 2,
       "y": 1,
       "w": 2,
@@ -129,7 +129,7 @@ export const DEMO: Snapshot = {
       "db_role": "atrium_sales",
       "status": "open",
       "color": "#34a977",
-      "icon": "\u25ce"
+      "icon": "◎"
     },
     {
       "id": "room_7ddf9205542d",
@@ -159,13 +159,13 @@ export const DEMO: Snapshot = {
       "db_role": "atrium_support",
       "status": "open",
       "color": "#e56f9a",
-      "icon": "\u260e"
+      "icon": "☎"
     },
     {
       "id": "room_37f9cff4ad76",
       "key": "finance",
       "name": "Finance",
-      "objective": "Close the month and watch the burn",
+      "objective": "Close the month and watch the food cost",
       "x": 2,
       "y": 2,
       "w": 2,
@@ -189,13 +189,13 @@ export const DEMO: Snapshot = {
       "db_role": "atrium_finance",
       "status": "open",
       "color": "#b29239",
-      "icon": "\u26c1"
+      "icon": "⛁"
     },
     {
       "id": "room_bd5742dc4f6a",
       "key": "research",
       "name": "Research",
-      "objective": "Turn what the rooms found into a brief",
+      "objective": "Taste what is next on the menu",
       "x": 0,
       "y": 3,
       "w": 2,
@@ -219,7 +219,7 @@ export const DEMO: Snapshot = {
       "db_role": "atrium_research",
       "status": "open",
       "color": "#8491dc",
-      "icon": "\u25cd"
+      "icon": "◍"
     }
   ],
   "agents": [
@@ -231,15 +231,13 @@ export const DEMO: Snapshot = {
       "policy_key": "room.manager",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 300,
       "cost_budget_cents": 60,
       "steps_used": 14,
       "spent_cents": 0,
-      "created_at": "2026-09-07T16:13:23.387Z",
       "persona": "Runs Analytics. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#4bb3d4",
-      "avatar": "\u25c6",
+      "avatar": "◆",
       "tier": "manager"
     },
     {
@@ -250,12 +248,10 @@ export const DEMO: Snapshot = {
       "policy_key": "analytics.weekly",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 4,
       "spent_cents": 3,
-      "created_at": "2026-09-07T03:51:20.097Z",
       "persona": "Cautious. Will not state a number she has not queried twice.",
       "color": "#4bb3d4",
       "avatar": "👩‍🔬",
@@ -269,13 +265,11 @@ export const DEMO: Snapshot = {
       "policy_key": "analytics.weekly",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 4,
       "spent_cents": 3,
-      "created_at": "2026-09-07T03:51:20.097Z",
-      "persona": "Fast and rough. Good for a first read, never the final one.",
+      "persona": "Fast and rough. Good for a first read of the morning rush, never the final one.",
       "color": "#63c9c0",
       "avatar": "🧑‍🔬",
       "tier": "worker"
@@ -288,12 +282,10 @@ export const DEMO: Snapshot = {
       "policy_key": "room.manager",
       "state": "idle",
       "activity": "handed over",
-      "current_run_id": null,
       "step_budget": 300,
       "cost_budget_cents": 60,
       "steps_used": 10,
       "spent_cents": 0,
-      "created_at": "2026-09-07T16:13:23.388Z",
       "persona": "Runs Engineering. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#6f8ef5",
       "avatar": "🧑‍💼",
@@ -307,13 +299,11 @@ export const DEMO: Snapshot = {
       "policy_key": "engineering.fix",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 7,
       "spent_cents": 13,
-      "created_at": "2026-09-07T03:51:20.101Z",
-      "persona": "Small diffs, real tests, no heroics. Refuses to ship red.",
+      "persona": "Small diffs, real tests, no heroics. Refuses to ship a red checkout page.",
       "color": "#6f8ef5",
       "avatar": "👨‍💻",
       "tier": "worker"
@@ -326,12 +316,10 @@ export const DEMO: Snapshot = {
       "policy_key": "demo.loop",
       "state": "idle",
       "activity": "",
-      "current_run_id": "run_41c5ea5b9b9b",
       "step_budget": 6,
       "cost_budget_cents": 4,
       "steps_used": 3,
       "spent_cents": 0,
-      "created_at": "2026-09-07T03:51:20.101Z",
       "persona": "Gets stuck in loops on purpose. He exists to prove the kill switch works.",
       "color": "#8a93a5",
       "avatar": "🧑‍💻",
@@ -345,12 +333,10 @@ export const DEMO: Snapshot = {
       "policy_key": "room.manager",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 300,
       "cost_budget_cents": 60,
       "steps_used": 11,
       "spent_cents": 0,
-      "created_at": "2026-09-07T16:13:23.392Z",
       "persona": "Runs Finance. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#c9a227",
       "avatar": "🧑‍💼",
@@ -364,13 +350,11 @@ export const DEMO: Snapshot = {
       "policy_key": "finance.close",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 3,
       "spent_cents": 2,
-      "created_at": "2026-09-07T03:51:20.120Z",
-      "persona": "Ties every number to a row. Will not round in your favour.",
+      "persona": "Ties every number to a till row. Will not round in your favour.",
       "color": "#c9a227",
       "avatar": "👩‍⚖️",
       "tier": "worker"
@@ -383,13 +367,11 @@ export const DEMO: Snapshot = {
       "policy_key": "finance.close",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 3,
       "spent_cents": 2,
-      "created_at": "2026-09-07T03:51:20.120Z",
-      "persona": "Looks for the line that moved and asks why.",
+      "persona": "Looks for the line that moved — usually oat milk — and asks why.",
       "color": "#d9b64a",
       "avatar": "👨‍🏫",
       "tier": "worker"
@@ -402,12 +384,10 @@ export const DEMO: Snapshot = {
       "policy_key": "room.manager",
       "state": "idle",
       "activity": "",
-      "current_run_id": "run_41bba3792443",
       "step_budget": 300,
       "cost_budget_cents": 60,
       "steps_used": 300,
       "spent_cents": 0,
-      "created_at": "2026-09-07T16:13:23.389Z",
       "persona": "Runs Marketing. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#e0794b",
       "avatar": "🧑‍💼",
@@ -421,12 +401,10 @@ export const DEMO: Snapshot = {
       "policy_key": "marketing.launch",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 4,
       "spent_cents": 6,
-      "created_at": "2026-09-07T03:51:20.104Z",
       "persona": "Writes plainly, cites the analytics room, never publishes without asking.",
       "color": "#e0794b",
       "avatar": "👩‍🎨",
@@ -440,12 +418,10 @@ export const DEMO: Snapshot = {
       "policy_key": "marketing.launch",
       "state": "awaiting_approval",
       "activity": "waiting on you: publish queued post cq_44ddbe915958 to blog",
-      "current_run_id": "run_99bca63ab5f0",
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 3,
       "spent_cents": 1,
-      "created_at": "2026-09-07T03:51:20.105Z",
       "persona": "Second pair of eyes. Cuts a draft by a third before it goes anywhere.",
       "color": "#d9a441",
       "avatar": "🧑‍🏫",
@@ -459,12 +435,10 @@ export const DEMO: Snapshot = {
       "policy_key": "room.manager",
       "state": "idle",
       "activity": "",
-      "current_run_id": null,
       "step_budget": 300,
       "cost_budget_cents": 60,
       "steps_used": 0,
       "spent_cents": 0,
-      "created_at": "2026-09-07T16:13:23.390Z",
       "persona": "Runs Support. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#e05b8f",
       "avatar": "🧑‍💼",
@@ -478,12 +452,10 @@ export const DEMO: Snapshot = {
       "policy_key": "support.triage",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 5,
       "spent_cents": 1,
-      "created_at": "2026-09-07T03:51:20.115Z",
       "persona": "Reads the whole thread before replying. Slower, fewer follow-ups.",
       "color": "#d67aa8",
       "avatar": "💁‍♂️",
@@ -497,13 +469,11 @@ export const DEMO: Snapshot = {
       "policy_key": "support.triage",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 5,
       "spent_cents": 1,
-      "created_at": "2026-09-07T03:51:20.114Z",
-      "persona": "Answers the oldest urgent thing first. Never promises a date.",
+      "persona": "Answers the oldest urgent thing first. Never promises a pickup date.",
       "color": "#e05b8f",
       "avatar": "💁",
       "tier": "worker"
@@ -516,12 +486,10 @@ export const DEMO: Snapshot = {
       "policy_key": "room.manager",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 300,
       "cost_budget_cents": 60,
       "steps_used": 15,
       "spent_cents": 0,
-      "created_at": "2026-09-07T16:13:23.391Z",
       "persona": "Runs Research. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#7f8cd6",
       "avatar": "🧑‍💼",
@@ -535,13 +503,11 @@ export const DEMO: Snapshot = {
       "policy_key": "research.brief",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 3,
       "spent_cents": 1,
-      "created_at": "2026-09-07T03:51:20.126Z",
-      "persona": "Digs for the thing nobody asked about. Slow, occasionally right.",
+      "persona": "Digs for the drink nobody asked about. Slow, occasionally right.",
       "color": "#7f8cd6",
       "avatar": "🕵️",
       "tier": "worker"
@@ -554,12 +520,10 @@ export const DEMO: Snapshot = {
       "policy_key": "room.manager",
       "state": "idle",
       "activity": "",
-      "current_run_id": null,
       "step_budget": 300,
       "cost_budget_cents": 60,
       "steps_used": 0,
       "spent_cents": 0,
-      "created_at": "2026-09-07T16:13:23.392Z",
       "persona": "Runs Sales. Breaks what you ask for into tasks, hands them out, and reports back.",
       "color": "#3fb27f",
       "avatar": "🧑‍💼",
@@ -573,13 +537,11 @@ export const DEMO: Snapshot = {
       "policy_key": "sales.hygiene",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 3,
       "spent_cents": 2,
-      "created_at": "2026-09-07T03:51:20.108Z",
-      "persona": "Pipeline janitor. Flags stale deals before they rot.",
+      "persona": "Pipeline janitor. Flags stale wholesale deals before they rot.",
       "color": "#3fb27f",
       "avatar": "🤵",
       "tier": "worker"
@@ -592,13 +554,11 @@ export const DEMO: Snapshot = {
       "policy_key": "sales.hygiene",
       "state": "idle",
       "activity": "done",
-      "current_run_id": null,
       "step_budget": 40,
       "cost_budget_cents": 120,
       "steps_used": 3,
       "spent_cents": 2,
-      "created_at": "2026-09-07T03:51:20.108Z",
-      "persona": "Reads the pipeline as numbers, not stories. Blunt about what is dead.",
+      "persona": "Reads the pipeline as numbers, not stories. Blunt about which offices will never buy.",
       "color": "#57b6a0",
       "avatar": "👨‍🔬",
       "tier": "worker"
@@ -607,16 +567,11 @@ export const DEMO: Snapshot = {
   "inbox": [
     {
       "id": "apr_cb8e12b7fcbe",
-      "room_id": "room_45dc31b85bfd",
-      "agent_id": "agt_df92974127df",
-      "run_id": "run_99bca63ab5f0",
+      "room_key": "marketing",
+      "room_name": "Marketing",
+      "agent_name": "Nia",
       "kind": "approval",
       "action": "publish queued post cq_44ddbe915958 to blog",
-      "tool": "queue.publish",
-      "args": {
-        "id": "cq_44ddbe915958",
-        "channel": "blog"
-      },
       "blast_radius": "high",
       "est_cost_cents": 5,
       "run_spent_cents": 1,
@@ -624,15 +579,12 @@ export const DEMO: Snapshot = {
         "content_queue row cq_44ddbe915958",
         "public channel"
       ],
-      "state": "pending",
-      "created_at": "2026-09-07T16:36:47.392Z",
-      "decided_at": null,
-      "decided_note": null,
-      "consumed_at": null,
-      "room_key": "marketing",
-      "room_name": "Marketing",
-      "agent_name": "Nia",
-      "mandate_id": "mnd_21abba6c171d"
+      "created_at": "2026-09-07T19:12:44.318Z",
+      "mandate_id": "mnd_cc03",
+      "args": {
+        "id": "cq_44ddbe915958",
+        "channel": "blog"
+      }
     }
   ],
   "config": {
@@ -643,21 +595,34 @@ export const DEMO: Snapshot = {
   },
   "mandates": [
     {
-      "id": "mnd_0c2430219329",
-      "text": "run analytics on last quarter churn",
+      "id": "mnd_cc01",
+      "text": "fix the oat-milk checkout total on the ordering site",
+      "room_id": "room_366519d8b1ca",
+      "state": "done",
+      "color": "#6f8ef5",
+      "quoted_cents": 120,
+      "spent_cents": 13,
+      "report": "Engineering fixed the oat surcharge and the tests are green.\nYou have “Checkout fix” in Engineering.",
+      "artifact_id": null,
+      "context": [],
+      "created_at": "2026-09-08T01:22:44.397Z"
+    },
+    {
+      "id": "mnd_cc02",
+      "text": "rank the morning rush drinks by profit",
       "room_id": "room_1a7f30408fbc",
       "state": "done",
       "color": "#4bb3d4",
       "quoted_cents": 195,
       "spent_cents": 9,
-      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_e07d59b4b120",
+      "report": "Analytics finished all 3 tasks.\nYou have “Morning rush read-out” in Analytics.",
+      "artifact_id": null,
       "context": [],
-      "created_at": "2026-09-07T19:22:44.397Z"
+      "created_at": "2026-09-08T00:22:44.397Z"
     },
     {
-      "id": "mnd_acf109a66ccd",
-      "text": "draft a launch post and publish it",
+      "id": "mnd_cc03",
+      "text": "write the two-for-one cortado post for slow Tuesdays",
       "room_id": "room_45dc31b85bfd",
       "state": "working",
       "color": "#e0794b",
@@ -669,821 +634,622 @@ export const DEMO: Snapshot = {
       "created_at": "2026-09-07T19:10:44.318Z"
     },
     {
-      "id": "mnd_68e59fce436d",
-      "text": "analytics on churn by cohort",
-      "room_id": "room_1a7f30408fbc",
-      "state": "done",
-      "color": "#4bb3d4",
-      "quoted_cents": 204,
-      "spent_cents": 9,
-      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_a8d599f30f86",
-      "context": [],
-      "created_at": "2026-09-07T18:52:46.264Z"
-    },
-    {
-      "id": "mnd_fd33ea1abe1c",
-      "text": "run analytics on last quarter's churn",
-      "room_id": "room_1a7f30408fbc",
-      "state": "done",
-      "color": "#4bb3d4",
-      "quoted_cents": 213,
-      "spent_cents": 9,
-      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_70288a42992d",
-      "context": [],
-      "created_at": "2026-09-07T18:52:36.519Z"
-    },
-    {
-      "id": "mnd_89bc61c92cf5",
-      "text": "pull the churn numbers for last quarter and write them up",
-      "room_id": "room_1a7f30408fbc",
-      "state": "done",
-      "color": "#4bb3d4",
-      "quoted_cents": 222,
-      "spent_cents": 21,
-      "report": "Analytics finished all 6 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_0ee929f61cc2",
-      "context": [
-        "art_b1bc404ed673",
-        "art_c07914de5497",
-        "art_bb139582d903",
-        "art_b1bc404ed673",
-        "art_c07914de5497",
-        "art_bb139582d903",
-        "art_caae59f4737d",
-        "art_ac70103e1891",
-        "art_6e10ca82311f"
-      ],
-      "created_at": "2026-09-07T16:52:18.882Z"
-    },
-    {
-      "id": "mnd_0c339fcb44aa",
-      "text": "pull the churn numbers for last quarter and write them up",
-      "room_id": "room_1a7f30408fbc",
-      "state": "done",
-      "color": "#4bb3d4",
-      "quoted_cents": 240,
-      "spent_cents": 12,
-      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_4992d659cde6",
-      "context": [
-        "art_3a1df64cbc65",
-        "art_35388dd4c4b1",
-        "art_16b6420022d8"
-      ],
-      "created_at": "2026-09-07T16:50:57.573Z"
-    },
-    {
-      "id": "mnd_8f98b07625ae",
-      "text": "pull the churn numbers for last quarter and write them up",
-      "room_id": "room_1a7f30408fbc",
-      "state": "done",
-      "color": "#4bb3d4",
-      "quoted_cents": 240,
-      "spent_cents": 12,
-      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_a3f5e9980923",
-      "context": [
-        "art_6f6d4a977ee9",
-        "art_93afb7f4c730",
-        "art_bb5066682460"
-      ],
-      "created_at": "2026-09-07T16:48:11.225Z"
-    },
-    {
-      "id": "mnd_a0cc587628d2",
-      "text": "pull the churn numbers for last quarter and write them up",
-      "room_id": "room_37f9cff4ad76",
-      "state": "done",
-      "color": "#c9a227",
-      "quoted_cents": 240,
-      "spent_cents": 6,
-      "report": "Finance finished all 3 tasks.\nYou have \u201cMonth-end close\u201d in Finance.",
-      "artifact_id": "art_55cfbbbc4919",
-      "context": [],
-      "created_at": "2026-09-07T16:47:35.199Z"
-    },
-    {
-      "id": "mnd_11d40798c78a",
-      "text": "draft a launch post and publish it",
-      "room_id": "room_45dc31b85bfd",
+      "id": "mnd_cc04",
+      "text": "chase the three stalled wholesale tastings",
+      "room_id": "room_db4c56c3bf69",
       "state": "working",
-      "color": "#e0794b",
-      "quoted_cents": 192,
-      "spent_cents": 0,
+      "color": "#3fb27f",
+      "quoted_cents": 140,
+      "spent_cents": 4,
       "report": "",
       "artifact_id": null,
       "context": [],
-      "created_at": "2026-09-07T16:42:36.446Z"
+      "created_at": "2026-09-07T18:40:44.318Z"
     },
     {
-      "id": "mnd_a47b9d167601",
-      "text": "analyse the churn numbers for last quarter",
-      "room_id": "room_1a7f30408fbc",
+      "id": "mnd_cc05",
+      "text": "clear the overnight ticket queue",
+      "room_id": "room_7ddf9205542d",
       "state": "done",
-      "color": "#4bb3d4",
-      "quoted_cents": 240,
-      "spent_cents": 9,
-      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_d424facfdf12",
-      "context": [],
-      "created_at": "2026-09-07T16:37:25.703Z"
-    },
-    {
-      "id": "mnd_21abba6c171d",
-      "text": "draft a launch post and publish it",
-      "room_id": "room_45dc31b85bfd",
-      "state": "working",
-      "color": "#e0794b",
-      "quoted_cents": 193,
-      "spent_cents": 0,
-      "report": "",
+      "color": "#e05b8f",
+      "quoted_cents": 110,
+      "spent_cents": 2,
+      "report": "Support answered the urgent tickets first.\nThe cake order is confirmed for Saturday.",
       "artifact_id": null,
       "context": [],
-      "created_at": "2026-09-07T16:36:45.465Z"
+      "created_at": "2026-09-08T02:12:44.397Z"
     },
     {
-      "id": "mnd_29752635c985",
-      "text": "look into churn for last quarter and write it up",
-      "room_id": "room_1a7f30408fbc",
-      "state": "done",
-      "color": "#4bb3d4",
-      "quoted_cents": 240,
-      "spent_cents": 9,
-      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_61d46831b2c8",
-      "context": [],
-      "created_at": "2026-09-07T16:35:37.338Z"
-    },
-    {
-      "id": "mnd_2452b942321f",
-      "text": "close the month and check the burn",
+      "id": "mnd_cc06",
+      "text": "close September and explain the oat milk line",
       "room_id": "room_37f9cff4ad76",
       "state": "done",
       "color": "#c9a227",
-      "quoted_cents": 240,
+      "quoted_cents": 160,
       "spent_cents": 6,
-      "report": "Finance finished all 3 tasks.\nYou have \u201cMonth-end close\u201d in Finance.",
-      "artifact_id": "art_474a54db8343",
+      "report": "Finance finished all 3 tasks.\nYou have “September close” in Finance.",
+      "artifact_id": null,
       "context": [],
-      "created_at": "2026-09-07T16:22:30.015Z"
+      "created_at": "2026-09-07T16:52:44.397Z"
     },
     {
-      "id": "mnd_f51c5d298c79",
-      "text": "run analytics on last quarter churn",
-      "room_id": "room_1a7f30408fbc",
+      "id": "mnd_cc07",
+      "text": "pick the winter drink",
+      "room_id": "room_bd5742dc4f6a",
       "state": "done",
-      "color": "#4bb3d4",
-      "quoted_cents": 240,
-      "spent_cents": 9,
-      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_de5f9d918657",
+      "color": "#7f8cd6",
+      "quoted_cents": 150,
+      "spent_cents": 12,
+      "report": "Research finished the tastings.\nYou have “Winter drink trials” in Research.",
+      "artifact_id": null,
       "context": [],
-      "created_at": "2026-09-07T16:19:31.696Z"
+      "created_at": "2026-09-07T15:48:44.225Z"
     },
     {
-      "id": "mnd_6d1cd87d9301",
-      "text": "look into churn for last quarter",
-      "room_id": "room_1a7f30408fbc",
+      "id": "mnd_cc08",
+      "text": "push weekend pastry pre-orders on the site",
+      "room_id": "room_45dc31b85bfd",
       "state": "done",
-      "color": "#4bb3d4",
-      "quoted_cents": 240,
-      "spent_cents": 9,
-      "report": "Analytics finished all 3 tasks.\nYou have \u201cQuarterly numbers\u201d in Analytics.",
-      "artifact_id": "art_c80717ca5469",
+      "color": "#e0794b",
+      "quoted_cents": 130,
+      "spent_cents": 14,
+      "report": "Marketing finished all 2 tasks.\nMorning buns sold out by nine — on purpose this time.",
+      "artifact_id": null,
       "context": [],
-      "created_at": "2026-09-07T16:15:06.210Z"
+      "created_at": "2026-09-07T12:10:44.318Z"
     }
   ],
   "tasks": [
     {
-      "id": "task_6d99cc6b1983",
-      "mandate_id": "mnd_0c2430219329",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_8ca44345e560",
-      "title": "Pull churn by plan for the period",
+      "id": "task_cc01",
+      "mandate_id": "mnd_cc01",
+      "agent_id": "agt_5944c95b2e8e",
+      "run_id": null,
+      "title": "Reproduce the oat surcharge dropout",
       "state": "done",
       "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T19:22:45.645Z"
+      "kill_reason": null
     },
     {
-      "id": "task_c2ff15edf5ed",
-      "mandate_id": "mnd_0c2430219329",
+      "id": "task_cc02",
+      "mandate_id": "mnd_cc01",
+      "agent_id": "agt_5944c95b2e8e",
+      "run_id": null,
+      "title": "Patch the cart and keep the diff small",
+      "state": "done",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc03",
+      "mandate_id": "mnd_cc01",
+      "agent_id": "agt_5944c95b2e8e",
+      "run_id": null,
+      "title": "Run the checkout tests green",
+      "state": "done",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc04",
+      "mandate_id": "mnd_cc02",
       "agent_id": "agt_430eefa475d0",
-      "run_id": "run_316a7b270c99",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T19:22:45.647Z"
-    },
-    {
-      "id": "task_a712891e974f",
-      "mandate_id": "mnd_0c2430219329",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_8941896d2ec3",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T19:22:45.648Z"
-    },
-    {
-      "id": "task_e6abd4755a69",
-      "mandate_id": "mnd_0c339fcb44aa",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_41c05a6fee93",
-      "title": "Pull churn by plan for the period",
+      "run_id": null,
+      "title": "Pull the morning rush by drink",
       "state": "done",
       "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:51:12.968Z"
+      "kill_reason": null
     },
     {
-      "id": "task_01c4903fa495",
-      "mandate_id": "mnd_0c339fcb44aa",
-      "agent_id": "agt_5080f4b050a0",
-      "run_id": "run_6a91ce1a7356",
-      "title": "Gather what is already known",
+      "id": "task_cc05",
+      "mandate_id": "mnd_cc02",
+      "agent_id": "agt_0525bcb1b92b",
+      "run_id": null,
+      "title": "Split it by café and day, twice",
       "state": "done",
       "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:50:58.110Z"
+      "kill_reason": null
     },
     {
-      "id": "task_2074431b1664",
-      "mandate_id": "mnd_0c339fcb44aa",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_7742e7d255d1",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:51:12.968Z"
-    },
-    {
-      "id": "task_4ffc06c7c0e1",
-      "mandate_id": "mnd_0c339fcb44aa",
-      "agent_id": "agt_5080f4b050a0",
-      "run_id": "run_ce0ab38c9a60",
-      "title": "Verify the load-bearing number",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:50:58.110Z"
-    },
-    {
-      "id": "task_bfb441b861c5",
-      "mandate_id": "mnd_0c339fcb44aa",
-      "agent_id": "agt_5080f4b050a0",
-      "run_id": "run_daa0cd2b0a39",
-      "title": "Write the brief",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:50:58.111Z"
-    },
-    {
-      "id": "task_9b4a3a1e4de9",
-      "mandate_id": "mnd_0c339fcb44aa",
+      "id": "task_cc06",
+      "mandate_id": "mnd_cc02",
       "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_db74019b25db",
-      "title": "Write the churn read-out",
+      "run_id": null,
+      "title": "Write the morning rush read-out",
       "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:51:12.969Z"
+      "ord": 0,
+      "kill_reason": null
     },
     {
-      "id": "task_45d5b088d92f",
-      "mandate_id": "mnd_11d40798c78a",
+      "id": "task_cc07",
+      "mandate_id": "mnd_cc03",
       "agent_id": "agt_a00189646174",
       "run_id": null,
-      "title": "Pull the numbers worth quoting",
-      "state": "killed",
-      "ord": 0,
-      "kill_reason": "handed_over",
-      "created_at": "2026-09-07T16:42:37.219Z"
-    },
-    {
-      "id": "task_23461a9ef8ba",
-      "mandate_id": "mnd_11d40798c78a",
-      "agent_id": "agt_df92974127df",
-      "run_id": null,
-      "title": "Draft the post",
-      "state": "killed",
-      "ord": 1,
-      "kill_reason": "handed_over",
-      "created_at": "2026-09-07T16:42:37.221Z"
-    },
-    {
-      "id": "task_e72ab09a5bef",
-      "mandate_id": "mnd_11d40798c78a",
-      "agent_id": "agt_a00189646174",
-      "run_id": null,
-      "title": "Cut it down and queue it",
-      "state": "killed",
-      "ord": 2,
-      "kill_reason": "handed_over",
-      "created_at": "2026-09-07T16:42:37.222Z"
-    },
-    {
-      "id": "task_6e6fe75b1c7f",
-      "mandate_id": "mnd_21abba6c171d",
-      "agent_id": "agt_df92974127df",
-      "run_id": "run_99bca63ab5f0",
-      "title": "Pull the numbers worth quoting",
+      "title": "Draft the two-for-one cortado post",
       "state": "working",
       "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:36:46.185Z"
+      "kill_reason": null
     },
     {
-      "id": "task_893b1379be66",
-      "mandate_id": "mnd_21abba6c171d",
+      "id": "task_cc08",
+      "mandate_id": "mnd_cc03",
       "agent_id": "agt_df92974127df",
       "run_id": null,
-      "title": "Draft the post",
+      "title": "Cut it by a third and queue it for approval",
       "state": "queued",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:36:46.186Z"
+      "ord": 0,
+      "kill_reason": null
     },
     {
-      "id": "task_b557fad24ae4",
-      "mandate_id": "mnd_21abba6c171d",
+      "id": "task_cc09",
+      "mandate_id": "mnd_cc04",
+      "agent_id": "agt_794ac034835e",
+      "run_id": null,
+      "title": "Call back Hale & Co after the tasting",
+      "state": "working",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc10",
+      "mandate_id": "mnd_cc04",
+      "agent_id": "agt_99ed37f3b1da",
+      "run_id": null,
+      "title": "Score the stalled tastings honestly",
+      "state": "working",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc11",
+      "mandate_id": "mnd_cc05",
+      "agent_id": "agt_56b4316efe98",
+      "run_id": null,
+      "title": "Answer the sold-out-but-shelf-full ticket",
+      "state": "done",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc12",
+      "mandate_id": "mnd_cc05",
+      "agent_id": "agt_b3a96b064a24",
+      "run_id": null,
+      "title": "Confirm the Saturday cake pickup",
+      "state": "done",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc13",
+      "mandate_id": "mnd_cc06",
+      "agent_id": "agt_20fd3a618c0f",
+      "run_id": null,
+      "title": "Split the milk spend by café",
+      "state": "done",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc14",
+      "mandate_id": "mnd_cc06",
+      "agent_id": "agt_707273e2c656",
+      "run_id": null,
+      "title": "Tie the close to till rows",
+      "state": "done",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc15",
+      "mandate_id": "mnd_cc07",
+      "agent_id": "agt_5080f4b050a0",
+      "run_id": null,
+      "title": "Taste the cardamom oat latte with regulars",
+      "state": "done",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc16",
+      "mandate_id": "mnd_cc07",
+      "agent_id": "agt_5080f4b050a0",
+      "run_id": null,
+      "title": "Write up the winter drink trials",
+      "state": "done",
+      "ord": 0,
+      "kill_reason": null
+    },
+    {
+      "id": "task_cc17",
+      "mandate_id": "mnd_cc08",
       "agent_id": "agt_a00189646174",
       "run_id": null,
-      "title": "Cut it down and queue it",
-      "state": "queued",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:36:46.186Z"
-    },
-    {
-      "id": "task_825b195b4f84",
-      "mandate_id": "mnd_2452b942321f",
-      "agent_id": "agt_707273e2c656",
-      "run_id": "run_2147e8cfb73d",
-      "title": "Add up the last full month",
+      "title": "Draft the pastry pre-order post",
       "state": "done",
       "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:22:30.680Z"
+      "kill_reason": null
     },
     {
-      "id": "task_f2af9bf6352a",
-      "mandate_id": "mnd_2452b942321f",
-      "agent_id": "agt_20fd3a618c0f",
-      "run_id": "run_6335e61c93a9",
-      "title": "Check what is still open",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:22:30.682Z"
-    },
-    {
-      "id": "task_2a1c8b50058c",
-      "mandate_id": "mnd_2452b942321f",
-      "agent_id": "agt_707273e2c656",
-      "run_id": "run_f56b0d0716eb",
-      "title": "Write the month-end memo",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:22:30.683Z"
-    },
-    {
-      "id": "task_dcbb2d520bd8",
-      "mandate_id": "mnd_29752635c985",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_4eea7ec5219f",
-      "title": "Pull churn by plan for the period",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:35:37.895Z"
-    },
-    {
-      "id": "task_341bd9967699",
-      "mandate_id": "mnd_29752635c985",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_849b0743e9f6",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:35:37.897Z"
-    },
-    {
-      "id": "task_e0724c0db77e",
-      "mandate_id": "mnd_29752635c985",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_a1be5e90aa4a",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:35:37.898Z"
-    },
-    {
-      "id": "task_5d93461688c0",
-      "mandate_id": "mnd_68e59fce436d",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_13ddec02d371",
-      "title": "Pull churn by plan for the period",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T18:54:39.648Z"
-    },
-    {
-      "id": "task_89222cc36348",
-      "mandate_id": "mnd_68e59fce436d",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_69e2a993f875",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T18:54:39.649Z"
-    },
-    {
-      "id": "task_530f5dc546d2",
-      "mandate_id": "mnd_68e59fce436d",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_8f1d733eb301",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T18:54:39.672Z"
-    },
-    {
-      "id": "task_3249fb83dbf4",
-      "mandate_id": "mnd_6d1cd87d9301",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_78590b65daf1",
-      "title": "Pull churn by plan for the period",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:15:07.049Z"
-    },
-    {
-      "id": "task_aeba4b8d5a62",
-      "mandate_id": "mnd_6d1cd87d9301",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_6eb21a994f11",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:15:07.050Z"
-    },
-    {
-      "id": "task_dbe2b78d3789",
-      "mandate_id": "mnd_6d1cd87d9301",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_a519c0445b4b",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:15:07.052Z"
-    },
-    {
-      "id": "task_4ae1a966ff9d",
-      "mandate_id": "mnd_89bc61c92cf5",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_6820da3691f2",
-      "title": "Pull churn by plan for the period",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:53:07.843Z"
-    },
-    {
-      "id": "task_59d8acb7008f",
-      "mandate_id": "mnd_89bc61c92cf5",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_883012fa9300",
-      "title": "Pull churn by plan for the period",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:52:32.904Z"
-    },
-    {
-      "id": "task_6ae0162158a1",
-      "mandate_id": "mnd_89bc61c92cf5",
-      "agent_id": "agt_5080f4b050a0",
-      "run_id": "run_d48b289944a8",
-      "title": "Gather what is already known",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:52:19.639Z"
-    },
-    {
-      "id": "task_723e3edea2eb",
-      "mandate_id": "mnd_89bc61c92cf5",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_ee3b0e7a0590",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:53:07.844Z"
-    },
-    {
-      "id": "task_c55002c7118b",
-      "mandate_id": "mnd_89bc61c92cf5",
-      "agent_id": "agt_5080f4b050a0",
-      "run_id": "run_37a56559f40a",
-      "title": "Verify the load-bearing number",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:52:19.639Z"
-    },
-    {
-      "id": "task_830ff49b8369",
-      "mandate_id": "mnd_89bc61c92cf5",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_7c80df2b4717",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:52:32.905Z"
-    },
-    {
-      "id": "task_0610bb8d5489",
-      "mandate_id": "mnd_89bc61c92cf5",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_057a50b31dff",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:52:32.905Z"
-    },
-    {
-      "id": "task_2a990af0e379",
-      "mandate_id": "mnd_89bc61c92cf5",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_7ccd4d65aebe",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:53:07.845Z"
-    },
-    {
-      "id": "task_2912df15d1f8",
-      "mandate_id": "mnd_89bc61c92cf5",
-      "agent_id": "agt_5080f4b050a0",
-      "run_id": "run_240aebe36a90",
-      "title": "Write the brief",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:52:19.640Z"
-    },
-    {
-      "id": "task_2431a808b0e2",
-      "mandate_id": "mnd_8f98b07625ae",
-      "agent_id": "agt_5080f4b050a0",
-      "run_id": "run_74f2e4eee9ca",
-      "title": "Gather what is already known",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:48:11.814Z"
-    },
-    {
-      "id": "task_c058b533749e",
-      "mandate_id": "mnd_8f98b07625ae",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_8239884a1567",
-      "title": "Pull churn by plan for the period",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:48:25.871Z"
-    },
-    {
-      "id": "task_ba3dd691778a",
-      "mandate_id": "mnd_8f98b07625ae",
-      "agent_id": "agt_5080f4b050a0",
-      "run_id": "run_9dafa31b9342",
-      "title": "Verify the load-bearing number",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:48:11.815Z"
-    },
-    {
-      "id": "task_b2a741a4c555",
-      "mandate_id": "mnd_8f98b07625ae",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_e42444cbe598",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:48:25.872Z"
-    },
-    {
-      "id": "task_8fef0c8fb2a0",
-      "mandate_id": "mnd_8f98b07625ae",
-      "agent_id": "agt_5080f4b050a0",
-      "run_id": "run_7d522eab24ce",
-      "title": "Write the brief",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:48:11.816Z"
-    },
-    {
-      "id": "task_214b852d71a2",
-      "mandate_id": "mnd_8f98b07625ae",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_cb1a1778e95d",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:48:25.872Z"
-    },
-    {
-      "id": "task_708a8a16cfda",
-      "mandate_id": "mnd_a0cc587628d2",
-      "agent_id": "agt_707273e2c656",
-      "run_id": "run_aabe3b08b1c2",
-      "title": "Pull the figures the question needs",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:47:35.692Z"
-    },
-    {
-      "id": "task_cb87ad690ed2",
-      "mandate_id": "mnd_a0cc587628d2",
-      "agent_id": "agt_20fd3a618c0f",
-      "run_id": "run_13676dddba11",
-      "title": "Tie each one back to a row",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:47:35.694Z"
-    },
-    {
-      "id": "task_ff4af1c06e65",
-      "mandate_id": "mnd_a0cc587628d2",
-      "agent_id": "agt_707273e2c656",
-      "run_id": "run_04c01d800ab1",
-      "title": "Write the memo",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:47:35.695Z"
-    },
-    {
-      "id": "task_f9193cfe3944",
-      "mandate_id": "mnd_a47b9d167601",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_51c99592d4ee",
-      "title": "Pull churn by plan for the period",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:37:26.367Z"
-    },
-    {
-      "id": "task_0c672127672e",
-      "mandate_id": "mnd_a47b9d167601",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_7427ee63e347",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:37:26.369Z"
-    },
-    {
-      "id": "task_4b1005665853",
-      "mandate_id": "mnd_a47b9d167601",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_2283a7bc871b",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:37:26.370Z"
-    },
-    {
-      "id": "task_ced064fd6ae5",
-      "mandate_id": "mnd_acf109a66ccd",
-      "agent_id": "agt_a00189646174",
-      "run_id": null,
-      "title": "Pull the numbers worth quoting",
-      "state": "queued",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T19:11:48.117Z"
-    },
-    {
-      "id": "task_53d363840b3d",
-      "mandate_id": "mnd_acf109a66ccd",
+      "id": "task_cc18",
+      "mandate_id": "mnd_cc08",
       "agent_id": "agt_df92974127df",
       "run_id": null,
-      "title": "Draft the post",
-      "state": "queued",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T19:11:48.132Z"
-    },
-    {
-      "id": "task_acee0aa62c1f",
-      "mandate_id": "mnd_acf109a66ccd",
-      "agent_id": "agt_a00189646174",
-      "run_id": null,
-      "title": "Cut it down and queue it",
-      "state": "queued",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T19:11:48.134Z"
-    },
-    {
-      "id": "task_f50039d5363b",
-      "mandate_id": "mnd_f51c5d298c79",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_b3645454291f",
-      "title": "Pull churn by plan for the period",
+      "title": "Publish after the morning-bun photo landed",
       "state": "done",
       "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:19:32.526Z"
+      "kill_reason": null
+    }
+  ]
+};
+
+export type ChatMsg = { who: string; avatar: string; color: string; text: string; time: string; kind: 'say' | 'sys' | 'ask' };
+/** Frozen threads for the hosted demo: the same back-and-forth the live rooms get from events. */
+export const DEMO_THREADS: Record<string, ChatMsg[]> = {
+  "engineering": [
+    {
+      "who": "Otto",
+      "avatar": "🧑‍💼",
+      "color": "#6f8ef5",
+      "text": "Morning crew — the oat-milk large latte is 500ing at checkout. That is real money every hour.",
+      "time": "9:02 AM",
+      "kind": "say"
     },
     {
-      "id": "task_6f2e6b83a4df",
-      "mandate_id": "mnd_f51c5d298c79",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_f4724bc08390",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:19:32.528Z"
+      "who": "Kit",
+      "avatar": "👨‍💻",
+      "color": "#6f8ef5",
+      "text": "Reproduced it: the oat surcharge line drops out of the cart when the size is large.",
+      "time": "9:07 AM",
+      "kind": "say"
     },
     {
-      "id": "task_40b6791f3dd1",
-      "mandate_id": "mnd_f51c5d298c79",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_4f4fe7dcd8ac",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T16:19:32.529Z"
+      "who": "Rex",
+      "avatar": "🧑‍💻",
+      "color": "#8a93a5",
+      "text": "I can reproduce it five different ways if that helps.",
+      "time": "9:09 AM",
+      "kind": "say"
     },
     {
-      "id": "task_2aa782e8e3fc",
-      "mandate_id": "mnd_fd33ea1abe1c",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_7e74e1779788",
-      "title": "Pull churn by plan for the period",
-      "state": "done",
-      "ord": 0,
-      "kill_reason": null,
-      "created_at": "2026-09-07T18:52:37.736Z"
+      "who": "Kit",
+      "avatar": "👨‍💻",
+      "color": "#6f8ef5",
+      "text": "One way is enough. The surcharge applies after the size multiplier — patch incoming.",
+      "time": "9:14 AM",
+      "kind": "say"
     },
     {
-      "id": "task_8ecfc100e2fe",
-      "mandate_id": "mnd_fd33ea1abe1c",
-      "agent_id": "agt_430eefa475d0",
-      "run_id": "run_84482adccaa4",
-      "title": "Split churn by region and tenure",
-      "state": "done",
-      "ord": 1,
-      "kill_reason": null,
-      "created_at": "2026-09-07T18:52:37.738Z"
+      "who": "",
+      "avatar": "",
+      "color": "",
+      "text": "Kit read 3 files in the checkout code",
+      "time": "9:14 AM",
+      "kind": "sys"
     },
     {
-      "id": "task_07343ad5111d",
-      "mandate_id": "mnd_fd33ea1abe1c",
-      "agent_id": "agt_0525bcb1b92b",
-      "run_id": "run_d5e27f1e2e88",
-      "title": "Write the churn read-out",
-      "state": "done",
-      "ord": 2,
-      "kill_reason": null,
-      "created_at": "2026-09-07T18:52:37.739Z"
+      "who": "Kit",
+      "avatar": "👨‍💻",
+      "color": "#6f8ef5",
+      "text": "Patch is up, eleven lines. Tests green, pushing behind the flag.",
+      "time": "9:21 AM",
+      "kind": "say"
+    },
+    {
+      "who": "",
+      "avatar": "",
+      "color": "",
+      "text": "All tests passed",
+      "time": "9:22 AM",
+      "kind": "sys"
+    },
+    {
+      "who": "Rex",
+      "avatar": "🧑‍💻",
+      "color": "#8a93a5",
+      "text": "Can I break it again, for science?",
+      "time": "9:24 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Kit",
+      "avatar": "👨‍💻",
+      "color": "#6f8ef5",
+      "text": "No.",
+      "time": "9:24 AM",
+      "kind": "say"
     }
   ],
-  "now": "2026-09-08T04:22:50.405Z"
-} as unknown as Snapshot;
+  "analytics": [
+    {
+      "who": "Vera",
+      "avatar": "◆",
+      "color": "#4bb3d4",
+      "text": "Question for the room: which morning drinks actually make money?",
+      "time": "8:40 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Bo",
+      "avatar": "🧑‍🔬",
+      "color": "#63c9c0",
+      "text": "Pulled the rush first: oat flat white outsells dairy two to one at riverside.",
+      "time": "8:52 AM",
+      "kind": "say"
+    },
+    {
+      "who": "",
+      "avatar": "",
+      "color": "",
+      "text": "Bo queried the till — found 214 records",
+      "time": "8:53 AM",
+      "kind": "sys"
+    },
+    {
+      "who": "Ada",
+      "avatar": "👩‍🔬",
+      "color": "#4bb3d4",
+      "text": "Ran it again by café and day. Same answer — and subscribers tip 30 percent more often.",
+      "time": "9:05 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Bo",
+      "avatar": "🧑‍🔬",
+      "color": "#63c9c0",
+      "text": "So the menu board lies? Dairy gets top billing and sells half.",
+      "time": "9:06 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Ada",
+      "avatar": "👩‍🔬",
+      "color": "#4bb3d4",
+      "text": "Top billing goes to oat from Monday. Wrote it up, numbers first, adjectives nowhere.",
+      "time": "9:11 AM",
+      "kind": "say"
+    },
+    {
+      "who": "",
+      "avatar": "",
+      "color": "",
+      "text": "Ada saved “Morning rush read-out” to files",
+      "time": "9:12 AM",
+      "kind": "sys"
+    }
+  ],
+  "marketing": [
+    {
+      "who": "Juno",
+      "avatar": "🧑‍💼",
+      "color": "#e0794b",
+      "text": "Slow Tuesdays at market. We need bodies in seats by three.",
+      "time": "1:10 PM",
+      "kind": "say"
+    },
+    {
+      "who": "Mel",
+      "avatar": "👩‍🎨",
+      "color": "#e0794b",
+      "text": "Drafting the two-for-one cortado post — using Ada’s rush numbers so it is not just vibes.",
+      "time": "1:18 PM",
+      "kind": "say"
+    },
+    {
+      "who": "",
+      "avatar": "",
+      "color": "",
+      "text": "Mel drafted a post for the blog",
+      "time": "1:20 PM",
+      "kind": "sys"
+    },
+    {
+      "who": "Nia",
+      "avatar": "🧑‍🏫",
+      "color": "#d9a441",
+      "text": "Cut it by a third and killed the exclamation marks. It can go the second you say.",
+      "time": "1:31 PM",
+      "kind": "say"
+    },
+    {
+      "who": "Nia",
+      "avatar": "🧑‍🏫",
+      "color": "#d9a441",
+      "text": "Needs your approval: publish the cortado post to the blog",
+      "time": "1:31 PM",
+      "kind": "ask"
+    },
+    {
+      "who": "Mel",
+      "avatar": "👩‍🎨",
+      "color": "#e0794b",
+      "text": "Holding for the photos. Yesterday’s cortado shot is perfect — give me an hour.",
+      "time": "1:33 PM",
+      "kind": "say"
+    }
+  ],
+  "sales": [
+    {
+      "who": "Cleo",
+      "avatar": "🧑‍💼",
+      "color": "#3fb27f",
+      "text": "Three tastings stalled. Who is actually still alive?",
+      "time": "10:15 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Sam",
+      "avatar": "🤵",
+      "color": "#3fb27f",
+      "text": "Hale & Co went quiet after the tasting. Not dead, just quiet — flagging for Thursday.",
+      "time": "10:19 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Tor",
+      "avatar": "👨‍🔬",
+      "color": "#57b6a0",
+      "text": "Numbers say otherwise: no reply in 21 days means dead. Move them to lost and stop watering them.",
+      "time": "10:24 AM",
+      "kind": "say"
+    },
+    {
+      "who": "",
+      "avatar": "",
+      "color": "",
+      "text": "Sam left a note on Hale & Co",
+      "time": "10:26 AM",
+      "kind": "sys"
+    },
+    {
+      "who": "Sam",
+      "avatar": "🤵",
+      "color": "#3fb27f",
+      "text": "Fine — moved to lost. But I am still bringing beans Thursday. Low pressure, high aroma.",
+      "time": "10:27 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Tor",
+      "avatar": "👨‍🔬",
+      "color": "#57b6a0",
+      "text": "That is exactly watering a dead plant.",
+      "time": "10:28 AM",
+      "kind": "say"
+    }
+  ],
+  "support": [
+    {
+      "who": "Mira",
+      "avatar": "🧑‍💼",
+      "color": "#e05b8f",
+      "text": "Overnight queue first, crew. Cake ticket before ten — birthdays do not move.",
+      "time": "8:05 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Ren",
+      "avatar": "💁",
+      "color": "#e05b8f",
+      "text": "Sold-out-but-shelf-full is the urgent one. That is a lost pre-order, answering first.",
+      "time": "8:09 AM",
+      "kind": "say"
+    },
+    {
+      "who": "",
+      "avatar": "",
+      "color": "",
+      "text": "Ren opened 4 open tickets",
+      "time": "8:10 AM",
+      "kind": "sys"
+    },
+    {
+      "who": "Ola",
+      "avatar": "💁‍♂️",
+      "color": "#d67aa8",
+      "text": "Took the thin flat white one. Grinder was recalibrated at nine, so I will say that and mean it.",
+      "time": "8:22 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Ren",
+      "avatar": "💁",
+      "color": "#e05b8f",
+      "text": "Cake confirmed for Saturday ten, flagship. Asked the time, never promised the writing — oh, the writing is fine.",
+      "time": "9:41 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Ola",
+      "avatar": "💁‍♂️",
+      "color": "#d67aa8",
+      "text": "Queue clear by ten. Nice.",
+      "time": "9:58 AM",
+      "kind": "say"
+    }
+  ],
+  "finance": [
+    {
+      "who": "Hugo",
+      "avatar": "🧑‍💼",
+      "color": "#c9a227",
+      "text": "September close. Somebody explain the milk line before lunch.",
+      "time": "10:02 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Gus",
+      "avatar": "👨‍🏫",
+      "color": "#d9b64a",
+      "text": "Oat milk spend is up 40 percent, dairy flat. That is the whole variance, right there.",
+      "time": "10:11 AM",
+      "kind": "say"
+    },
+    {
+      "who": "",
+      "avatar": "",
+      "color": "",
+      "text": "Gus queried the ledger — found 58 records",
+      "time": "10:12 AM",
+      "kind": "sys"
+    },
+    {
+      "who": "Fay",
+      "avatar": "👩‍⚖️",
+      "color": "#c9a227",
+      "text": "Tied to till rows, not vibes. The close stands.",
+      "time": "10:26 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Fay",
+      "avatar": "👩‍⚖️",
+      "color": "#c9a227",
+      "text": "Menu board gets a smaller oat pour from Monday. Nobody tell the regulars.",
+      "time": "10:27 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Gus",
+      "avatar": "👨‍🏫",
+      "color": "#d9b64a",
+      "text": "The regulars will notice in eleven minutes.",
+      "time": "10:28 AM",
+      "kind": "say"
+    }
+  ],
+  "research": [
+    {
+      "who": "Piet",
+      "avatar": "🧑‍💼",
+      "color": "#7f8cd6",
+      "text": "Winter is coming and the menu is not ready. One drink, tested, no advent calendar.",
+      "time": "11:00 AM",
+      "kind": "say"
+    },
+    {
+      "who": "Val",
+      "avatar": "🕵️",
+      "color": "#7f8cd6",
+      "text": "Cardamom oat latte. Twelve regulars tasted, nine would order it again.",
+      "time": "11:20 AM",
+      "kind": "say"
+    },
+    {
+      "who": "",
+      "avatar": "",
+      "color": "",
+      "text": "Val saved “Winter drink trials” to files",
+      "time": "11:25 AM",
+      "kind": "sys"
+    },
+    {
+      "who": "Val",
+      "avatar": "🕵️",
+      "color": "#7f8cd6",
+      "text": "Two asked if it comes iced. It comes iced.",
+      "time": "11:26 AM",
+      "kind": "say"
+    }
+  ]
+};
