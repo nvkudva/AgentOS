@@ -15,7 +15,7 @@ import { hours } from '../lib/humanize';
 import * as voice from '../lib/voice';
 
 const YES = /^(yes|yep|yeah|yup|sure|do it|go ahead|confirm|please do|ok|okay)( please| do it| go ahead| confirm( it)?| approve it| decline it| reject it)?$/;
-const NO = /^(no|nope|cancel|never mind|nevermind|don't|do not|leave it|stop)$/;
+const NO = /^(actually )?(no|nope|cancel|never mind|nevermind|don't|do not|leave it|stop|drop|scrap)( that| it)?$/;
 const STOP_WORDS = /^(stop|cancel|never mind|nevermind|shut up|quiet|be quiet|stop talking)$/;
 const PICK: Record<string, number> = { '1': 0, one: 0, first: 0, '2': 1, two: 1, second: 1, '3': 2, three: 2, third: 2 };
 /** Silence that ends a conversation, and the longer wait while a yes/no question stands. */
@@ -79,6 +79,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   };
   const stt = useRef<SttClient | null>(null);
   const voiceCtx = useRef<VoiceContext>(emptyContext());
+  const turn = useRef(0);
   const pendingConfirm = useRef<IntentResult | null>(null);
   const pendingClarify = useRef<IntentResult['clarify'] | null>(null);
   const lastSay = useRef('');
@@ -179,7 +180,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
 
   const handleMeta = (res: IntentResult): boolean => {
     if (res.intent === 'meta.stop') {
-      voice.stop(); pendingConfirm.current = null; pendingClarify.current = null;
+      voice.stop(); turn.current++; pendingConfirm.current = null; pendingClarify.current = null;
       setReply(res.say); push('orb', res.say); earcons.play('done');
       if (res.say !== 'Stopped.') endSession();
       return true;
@@ -241,7 +242,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     if (!text.trim()) return;
     const cleaned = text.trim().toLowerCase().replace(/[,]/g, '').replace(/[.!?]+$/, '');
     setText('');
-    if (!viaModel) { setAsked(text); push('you', text); }
+    if (!viaModel) { turn.current++; setAsked(text); push('you', text); }
     if (answerStanding(cleaned)) return;
     setThinking(true);
     setTimeout(() => setThinking(false), 700);
@@ -272,8 +273,10 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
       return;
     }
     setThinking(true);
+    const myTurn = turn.current;
     const command = await llm.toCommand(text, ctx.snap!);
     setThinking(false);
+    if (myTurn !== turn.current) return;
     if (!command) { say(fallbackSay); earcons.play('error'); show(7000); return; }
     push('orb', `→ ${command}`);
     submitRef.current(command, true);
@@ -361,7 +364,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   };
 
   const endSession = () => {
-    clearTimeout(followUp.current);
+    clearTimeout(followUp.current); turn.current++;
     voiceCtx.current = emptyContext(); pendingConfirm.current = null; pendingClarify.current = null;
     setListening(false); setHeard('');
     if (wakeRef.current) { stt.current?.setMode('armed'); setArmed(micOn.current); }
