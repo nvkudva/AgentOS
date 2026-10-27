@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "atrium",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "atrium-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "-w",
+        "server",
+        "run",
+        "start"
+      ],
+      "port": 8788
+    }
+  ]
+}
