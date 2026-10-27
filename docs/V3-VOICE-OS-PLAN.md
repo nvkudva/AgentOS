@@ -59,7 +59,7 @@ code for no user-visible gain.
 ### 3.4 In-browser models
 | Role | Model | Runtime | Size | Load |
 |---|---|---|---|---|
-| STT | whisper-tiny.en q8 | Transformers.js worker | ~40 MB | first mic use |
+| STT | distil-small.en (q8 wasm, fp32+q4 WebGPU) | Transformers.js worker | ~170–350 MB | first mic use |
 | TTS | Kokoro-82M q8 | kokoro-js worker | ~90 MB | first speech |
 | LLM (System 2) | SmolLM2-360M-Instruct q4f16 (WebGPU) / q4 (WASM) | Transformers.js worker | 273 / 388 MB | opt-in "Smart understanding" |
 

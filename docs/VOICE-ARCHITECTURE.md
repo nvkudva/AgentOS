@@ -11,7 +11,7 @@ Supervisor proposal/clarify/result cards, `wm.ts:useWindows`.
 | Question | Decision |
 |---|---|
 | STT engine | Whisper via Transformers.js in a Web Worker. Same runtime Kokoro already ships — no second inference stack. |
-| Model | `onnx-community/whisper-tiny.en`, `dtype:'q8'`, en-US. ~40 MB. |
+| Model | `onnx-community/distil-small.en`, `q8` on WASM, fp32 encoder + `q4` decoder on WebGPU, en-US. ~170–350 MB. |
 | Dependency | Promote `@huggingface/transformers` to a direct `web` dep at `^3.8.1`. It is already installed transitively via `kokoro-js@1.2.1` (`^3.5.1`); pinning direct makes the import legal and version-stable. No other new runtime dep. |
 | Endpointing | Energy VAD in `capture.ts` (RMS threshold, 400 ms trailing silence = end of turn). No Silero dep in P0+P1; interface allows swapping it in later. |
 | Moonshine | Deferred. Re-evaluate only if Whisper misses §8 gates on a recorded corpus; the `SttClient` interface is engine-shaped, not Whisper-shaped, so a swap touches `stt.worker.ts` only. |
@@ -163,7 +163,7 @@ Push-to-talk only (existing orb click / Space). Flow: orb click →
 `startCapture` (getUserMedia; the existing visual-only stream in Supervisor is
 replaced by this one stream) → VAD segments PCM → `SttClient` posts
 `{type:'transcribe'}` → worker runs `pipeline('automatic-speech-recognition',
-'onnx-community/whisper-tiny.en', {dtype:'q8', device})` (device: WebGPU probe
+'onnx-community/distil-small.en', {dtype, device})` (device: WebGPU probe
 like `voice.worker.ts:18-23`, else WASM) → final `Transcript` → Supervisor's
 existing `submit(text)` path, unchanged downstream. Partials: capture sends the
 rolling buffer every 1.5 s; worker transcribes it as non-final. Barge-in: any

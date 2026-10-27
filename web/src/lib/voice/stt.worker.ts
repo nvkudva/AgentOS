@@ -13,7 +13,7 @@ type InMessage =
   | { type: 'load' }
   | { type: 'transcribe'; id: number; audio: Float32Array; sampleRate: 16000; final?: boolean };
 
-const MODEL_ID = 'onnx-community/whisper-tiny.en';
+const MODEL_ID = 'onnx-community/distil-small.en';
 
 let asrPromise: Promise<any> | null = null;
 // Serialize inference: Whisper pipelines are not re-entrant.

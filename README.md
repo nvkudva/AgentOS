@@ -87,7 +87,7 @@ The orb can approve nothing on its own.
 **How it works**
 
 - **Grammar first.** `web/src/desktop/intent-engine.ts` is a deterministic parser; most commands never touch a model.
-- **Speech to text.** Whisper tiny.en (about 40 MB) via Transformers.js in a worker, WebGPU when available, WASM otherwise. A voice-activity gate sends only speech to it.
+- **Speech to text.** Distil-Whisper small.en (about 170–350 MB) via Transformers.js in a worker, WebGPU when available, WASM otherwise. A voice-activity gate sends only speech to it.
 - **Wake word.** No keyword model: while armed, short speech bursts are transcribed and checked for the phrase (`web/src/lib/voice/wake.ts`). The orb's own voice coming back through the speakers is ignored.
 - **Speech output.** Kokoro 82M (about 90 MB) in a worker, with a local English system voice as the fallback.
 - **Smart understanding.** If the grammar does not understand a sentence, SmolLM2-360M-Instruct (270 MB on WebGPU, 390 MB on WASM) rewrites it as one command from a fixed list. The grammar re-checks that command, so the model can never do anything a typed command could not. It downloads in the background on first load and is on by default; turn it off in Settings, Voice. "Put some tunes on" becomes "open music".

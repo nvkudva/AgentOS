@@ -23,7 +23,7 @@ function load() {
       }
       try {
         const tts = await KokoroTTS.from_pretrained(MODEL_ID, {
-          dtype: 'q8',
+          dtype: device === 'webgpu' ? 'fp32' : 'q8',
           device,
           progress_callback: (progress: any) => {
             self.postMessage({ type: 'progress', progress });
