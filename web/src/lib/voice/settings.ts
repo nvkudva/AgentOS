@@ -95,8 +95,11 @@ export const WAKE_WORD_KEY = 'atrium.wakeWord';
 export const SMART_NLU_KEY = 'atrium.smartNlu';
 export const VOICE_SETTINGS_EVENT = 'atrium:voice-settings';
 
-function readFlag(key: string, storage: VoiceStorage): boolean {
-  try { return (storage === undefined ? defaultStorage() : storage)?.getItem(key) === '1'; } catch { return false; }
+function readFlag(key: string, storage: VoiceStorage, fallback = false): boolean {
+  try {
+    const raw = (storage === undefined ? defaultStorage() : storage)?.getItem(key);
+    return raw === null || raw === undefined ? fallback : raw === '1';
+  } catch { return fallback; }
 }
 
 function writeFlag(key: string, on: boolean, storage: VoiceStorage): void {
@@ -106,5 +109,5 @@ function writeFlag(key: string, on: boolean, storage: VoiceStorage): void {
 
 export const getWakeWord = (storage?: VoiceStorage): boolean => readFlag(WAKE_WORD_KEY, storage);
 export const setWakeWord = (on: boolean, storage?: VoiceStorage): void => writeFlag(WAKE_WORD_KEY, on, storage);
-export const getSmartNlu = (storage?: VoiceStorage): boolean => readFlag(SMART_NLU_KEY, storage);
+export const getSmartNlu = (storage?: VoiceStorage): boolean => readFlag(SMART_NLU_KEY, storage, true);
 export const setSmartNlu = (on: boolean, storage?: VoiceStorage): void => writeFlag(SMART_NLU_KEY, on, storage);

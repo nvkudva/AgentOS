@@ -279,6 +279,8 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     submitRef.current(command, true);
   };
 
+  useEffect(() => { if (voiceSettings.getSmartNlu()) llm.preload(); }, []);
+
   /** A chit dropped on the orb arrives here: the router already chose, and the panel
    *  holds it for three seconds so the hand can take it straight back out. */
   useEffect(() => {

@@ -1432,3 +1432,6 @@ body { touch-action:manipulation; }
 /* settings: voice */
 .settings .voice-models { margin:0 0 12px; padding-left:18px; }
 .settings input[type=checkbox] { width:auto; flex:none; margin:0; }
+
+.wake-toggle { font-size:12px; padding:2px 8px; white-space:nowrap; }
+.wake-toggle.on { box-shadow:0 0 0 2px #2dd4bf; }

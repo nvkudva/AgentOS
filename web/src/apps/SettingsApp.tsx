@@ -156,7 +156,7 @@ function VoiceSection() {
       </label>
       <label>
         <input type="checkbox" checked={smart} onChange={(e) => { setSmartNlu(e.target.checked); if (e.target.checked) llm.preload(); }} />
-        Smart understanding — on-device language model, 270–390 MB one-time download
+        Smart understanding — on-device language model (SmolLM2 360M), 270–390 MB one-time download, on by default
       </label>
       <p className="muted tiny">On-device models:</p>
       <ul className="muted tiny voice-models">

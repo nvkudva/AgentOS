@@ -6,6 +6,7 @@ import { Supervisor, type Skin } from './Supervisor';
 import type { CmdCtx } from './commands';
 import type { Result, Clarify } from './intent';
 import type { Theme } from '../lib/theme';
+import * as voiceSettings from '../lib/voice/settings';
 
 export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, sidebar, onSidebar, onOpen, skin, demo, onSheet,
                           bell, results, clarifies, onResult, onClarify }: {
@@ -42,6 +43,7 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
                   results={results} clarifies={clarifies} onResult={onResult} onClarify={onClarify} />
       <span className="spacer" />
 
+      <WakeToggle />
       <span className="menu" onClick={cycle} title={`theme: ${theme}`}>
         {theme === 'dark' ? '🌙' : theme === 'light' ? '☀️' : '🌗'}
       </span>
@@ -51,6 +53,22 @@ export function MenuBar({ config, inbox, needsMe, view, theme, setTheme, ctx, si
       </span>
       <StopAll config={config} agents={ctx.agents} />
     </div>
+  );
+}
+
+function WakeToggle() {
+  const [on, setOn] = useState(voiceSettings.getWakeWord);
+  useEffect(() => {
+    const sync = () => setOn(voiceSettings.getWakeWord());
+    addEventListener(voiceSettings.VOICE_SETTINGS_EVENT, sync);
+    return () => removeEventListener(voiceSettings.VOICE_SETTINGS_EVENT, sync);
+  }, []);
+  return (
+    <button className={`wake-toggle${on ? ' on' : ''}`} role="switch" aria-checked={on}
+            title={on ? 'Wake word on: say “Hey Atrium”' : 'Wake word off'}
+            onClick={() => voiceSettings.setWakeWord(!on)}>
+      🎙 Wake {on ? 'on' : 'off'}
+    </button>
   );
 }
 

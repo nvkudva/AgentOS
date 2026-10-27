@@ -46,12 +46,70 @@ The web build installs as a PWA: a manifest, icons, and a service worker that pr
 the shell and never serves `/api` from disk. Apps that are not needed to paint the desk
 are fetched when opened.
 
+## Voice
+
+The whole desktop can be driven by voice. Speech recognition, speech output and the
+language model all run in the browser; audio and text never leave the machine. The only
+network use is the one-time model download (cached afterwards) and the ONNX runtime files,
+which load from the jsdelivr CDN on first use.
+
+**How to use it**
+
+- Press `⌘K` (or click the orb) and type or talk.
+- Wake word: flip **Wake on/off** in the menubar (top right), or say or type "turn on wake word". The orb shows a teal ring while it waits. Say "Hey Atrium" (or "Atrium", "Agent OS"), optionally followed by a command in the same breath: "Hey Atrium, open music".
+- After a wake it listens for 8 s for follow-ups (20 s while it waits for your yes or no), then goes back to waiting.
+- The browser asks for mic permission the first time.
+
+**What you can say**
+
+| Say | What happens |
+|---|---|
+| "What's going on with the engineering team?", "Sales update" | The room's manager reports; the room opens |
+| "What's the latest update?", "Brief me" | Waiting, blocked, finished and working counts plus the newest result |
+| "What needs me", "What is blocked", "What finished", "What's running" | Lists those items |
+| "What is Rex doing" | Status of a named agent |
+| "Open sales team dashboard", "Open Sales" | Opens the room |
+| "Open music / maps / ride / work / settings / overview / approvals" | Opens the app |
+| "Close music", "Close Sales", "Close this", "Close all" | Closes that window, the top one, or everything |
+| "Approve this", "Decline this", "Approve Nia's post" | Asks "Approve X? Say yes to confirm." |
+| "Yes" / "No" | Confirms (same path as the button, 8 s undo) or leaves it |
+| "Undo" | Reverses the last voice decision inside its 8 s window |
+| "Stop" | Cancels a pending confirm and silences the orb |
+| "Stop all", "Resume all", "Stop Rex", "Run Rex" | Panic stop and resume; agent stop or run (confirmed first) |
+| "Tell engineering to fix the failing pricing test" | Creates a proposal; "yes" commits it |
+| "Turn on / off wake word", "Stop listening" | Wake word and session control |
+| "Dark mode", "Light mode", "Next room", "Previous room" | Look and navigation |
+| "Help" | Examples |
+
+Approvals by voice always need an explicit spoken "yes", and keep the eight-second undo.
+The orb can approve nothing on its own.
+
+**How it works**
+
+- **Grammar first.** `web/src/desktop/intent-engine.ts` is a deterministic parser; most commands never touch a model.
+- **Speech to text.** Whisper tiny.en (about 40 MB) via Transformers.js in a worker, WebGPU when available, WASM otherwise. A voice-activity gate sends only speech to it.
+- **Wake word.** No keyword model: while armed, short speech bursts are transcribed and checked for the phrase (`web/src/lib/voice/wake.ts`). The orb's own voice coming back through the speakers is ignored.
+- **Speech output.** Kokoro 82M (about 90 MB) in a worker, with a local English system voice as the fallback.
+- **Smart understanding.** If the grammar does not understand a sentence, SmolLM2-360M-Instruct (270 MB on WebGPU, 390 MB on WASM) rewrites it as one command from a fixed list. The grammar re-checks that command, so the model can never do anything a typed command could not. It downloads in the background on first load and is on by default; turn it off in Settings, Voice. "Put some tunes on" becomes "open music".
+- Models can be removed in Settings, Voice, "Delete downloaded voice models".
+
+**Check it**
+
+```bash
+npm -w web run dev                              # http://localhost:5173
+npx tsx --test server/test/voice-*.test.ts      # grammar and wake-word tests
+node scripts/voice-e2e.mjs                      # 21 commands through the real UI (needs Chrome + playwright)
+node scripts/voice-e2e.mjs --audio wake.wav     # real mic path, wake word + Whisper
+```
+
+Not verified: a real human mic or accents, Safari and Firefox, the wake word's false-trigger rate and CPU cost. Design notes and requirements: [`docs/V3-VOICE-OS-PLAN.md`](docs/V3-VOICE-OS-PLAN.md).
+
 ## Requirements
 
 - Node 20 or newer. No engine is declared in the manifests; Vite 6 and the built-in `node --test` runner set the floor.
 - PostgreSQL, reachable locally. The login you connect as must be able to `CREATE ROLE` and `GRANT` — `server/scripts/migrate.ts` provisions one database role per room.
 - `git` on `PATH`. The engineering room shells out to it against a generated workspace repo.
-- No LLM API key. Agent reasoning is deterministic TypeScript, not a model call.
+- No LLM API key. Agent reasoning is deterministic TypeScript, not a model call. The voice models run in your browser and download on first use (about 400 MB with smart understanding, which is on by default).
 - Optional: a GitHub repo and token, only if you want `github.pr.open` to open a real pull request instead of pushing to a local bare remote.
 
 ## Run it
