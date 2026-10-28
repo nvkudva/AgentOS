@@ -16,6 +16,8 @@ type P = {
   onFocus: () => void; onClose: () => void; onPatch: (p: Partial<Win>) => void;
   /** room consoles go back to the grid they came from */
   onBack?: () => void;
+  /** clicking a parked window opens this instead of un-parking in place */
+  onParkedOpen?: () => void;
 };
 
 /**
@@ -93,7 +95,7 @@ function paint(id: string, r: Rect | null) {
   if (r) place(n, r, false);
 }
 
-export function Window({ win, rect, children, stage, rail, flag, peers = [], onHint, onGuide, onFocus, onClose, onPatch, onBack }: P) {
+export function Window({ win, rect, children, stage, rail, flag, peers = [], onHint, onGuide, onFocus, onClose, onPatch, onBack, onParkedOpen }: P) {
   // Rooms are surfaces, not applications: no traffic lights, one close affordance.
   const plain = win.plain;
   const drag = useRef<any>(null);
@@ -231,6 +233,7 @@ export function Window({ win, rect, children, stage, rail, flag, peers = [], onH
       onPointerDown={onFocus}
       onClick={() => {
         if (!win.park || Date.now() - dropped.current < 350) return;
+        if (onParkedOpen) { onParkedOpen(); return; }
         onPatch({ park: null, ...(win.home && { x: win.home.left, y: win.home.top, w: win.home.width, h: win.home.height }) });
       }}
     >

@@ -59,6 +59,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const micOn = useRef(false);
   const followUp = useRef<any>(null);
   const [heard, setHeard] = useState('');
+  const [loadingModel, setLoadingModel] = useState(false);
   const [asked, setAsked] = useState('');
   const [reply, setReply] = useState('');
   const [supported, setSupported] = useState(true);
@@ -282,7 +283,8 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     submitRef.current(command, true);
   };
 
-  useEffect(() => { if (voiceSettings.getSmartNlu()) llm.preload(); }, []);
+  // No llm.preload() on mount: it downloaded the model on every page load, starving
+  // STT/TTS of bandwidth before the user ever spoke. askModel loads it on demand.
 
   /** A chit dropped on the orb arrives here: the router already chose, and the panel
    *  holds it for three seconds so the hand can take it straight back out. */
@@ -333,7 +335,10 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
     if (micOn.current) return true;
     micOn.current = true;
     await stt.current.start((t) => onTranscriptRef.current(t),
-      (s) => { if (s === 'error' || s === 'unsupported') fallbackToTyping(); });
+      (s) => {
+        setLoadingModel(s === 'loading');
+        if (s === 'error' || s === 'unsupported') fallbackToTyping();
+      });
     const st = stt.current.status();
     if (st === 'error' || st === 'unsupported') { fallbackToTyping(); return false; }
     setStream(stt.current.stream());
@@ -469,7 +474,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
   const quote = room ? hours(Math.round(Math.max(0, room.budget_cents - room.spent_cents) * 0.18)) : '';
   const clar = clarifies[0];
   const res = !prop && !clar ? results[0] : undefined;
-  const line = typing ? '' : listening ? (heard || 'Listening…') : (reply || 'Ask me anything.');
+  const line = typing ? '' : listening ? (heard || (loadingModel ? 'Loading voice model… first use downloads it' : 'Listening…')) : (reply || 'Ask me anything.');
 
   // ← / → re-aim the proposal, and the sentence that named a room is part of the aim.
   useEffect(() => {
@@ -502,7 +507,7 @@ export function Supervisor({ ctx, alert, speak: speakOn, results, clarifies, onR
           {turns.map((t) => (
             <p key={t.id} className={`sup-turn ${t.who}`}>{t.text}</p>
           ))}
-          {listening && <p className="sup-turn you live">{heard || 'Listening…'}</p>}
+          {listening && <p className="sup-turn you live">{heard || (loadingModel ? 'Loading voice model… first use downloads it' : 'Listening…')}</p>}
         {/* A manager's question. It never joins the approvals queue: it is cheap,
             reversible and answerable in one keystroke — and if it is left for a minute
             it escalates itself rather than going quiet. */}

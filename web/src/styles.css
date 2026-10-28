@@ -1,20 +1,26 @@
 /* ============================================================
-   Atrium design system
-   Radius: 26 shell · 18 window · 12 card · 9 control · 999 pill
+   Atrium design system — Liquid Glass (macOS 27 Golden Gate)
+   Radius: 26 shell · 14 window · 12 card · 8 control · 999 pill
    Spacing: 4 8 12 16 24 32
    Elevation: e1 chip/tile · e2 card/dock · e3 window · e4 focused/floating
+   Glass: every floating surface shares one material. --glass is the fill
+   alpha (Golden Gate's opacity slider: ultra-clear 30% to fully tinted 95%).
+   Readability comes from contrast, not opacity: fills stay milky, never
+   watery, and blur always pairs with saturate(180%).
    ============================================================ */
 :root {
   --sliver:72px;
   --tile:48px;
   --dock-gap:10px;
+  --glass:52%;
   color-scheme: light;
   --text:#0d1319; --muted:#59646f; --faint:#5f6973;
   --solid:#f6f8fb; --win-fill:#fbfbfd;
+  --glass-fill:color-mix(in srgb, var(--solid) var(--glass), transparent);
   --line:#0d131922; --line-soft:#0d131914; --tint:#3c465a0f; --tint-2:#3c465a1a;
 
-  --sheen-1:transparent; --sheen-2:transparent;
-  --rim:rgb(255 255 255 / .6); --spec:rgb(255 255 255 / .55);
+  --sheen-1:rgb(255 255 255 / .22); --sheen-2:rgb(255 255 255 / .04);
+  --rim:rgb(255 255 255 / .7); --spec:rgb(255 255 255 / .65);
 
   --e1:0 0 0 .5px rgb(0 0 0 / .08), 0 1px 2px rgb(0 0 0 / .06);
   --e2:0 0 0 .5px rgb(0 0 0 / .10), 0 8px 24px -6px rgb(0 0 0 / .18);
@@ -24,18 +30,18 @@
   --idle:#7a8494; --working:#2f6fe0; --blocked:#c9821c; --blocked-text:#9a5a00; --approval:#8352c9;
   --failed:#d1483c; --killed:#b3bac4; --ok:#2f9468;
 
-  --sky-1:#a9cdf0; --sky-2:#d3e3f4; --sky-3:#f7ecdc; --sun:#ffc98a;
+  --sky-1:#6ea8e6; --sky-2:#a8cbf0; --sky-3:#f2d9b8; --sun:#ffc98a;
   --ridge-3:#8fa9c6; --ridge-2:#6f8cae; --ridge-1:#4e6a8e;
   --mist:#ffffff; --water:#5f7c9f; --fore:#2f4560;
 
-  /* Self-hosted first so the app reads the same on every machine; the system faces
-     are there only if the woff2 has not landed yet. */
-  --ui:'Google Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable',
+  /* The system face first, so a Mac reads San Francisco exactly as Apple draws
+     it; the self-hosted face covers every other machine unchanged. */
+  --ui:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Google Sans', 'Segoe UI Variable',
        'Segoe UI', system-ui, sans-serif;
 
-  --r-shell:20px; --r-win:14px; --r-card:12px; --r-ctl:8px;
+  --r-shell:20px; --r-win:14px; --r-card:12px; --r-ctl:6px;
   --spring:cubic-bezier(.34,1.3,.64,1);
-  --menubar:44px; --dock:84px;
+  --menubar:36px; --dock:84px;
 
   /* ONE easing family, ONE duration scale. Nothing in this file may state a curve
      or a duration of its own — a second family reads as a second product.
@@ -63,8 +69,8 @@
   --solid:#171b22; --win-fill:#1c1f26;
   --line:#ffffff20; --line-soft:#ffffff12; --tint:#ffffff0a; --tint-2:#ffffff16;
 
-  --sheen-1:transparent; --sheen-2:transparent;
-  --rim:rgb(255 255 255 / .14); --spec:rgb(255 255 255 / .10);
+  --sheen-1:rgb(255 255 255 / .09); --sheen-2:rgb(255 255 255 / .02);
+  --rim:rgb(255 255 255 / .16); --spec:rgb(255 255 255 / .12);
 
   --e1:0 0 0 .5px rgb(255 255 255 / .08), 0 1px 2px rgb(0 0 0 / .50);
   --e2:0 0 0 .5px rgb(255 255 255 / .10), 0 8px 24px -6px rgb(0 0 0 / .60);
@@ -79,17 +85,18 @@
   --mist:#9fb6d8; --water:#0a1020; --fore:#050912;
 }
 
-/* One glass recipe, four surfaces. More than four on screen costs frames. */
+/* One glass recipe, every floating surface. More than four blurred surfaces on
+   screen at once costs frames, so rails and cards stay opaque. */
 .glass {
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)),
-             color-mix(in srgb, var(--solid) 62%, transparent);
-  backdrop-filter:blur(28px) saturate(180%);
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)), var(--glass-fill);
+  backdrop-filter:blur(30px) saturate(180%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
   border:.5px solid var(--rim);
   box-shadow:inset 0 1px 0 var(--spec), inset 0 -1px 0 rgb(0 0 0 / .04), var(--e4);
   contain:paint;
 }
-[data-perf="lite"] .glass { backdrop-filter:none;
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 96%, transparent); }
+[data-perf="lite"] .glass { backdrop-filter:none; -webkit-backdrop-filter:none;
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)), var(--win-fill); }
 
 * { box-sizing:border-box; }
 html, body, #root { height:100%; }
@@ -111,6 +118,18 @@ button.x { width:22px; height:22px; padding:0; border-radius:999px; font-size:11
 button.x:hover { color:var(--text); }
 input { font:inherit; color:inherit; background:var(--tint); border:.5px solid var(--line);
   border-radius:var(--r-ctl); padding:6px 10px; }
+/* The system slider: accent-filled track, white knob, no box. */
+input[type="range"] { -webkit-appearance:none; appearance:none; background:transparent; border:0;
+  padding:8px 0; height:28px; width:100%; cursor:pointer; }
+input[type="range"]::-webkit-slider-runnable-track { height:6px; border-radius:999px;
+  background:linear-gradient(90deg, var(--working) var(--fill, 50%), var(--tint-2) var(--fill, 50%)); }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:20px; height:20px; margin-top:-7px;
+  border-radius:999px; background:#fff;
+  box-shadow:0 0 0 .5px rgb(0 0 0 / .15), 0 1px 4px rgb(0 0 0 / .3); }
+input[type="range"]::-moz-range-track { height:6px; border-radius:999px; background:var(--tint-2); }
+input[type="range"]::-moz-range-progress { height:6px; border-radius:999px; background:var(--working); }
+input[type="range"]::-moz-range-thumb { width:19px; height:19px; border:0; border-radius:999px; background:#fff;
+  box-shadow:0 0 0 .5px rgb(0 0 0 / .15), 0 1px 4px rgb(0 0 0 / .3); }
 h4 { margin:24px 0 8px; color:var(--faint); font-weight:600; font-size:11px;
   text-transform:uppercase; letter-spacing:.06em; }
 h4:first-child { margin-top:0; }
@@ -148,9 +167,11 @@ p { margin:8px 0; }
 /* The glass lives on a layer, not the bar: a backdrop-filter on the bar itself would make it the
    containing block of the orb, which is position:fixed on phones, and pin the orb off-screen. */
 .menubar::before { content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
-  backdrop-filter:blur(28px) saturate(180%); }
-[data-perf="lite"] .menubar::before { backdrop-filter:none; background:color-mix(in srgb,var(--solid) 96%, transparent); }
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)), var(--glass-fill);
+  backdrop-filter:blur(30px) saturate(180%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%); }
+[data-perf="lite"] .menubar::before { backdrop-filter:none; -webkit-backdrop-filter:none;
+  background:var(--win-fill); }
 .logo { width:17px; height:17px; color:var(--working); flex:none; }
 .menu { color:var(--muted); cursor:pointer; padding:4px 8px; border-radius:999px; }
 .menu:hover { background:var(--tint-2); color:var(--text); }
@@ -297,6 +318,7 @@ p { margin:8px 0; }
   pointer-events:none; }
 [data-theme="light"] .empty { text-shadow:none; color:var(--muted); }
 .roomwin { padding:8px 10px 10px; }
+.room-open-chat { display:block; width:100%; margin-top:8px; }
 .roomwin ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
 
 .crew { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px; cursor:pointer; }
@@ -337,21 +359,34 @@ p { margin:8px 0; }
 @keyframes breathe { 0%,100%{opacity:.35} 50%{opacity:1} }
 @keyframes rest    { 0%,100%{opacity:.68} 50%{opacity:1} }
 
-/* --- windows --- */
+/* --- windows: Liquid Glass, edge to edge. The whole window is one material;
+   the toolbar is unified — no divider, the title just sits on the glass. --- */
 .win { position:absolute; z-index:var(--z, 10);
   display:flex; flex-direction:column; border-radius:var(--r-win); overflow:hidden;
-  background:var(--win-fill); border:.5px solid var(--rim); box-shadow:var(--e3);
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)), var(--glass-fill);
+  backdrop-filter:blur(30px) saturate(180%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
+  border:.5px solid var(--rim);
+  box-shadow:inset 0 1px 0 var(--spec), var(--e3);
   user-select:none; -webkit-user-select:none; }
+[data-perf="lite"] .win { backdrop-filter:none; -webkit-backdrop-filter:none; background:var(--win-fill); }
 /* Prose is still prose: only the chrome refuses the selection. */
 .win p, .win .sel-ok, .win pre, .win code, .win input, .win textarea { user-select:text; -webkit-user-select:text; }
 .win.hidden { display:none; }
 .win-bar { cursor:grab; }
 .win.dragging .win-bar { cursor:grabbing; }
 
-/* Depth is read from de-emphasis: only the front window carries full weight. */
+/* Depth is read from de-emphasis: only the front window carries full weight.
+   An inactive window's lights go solid gray, exactly like the system. */
 .win.back { box-shadow:var(--e1); }
 .win.back .win-title { color:var(--faint); }
-.win.back .l { filter:grayscale(1) opacity(.55); }
+.win.back .l { filter:none; }
+.win.back .l.red { background:#cfcfd2; }
+.win.back .l.yellow { background:#cfcfd2; }
+.win.back .l.green { background:#cfcfd2; }
+[data-theme="dark"] .win.back .l.red,
+[data-theme="dark"] .win.back .l.yellow,
+[data-theme="dark"] .win.back .l.green { background:#4d4d50; }
 
 /* --- parked: a place at the edge, not a minimise --- */
 .win.parked { width:var(--sliver); height:var(--ph);
@@ -369,7 +404,10 @@ p { margin:8px 0; }
    context, so the menubar and dock still sit above all of this. */
 .win.parked:hover { z-index:var(--z-front); }
 .win.parked:hover { width:380px; height:auto; min-height:var(--ph); max-height:calc(100vh - 200px);
-  background:var(--win-fill); box-shadow:var(--e4); }
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)), var(--glass-fill);
+  backdrop-filter:blur(30px) saturate(180%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
+  box-shadow:inset 0 1px 0 var(--spec), var(--e4); }
 .win.parked:hover .win-body { overflow:auto; }
 /* while something is being dragged, a rail must not swell under the pointer */
 body.dragging .win.parked:hover { width:var(--sliver); }
@@ -408,11 +446,19 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 /* lifted off the desktop while it is being dragged, and never fighting the pointer */
 .win.dragging { box-shadow:var(--e4); will-change:left, top, width, height; }
 .win.dragging .win-body { pointer-events:none; }
-.win-bar { height:38px; flex:none; display:flex; align-items:center; gap:12px; padding:0 12px;
-  border-bottom:.5px solid var(--line-soft); user-select:none; touch-action:none; }
+.win-bar { height:40px; flex:none; display:flex; align-items:center; gap:12px; padding:0 14px;
+  user-select:none; touch-action:none; }
 .lights { display:flex; gap:8px; }
-.l { width:12px; height:12px; border-radius:999px; padding:0; border:0; cursor:pointer; }
+.l { position:relative; width:12px; height:12px; border-radius:999px; padding:0; border:0; cursor:pointer;
+  box-shadow:inset 0 0 1px rgb(0 0 0 / .25); }
 .l.red{background:#ff5f57}.l.yellow{background:#febc2e}.l.green{background:#28c840}
+/* Hovering the cluster shows the glyphs, exactly like the system. */
+.l::after { content:''; position:absolute; inset:0; display:grid; place-items:center;
+  font-size:9px; line-height:1; font-weight:700; color:rgb(0 0 0 / .55); }
+.lights:hover .l.red::after { content:'×'; }
+.lights:hover .l.yellow::after { content:'−'; }
+.lights:hover .l.green::after { content:'+'; }
+.win.back .lights:hover .l::after { content:''; }
 .win-title { color:var(--muted); font-size:12.5px; font-weight:500; letter-spacing:0;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .win-title.plain { color:var(--text); font-weight:600; }
@@ -423,8 +469,8 @@ body.dragging .win.parked:hover { width:var(--sliver); }
    past the edge. A clipped crew row must never read as the end of the list. */
 .win-body {
   background:
-    linear-gradient(var(--win-fill), transparent) top    / 100% 12px no-repeat local,
-    linear-gradient(transparent, var(--win-fill)) bottom / 100% 12px no-repeat local; }
+    linear-gradient(color-mix(in srgb, var(--win-fill) 90%, transparent), transparent) top    / 100% 12px no-repeat local,
+    linear-gradient(transparent, color-mix(in srgb, var(--win-fill) 90%, transparent)) bottom / 100% 12px no-repeat local; }
 .grip { position:absolute; right:0; bottom:0; width:18px; height:18px; cursor:nwse-resize; touch-action:none; }
 
 /* --- slide-over --- */
@@ -433,11 +479,13 @@ body.dragging .win.parked:hover { width:var(--sliver); }
 .scrim.on { opacity:1; pointer-events:auto; }
 .slideover { position:fixed; top:calc(var(--menubar) + 8px); right:8px; bottom:8px; width:min(380px, 92vw);
   z-index:100; border-radius:var(--r-shell); overflow:hidden; display:flex; flex-direction:column;
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
-  backdrop-filter:blur(28px) saturate(180%); border:.5px solid var(--rim);
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)), var(--glass-fill);
+  backdrop-filter:blur(30px) saturate(180%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
+  border:.5px solid var(--rim);
   box-shadow:inset 0 1px 0 var(--spec), var(--e4);
   transform:translateX(calc(100% + 16px)); transition:transform var(--t-near) var(--ease); contain:paint; }
-[data-perf="lite"] .slideover { backdrop-filter:none; background:var(--win-fill); }
+[data-perf="lite"] .slideover { backdrop-filter:none; -webkit-backdrop-filter:none; background:var(--win-fill); }
 .slideover.on { transform:none; }
 .slideover > header { display:flex; align-items:center; gap:8px; padding:12px 12px 12px 16px;
   border-bottom:.5px solid var(--line-soft); }
@@ -455,14 +503,16 @@ body.dragging .win.parked:hover { width:var(--sliver); }
    dock, and its label above that. contain:paint alone would clip both, and an overflow-x
    of auto silently forces overflow-y to auto too, which clips them again. The dock keeps
    its tiles on one line and shrinks them on a narrow desk instead of scrolling. */
-.dock { pointer-events:auto; display:flex; align-items:flex-end; gap:var(--dock-gap); padding:8px 12px;
+.dock { pointer-events:auto; display:flex; align-items:flex-end; gap:var(--dock-gap); padding:10px 12px;
   max-width:calc(100vw - 24px); overflow:visible; flex-wrap:nowrap;
-  border-radius:var(--r-shell);
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
-  backdrop-filter:blur(28px) saturate(180%); border:.5px solid var(--rim);
-  box-shadow:inset 0 1px 0 var(--spec), var(--e2); }
-[data-perf="lite"] .dock { backdrop-filter:none;
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb,var(--solid) 96%, transparent); }
+  border-radius:24px;
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)), var(--glass-fill);
+  backdrop-filter:blur(30px) saturate(180%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);
+  border:.5px solid var(--rim);
+  box-shadow:inset 0 1px 0 var(--spec), inset 0 -1px 0 rgb(0 0 0 / .03), var(--e2); }
+[data-perf="lite"] .dock { backdrop-filter:none; -webkit-backdrop-filter:none;
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)), var(--win-fill); }
 .dock > * { flex:none; }
 .tile { position:relative; width:var(--tile); height:var(--tile); padding:0; border-radius:var(--r-card);
   border:0; background:none; box-shadow:none;
@@ -1201,8 +1251,8 @@ body.carrying .win.parked.dwell .pk-hold { display:none; }
 
 /* 1. Glass — the same material as every window on this desktop. */
 .skin-glass.sup.open .sup-shell {
-  background:linear-gradient(var(--sheen-1), var(--sheen-2)), color-mix(in srgb, var(--solid) 62%, transparent);
-  backdrop-filter:blur(28px) saturate(180%);
+  background:linear-gradient(var(--sheen-1), var(--sheen-2)), var(--glass-fill);
+  backdrop-filter:blur(30px) saturate(180%); -webkit-backdrop-filter:blur(30px) saturate(180%);
   border-color:var(--rim);
   box-shadow:inset 0 1px 0 var(--spec), var(--e4); }
 [data-perf="lite"] .skin-glass.sup.open .sup-shell { backdrop-filter:none; background:var(--win-fill); }

@@ -44,17 +44,32 @@ function ensureWorker(): Worker | null {
   }
 }
 
+/** Prefer an on-device English voice; fall back to any English, then the system default. */
+export function pickVoice<T extends { lang: string; localService: boolean }>(voices: T[]): T | null {
+  return voices.find((v) => v.localService && v.lang.startsWith('en'))
+    ?? voices.find((v) => v.lang.startsWith('en'))
+    ?? voices[0]
+    ?? null;
+}
+
 function speakNative(text: string) {
   if (!('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = settings.getVoiceSpeed() * 1.05;
-  utterance.volume = settings.getVoiceVolume();
-  // On-device voices only: a network voice would send the reply text off the machine.
-  const local = speechSynthesis.getVoices().find((v) => v.localService && v.lang.startsWith('en'));
-  if (!local) return;
-  utterance.voice = local;
-  speechSynthesis.speak(utterance);
+  let spoken = false;
+  const go = () => {
+    if (spoken) return;
+    spoken = true;
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = settings.getVoiceSpeed() * 1.05;
+    utterance.volume = settings.getVoiceVolume();
+    const voice = pickVoice(speechSynthesis.getVoices());
+    if (voice) utterance.voice = voice;
+    speechSynthesis.speak(utterance);
+  };
+  // Voices often arrive async; an empty list used to mean total silence.
+  if (speechSynthesis.getVoices().length) { go(); return; }
+  speechSynthesis.addEventListener('voiceschanged', go, { once: true });
+  setTimeout(go, 600);
 }
 
 async function playSamples(samples: Float32Array, samplingRate: number, id: number) {

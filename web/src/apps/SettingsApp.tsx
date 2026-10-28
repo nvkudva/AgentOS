@@ -6,6 +6,7 @@ import { post } from '../lib/api';
 import { hours } from '../lib/humanize';
 import { ListView } from '../components/ListView';
 import type { Agent, Room } from '../lib/api';
+import { useGlass } from '../lib/theme';
 
 type PaneId = 'appearance' | 'voice' | 'limits' | 'rooms' | 'activity';
 const PANES: { id: PaneId; label: string; glyph: string; colour: string }[] = [
@@ -28,6 +29,7 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
   });
   const [adding, setAdding] = useState(false);
   const [pane, setPane] = useState<PaneId>('appearance');
+  const { glass, setGlass } = useGlass();
   if (adding) return <NewRoom onDone={() => setAdding(false)} />;
   return (
     <div className="settings-app">
@@ -65,6 +67,13 @@ export function SettingsApp({ rooms, agents, config, perf, theme, setTheme, wall
                   <button key={w} className={wallpaper === w ? 'primary' : ''} onClick={() => setWallpaper(w)}>{w}</button>
                 ))}
               </span>
+            </label>
+            <label>
+              <span className="srow"><b>Glass</b><em>Ultra-clear to fully tinted, like the system.</em></span>
+              <input type="range" min={30} max={95} step={1} value={glass}
+                     style={{ ['--fill' as any]: `${((glass - 30) / 65) * 100}%` }}
+                     onChange={(e) => setGlass(Number(e.target.value))}
+                     aria-label="Glass opacity" />
             </label>
           </div>
           <p className="muted tiny sgnote">

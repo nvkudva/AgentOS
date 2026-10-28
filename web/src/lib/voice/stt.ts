@@ -50,6 +50,7 @@ class WorkerSttClient implements SttClient {
   constructor(private opts: SttClientOptions = {}) {}
   private worker: Worker | null = null;
   private capture: { stop(): void; stream: MediaStream } | null = null;
+  private modelReady = false;
   private current: SttStatus = 'idle';
   private seq = 0;
   private pending = new Map<number, Pending>();
@@ -70,10 +71,16 @@ class WorkerSttClient implements SttClient {
       this.worker.onmessage = (event: MessageEvent<any>) => {
         const m = event.data;
         if (m.type === 'status') {
-          if (this.current !== 'listening') this.setStatus(m.status as SttStatus);
+          if (m.status === 'ready') {
+            this.modelReady = true;
+            this.setStatus(this.capture ? 'listening' : 'ready');
+            return;
+          }
+          if (m.status === 'error') { this.setStatus('error'); return; }
+          if (!this.capture) this.setStatus(m.status as SttStatus);
           return;
         }
-        if (m.type === 'progress') { if (this.current !== 'listening') this.setStatus('loading'); return; }
+        if (m.type === 'progress') { if (!this.modelReady) this.setStatus('loading'); return; }
         if (m.type === 'result') {
           const p = this.pending.get(m.id);
           this.pending.delete(m.id);
@@ -82,9 +89,12 @@ class WorkerSttClient implements SttClient {
           return;
         }
         if (m.type === 'error') {
-          const p = this.pending.get(m.id);
           this.pending.delete(m.id);
-          if (!p) this.setStatus('error');
+          // A segment error means the model failed to load or run. Swallowing it
+          // left the UI saying "Listening…" over a dead worker — surface it so the
+          // caller falls back to typing with an honest message.
+          trace('stt error', m.message ?? '');
+          this.setStatus('error');
         }
       };
       this.worker.onerror = () => this.setStatus('error');
@@ -134,14 +144,17 @@ class WorkerSttClient implements SttClient {
       return;
     }
     if (this.disposed) { this.capture.stop(); this.capture = null; return; }
-    this.setStatus('listening');
+    // Mic open is not "listening" until Whisper is actually running: the first
+    // load downloads the model, and claiming otherwise reads as broken voice.
+    this.setStatus(this.modelReady ? 'listening' : 'loading');
   }
 
   stop(): void {
     this.capture?.stop();
     this.capture = null;
     this.pending.clear();
-    if (this.current === 'listening') this.setStatus(this.worker ? 'ready' : 'idle');
+    if (this.current === 'listening' || this.current === 'loading')
+      this.setStatus(this.modelReady ? 'ready' : 'idle');
   }
 
   setMode(mode: SttMode): void { this.mode = mode; }

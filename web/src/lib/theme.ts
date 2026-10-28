@@ -26,3 +26,20 @@ export function useTheme() {
 
   return { theme, setTheme, resolved };
 }
+
+/**
+ * Golden Gate's glass slider: ultra-clear to fully tinted. Lives on
+ * <html style="--glass"> so every surface sharing --glass-fill follows it
+ * with no re-render. 30–95, default 52.
+ */
+export function useGlass() {
+  const [glass, setGlassState] = useState<number>(() => {
+    const v = Number(localStorage.getItem('atrium.glass') ?? 52);
+    return Number.isFinite(v) ? Math.min(95, Math.max(30, v)) : 52;
+  });
+  useEffect(() => {
+    document.documentElement.style.setProperty('--glass', `${glass}%`);
+    try { localStorage.setItem('atrium.glass', String(glass)); } catch { /* private mode */ }
+  }, [glass]);
+  return { glass, setGlass: setGlassState };
+}

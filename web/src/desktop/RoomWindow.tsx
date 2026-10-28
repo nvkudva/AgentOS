@@ -263,6 +263,11 @@ function Body({ room, agents, mandates, tasks, onAgent, activeId, onOpenTask, on
         </li>
         {workers.map(row)}
       </ul>
+      {onOpenConsole && (
+        <button className="primary room-open-chat" onClick={() => onOpenConsole(room)}>
+          Open conversation
+        </button>
+      )}
       {view !== undefined &&
         <NeedsYouBar items={needs} view={view} onDecide={onDecide} onDetails={() => onOpenConsole?.(room)} />}
       {undo && (

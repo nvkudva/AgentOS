@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLiveState, observe, post } from './lib/api';
 import { useDecide, requestDecide, requestUndo, UNDO_MS } from './lib/decide';
-import { useTheme } from './lib/theme';
+import { useGlass, useTheme } from './lib/theme';
 import { usePerf } from './lib/perf';
 import { loadDesktop, saveDesktop, loadSeen, saveSeen } from './lib/desktop';
 import type { Room, Agent, Inbox, Task } from './lib/api';
@@ -100,6 +100,7 @@ export default function App() {
   const snap = useLiveState();
   const { wins, open, close, focus, patch, patchAll } = useWindows(restored);
   const { theme, setTheme, resolved } = useTheme();
+  useGlass();
   const perf = usePerf();
   const stageRef = useRef<HTMLElement>(null);
   const [stage, setStage] = useState({ w: 1000, h: 640 });
@@ -135,12 +136,13 @@ export default function App() {
     try { return (localStorage.getItem('atrium.orbSkin') as Skin) || 'well'; } catch { return 'well'; }
   });
   /**
-   * Calm is the default: a gradient that stays out of the way. The illustrated
-   * scene is one tap away in Settings and persists like the theme.
+   * The illustrated scene is the default: Liquid Glass needs colour and edges
+   * behind it to refract, and a flat gradient leaves it reading as plain white.
+   * Calm is one tap away in Settings and persists like the theme.
    */
   const [wallpaper, setWallpaperState] = useState<'calm' | 'scene'>(() => {
-    try { return localStorage.getItem('atrium.wallpaper') === 'scene' ? 'scene' : 'calm'; }
-    catch { return 'calm'; }
+    try { return localStorage.getItem('atrium.wallpaper') === 'calm' ? 'calm' : 'scene'; }
+    catch { return 'scene'; }
   });
   const setWallpaper = (w: 'calm' | 'scene') => {
     setWallpaperState(w);
@@ -831,7 +833,7 @@ export default function App() {
     const crew = room ? snap.agents.filter((a) => a.room_id === room.id) : [];
     const attn = crew.some((a) => ['awaiting_approval', 'blocked', 'failed'].includes(a.state));
     return (
-      <Window key={w.id} win={w} rect={rect} stage={stage} onBack={w.id.startsWith('room:') ? () => launch('floor') : undefined} flag={`${attn ? 'needs ' : ''}${w.z === topZ ? '' : 'back'}${closing.includes(w.id) ? ' closing' : ''}`}
+      <Window key={w.id} win={w} rect={rect} stage={stage} onBack={w.id.startsWith('room:') ? () => launch('floor') : undefined} onParkedOpen={room && w.id.startsWith('roomwin:') ? () => openRoomConsole(room) : undefined} flag={`${attn ? 'needs ' : ''}${w.z === topZ ? '' : 'back'}${closing.includes(w.id) ? ' closing' : ''}`}
               onHint={setHint} peers={peers} onGuide={setGuide}
               rail={room
                 ? <ParkedRail room={room} agents={crew} mandates={mandates} tasks={tasks} />
